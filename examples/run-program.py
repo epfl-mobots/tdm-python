@@ -47,6 +47,12 @@ class Test(ThymioFB):
             self.tdm.close()
             self.tdm = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.disconnect()
+
     def send_packet(self, b):
         self.tdm.send_packet(b)
 
@@ -95,38 +101,38 @@ class Test(ThymioFB):
                 self.process_message(msg)
 
 
-test = Test(debug=False)
+if __name__ == "__main__":
 
-# state machine state: 0=init, 1=locked, 2=program sent, 3=done
-state = 0
+    with Test(debug=False) as test:
 
-try:
-    while True:
-        test.process_next_message()
-        sleep(0.1)
-        if len(test.nodes) > 0:
-            node = test.nodes[0]
-            node_id_str = node["node_id_str"]
-            status = node["status"]
-            if state == 0:
-                print("node", node_id_str, "state", state, "node satus", status)
-                if status == 2:
-                    # available
-                    test.send_lock_node(node_id_str)
-                    state = 1
-            elif state == 1:
-                print("node", node_id_str, "state", state, "node satus", status)
-                if status == 4:
-                    # ready
-                    test.send_program(node_id_str,
-                                      "leds.top = [0,0,32]\n")
-                    state = 2
-            elif state == 2:
-                if status == 4:
-                    # ready: run
-                    test.set_vm_execution_state(node_id_str, 1)
-                    state = 3
-except KeyboardInterrupt:
-    pass
+        # state machine state: 0=init, 1=locked, 2=program sent, 3=done
+        state = 0
 
-test.close()
+        try:
+            while True:
+                test.process_next_message()
+                sleep(0.1)
+                if len(test.nodes) > 0:
+                    node = test.nodes[0]
+                    node_id_str = node["node_id_str"]
+                    status = node["status"]
+                    if state == 0:
+                        print("node", node_id_str, "state", state, "node satus", status)
+                        if status == 2:
+                            # available
+                            test.send_lock_node(node_id_str)
+                            state = 1
+                    elif state == 1:
+                        print("node", node_id_str, "state", state, "node satus", status)
+                        if status == 4:
+                            # ready
+                            test.send_program(node_id_str,
+                                              "leds.top = [0,0,32]\n")
+                            state = 2
+                    elif state == 2:
+                        if status == 4:
+                            # ready: run
+                            test.set_vm_execution_state(node_id_str, 1)
+                            state = 3
+        except KeyboardInterrupt:
+            pass
