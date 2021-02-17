@@ -11,7 +11,7 @@ from tdmclient import FlatBuffer, Union, Table
 
 class ThymioFB:
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=0):
 
         self.debug = debug
 
@@ -198,7 +198,7 @@ class ThymioFB:
 
         fb = FlatBuffer()
         fb.parse(msg, self.SCHEMA)
-        if self.debug:
+        if self.debug >= 2:
             fb.dump()
         if type(fb.root) is Union:
             if fb.root.union_type == 1:
@@ -228,26 +228,26 @@ class ThymioFB:
                         }
                         for node in nodes
                     ]
-                    if self.debug:
+                    if self.debug >= 1:
                         print("NodesChanged", self.nodes)
             elif fb.root.union_type == 11:
                 # request completed
-                if self.debug:
+                if self.debug >= 1:
                     print("ok")
             elif fb.root.union_type == 13:
                 # CompilationResultFailure
                 error_msg = field_val(fb.root.union_data[1].fields[1], "")
                 error_line = field_val(fb.root.union_data[3].fields[1], 0)
                 error_col = field_val(fb.root.union_data[4].fields[1], 0)
-                if self.debug:
+                if self.debug >= 1:
                     print(f"compilation error: {error_msg}")
             elif fb.root.union_type == 14:
                 # compilation result success
-                if self.debug:
+                if self.debug >= 1:
                     print("compilation ok")
             elif fb.root.union_type == 15:
                 # compilation result success
-                if self.debug:
+                if self.debug >= 1:
                     print("compilation error")
             elif fb.root.union_type == 29:
                 # ping
