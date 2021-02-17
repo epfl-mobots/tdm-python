@@ -229,7 +229,8 @@ class ThymioFB:
                         for node in nodes
                     ]
                     if self.debug >= 1:
-                        print("NodesChanged", self.nodes)
+                        print("NodesChanged",
+                              ", ".join(f"{node['node_id_str']}: status={node['status']}" for node in self.nodes))
             elif fb.root.union_type == 11:
                 # request completed
                 if self.debug >= 1:
@@ -237,8 +238,8 @@ class ThymioFB:
             elif fb.root.union_type == 13:
                 # CompilationResultFailure
                 error_msg = field_val(fb.root.union_data[1].fields[1], "")
-                error_line = field_val(fb.root.union_data[3].fields[1], 0)
-                error_col = field_val(fb.root.union_data[4].fields[1], 0)
+                error_line = field_val(fb.root.union_data[1].fields[3], 0)
+                error_col = field_val(fb.root.union_data[1].fields[4], 0)
                 if self.debug >= 1:
                     print(f"compilation error: {error_msg}")
             elif fb.root.union_type == 14:
