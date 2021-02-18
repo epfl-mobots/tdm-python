@@ -72,6 +72,14 @@ class ThymioFB:
     ERROR_THYMIO2_PAIRING_WRITE_DONGLE_FAILED = 5
     ERROR_THYMIO2_PAIRING_WRITE_ROBOT_FAILED = 6
 
+    WATCHABLE_INFO_STOP_MONITORING = 0
+    WATCHABLE_INFO_VARIABLES = 0x1
+    WATCHABLE_INFO_EVENTS = 0x2
+    WATCHABLE_INFO_VM_EXECUTION_STATE = 0x4
+    WATCHABLE_INFO_SHARED_EVENTS_DESCRIPTION = 0x8
+    WATCHABLE_INFO_SHARED_VARIABLES = 0x10
+    WATCHABLE_INFO_SCRATCHPADS = 0x20
+
     PROGRAMMING_LANGUAGE_ASEBA = 1
     PROGRAMMING_LANGUAGE_AESL = 2
 
@@ -278,6 +286,18 @@ class ThymioFB:
             )
         ), self.SCHEMA)
 
+    def create_msg_watch_node(self, node_id_str, flags, **kwargs):
+        return self.create_message((
+            self.MESSAGE_TYPE_WATCH_NODE,
+            (
+                self.next_request_id(**kwargs),
+                (
+                    self.get_node_id(node_id_str),
+                ),
+                flags
+            )
+        ), self.SCHEMA)
+
     def process_message(self, msg):
 
         def field_val(f, default):
@@ -285,7 +305,7 @@ class ThymioFB:
 
         fb = FlatBuffer()
         fb.parse(msg, self.SCHEMA)
-        if self.debug >= 2:
+        if self.debug >= 3:
             fb.dump()
         if type(fb.root) is Union:
             if fb.root.union_type == self.MESSAGE_TYPE_CONNECTION_HANDSHAKE:
@@ -352,6 +372,87 @@ class ThymioFB:
                     del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print("compilation ok")
+            elif fb.root.union_type == self.MESSAGE_TYPE_VARIABLES_CHANGED:
+                node_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[0][1].fields[0][1]])
+                               if fb.root.union_data[1].fields[0] is not None
+                               else None)
+                variables = [
+                    {
+                        "name": v.fields[0][1],
+                        # (flexbuffer: not implemented yet)
+                    }
+                    for v in fb.root.union_data[1].fields[1][1]
+                ]
+                if self.debug >= 1:
+                    print(f"variables of node {node_id_str} changed")
+                    if self.debug >= 2:
+                        print("\n".join([
+                            v["name"] for v in variables
+                        ]))
+            elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_DESCRIPTIONS_CHANGED:
+                node_or_group_id = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[0][1].fields[0][1]])
+                                    if fb.root.union_data[1].fields[0] is not None
+                                    else None)
+                event_descr = [
+                    {
+                        "name": e.fields[0][1],
+                        "size": e.fields[1][1],
+                        "index": field_val(e.fields[2], 0)
+                    }
+                    for e in fb.root.union_data[1].fields[1][1]
+                ]
+                if self.debug >= 1:
+                    print(f"event descriptions of node or group {node_or_group_id} changed")
+                    if self.debug >= 2:
+                        print("\n".join([
+                            f"{e['name']} size={e['size']} index={e['index']}" for e in event_descr
+                        ]))
+            elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_EMITTED:
+                node_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[0][1].fields[0][1]])
+                               if fb.root.union_data[1].fields[0] is not None
+                               else None)
+                events = [
+                    {
+                        "name": e.fields[0][1],
+                        # (flexbuffer: not implemented yet)
+                    }
+                    for e in fb.root.union_data[1].fields[1][1]
+                ]
+                if self.debug >= 1:
+                    print(f"events emitted by node {node_id_str}")
+                    if self.debug >= 2:
+                        print("\n".join([
+                            e["name"] for e in events
+                        ]))
+            elif fb.root.union_type == self.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED:
+                node_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[0][1].fields[0][1]])
+                               if fb.root.union_data[1].fields[0] is not None
+                               else None)
+                state = field_val(fb.root.union_data[1].fields[1], 0)
+                line = field_val(fb.root.union_data[1].fields[2], 0)
+                error = field_val(fb.root.union_data[1].fields[3], 0)
+                error_msg = field_val(fb.root.union_data[1].fields[4], "")
+                if self.debug >= 1:
+                    print(f"execution state of node {node_id_str} changed to {state}, line={line}, error={error} {error_msg}")
+            elif fb.root.union_type == self.MESSAGE_TYPE_SCRATCHPAD_UPDATE:
+                request_id = field_val(fb.root.union_data[1].fields[0], 0)
+                scratchpad_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[1][1].fields[0][1]])
+                                     if fb.root.union_data[1].fields[1] is not None
+                                     else None)
+                group_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[2][1].fields[0][1]])
+                                if fb.root.union_data[1].fields[2] is not None
+                                else None)
+                node_id_str = ("".join([f"{ord(b):02x}" for b in fb.root.union_data[1].fields[3][1].fields[0][1]])
+                               if fb.root.union_data[1].fields[3] is not None
+                               else None)
+                language = field_val(fb.root.union_data[1].fields[4], self.PROGRAMMING_LANGUAGE_ASEBA)
+                text = field_val(fb.root.union_data[1].fields[5], "")
+                name = field_val(fb.root.union_data[1].fields[6], "")
+                deleted = field_val(fb.root.union_data[1].fields[7], False)
+                if self.debug >= 1:
+                    print(f"scratchpad {scratchpad_id_str} of node {node_id_str} / group {group_id_str} updated")
+                    print(text)
+
             elif fb.root.union_type == self.MESSAGE_TYPE_PING:
                 pass
             else:

@@ -86,6 +86,11 @@ class Client(ThymioFB):
             print(f"send set exec state {state} to {node_id_str}")
         self.send_packet(self.create_msg_set_vm_execution_state(node_id_str, state, **kwargs))
 
+    def watch_node(self, node_id_str, flags, **kwargs):
+        if self.debug >= 1:
+            print(f"send watch node flags={flags} to {node_id_str}")
+        self.send_packet(self.create_msg_watch_node(node_id_str, flags, **kwargs))
+
     def process_waiting_messages(self):
         at_least_one = False
         if self.tdm:

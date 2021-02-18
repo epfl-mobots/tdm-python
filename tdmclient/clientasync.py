@@ -27,6 +27,17 @@ class ClientAsync(Client):
             yield
 
     @types.coroutine
+    def wait_for_node(self):
+        while True:
+            if self.process_waiting_messages():
+                node = self.first_node()
+                if node is not None:
+                    return
+            else:
+                sleep(self.DEFAULT_SLEEP)
+            yield
+
+    @types.coroutine
     def wait_for_status(self, expected_status):
         while True:
             if self.process_waiting_messages():
@@ -115,6 +126,23 @@ class ClientAsync(Client):
         result = yield from self.send_msg_and_get_result(
             lambda notify:
                 self.set_vm_execution_state(node_id_str, self.VM_EXECUTION_STATE_COMMAND_RUN, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
+    def flash(self, node_id_str):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.set_vm_execution_state(node_id_str, self.VM_EXECUTION_STATE_COMMAND_WRITE_PROGRAM_TO_DEVICE_MEMORY, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
+    def watch(self, node_id_str, variables=True, events=True):
+        flags = 0x3f # temporary, for tests only
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.watch_node(node_id_str, flags, request_id_notify=notify)
         )
         return result
 
