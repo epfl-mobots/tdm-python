@@ -114,7 +114,7 @@ class ClientAsync(Client):
     def run(self, node_id_str):
         result = yield from self.send_msg_and_get_result(
             lambda notify:
-                self.set_vm_execution_state(node_id_str, 1, request_id_notify=notify)
+                self.set_vm_execution_state(node_id_str, self.VM_EXECUTION_STATE_COMMAND_RUN, request_id_notify=notify)
         )
         return result
 

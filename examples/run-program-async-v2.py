@@ -12,7 +12,7 @@ if __name__ == "__main__":
     with ClientAsync(debug=0) as client:
 
         thymio_program = """
-leds.top = [0, 32, 0]
+leds.top = [0, 0, 32]
 leds.bottom.left = [32, 0, 0]
 leds.bottom.right = [0, 32, 0]
 """
