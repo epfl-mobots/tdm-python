@@ -18,7 +18,6 @@ class ClientAsync(Client):
     @types.coroutine
     def sleep(self, duration):
         t0 = monotonic()
-        print("t0", t0)
         while duration < 0 or monotonic() < t0 + duration:
             self.process_waiting_messages()
             sleep(self.DEFAULT_SLEEP
@@ -26,7 +25,6 @@ class ClientAsync(Client):
                   else max(min(self.DEFAULT_SLEEP, t0 + duration - monotonic()),
                            self.DEFAULT_SLEEP / 1e3))
             yield
-        print("t end", monotonic())
 
     @types.coroutine
     def wait_for_status(self, expected_status):
@@ -72,6 +70,32 @@ class ClientAsync(Client):
             sleep(self.DEFAULT_SLEEP)
             self.process_waiting_messages()
         return result
+
+    @types.coroutine
+    def lock(self, node_id_str=None):
+        """Lock the specified node and return its node id as a string.
+        Without node id argument, wait until the first node is available
+        and use it.
+
+        Should be used in a "with" construct which will manage the unlocking.
+        """
+
+        class Lock:
+            def __init__(self, tdm, node_id_str):
+                self.tdm = tdm
+                self.node_id_str = node_id_str
+            def __enter__(self):
+                return self.node_id_str
+            def __exit__(self, type, value, traceback):
+                self.tdm.send_unlock_node(node_id_str)
+
+        if node_id_str is None:
+            yield from self.wait_for_status(self.NODE_STATUS_AVAILABLE)
+            node_id_str = self.first_node()["node_id_str"]
+        result = yield from self.lock_node(node_id_str)
+        if result is not None:
+            raise Exception("Node lock error")
+        return Lock(self, node_id_str)
 
     @types.coroutine
     def compile(self, node_id_str, program, load=True):
