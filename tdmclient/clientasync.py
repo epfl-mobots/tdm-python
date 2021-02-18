@@ -40,7 +40,12 @@ class ClientAsync(Client):
             yield
 
     @types.coroutine
-    def lock_node(self, node_id_str):
+    def send_msg_and_get_result(self, send_fun):
+        """Call a function which sends a message and wait for its reply.
+
+        Parameter: send_fun(request_id_notify)
+        """
+
         result = None
         done = False
         def notify(r):
@@ -48,7 +53,7 @@ class ClientAsync(Client):
             nonlocal done
             result = r
             done = True
-        self.send_lock_node(node_id_str, request_id_notify=notify)
+        send_fun(notify)
         while not done:
             yield
             sleep(self.DEFAULT_SLEEP)
@@ -56,19 +61,19 @@ class ClientAsync(Client):
         return result
 
     @types.coroutine
+    def lock_node(self, node_id_str):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_lock_node(node_id_str, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def unlock_node(self, node_id_str):
-        result = None
-        done = False
-        def notify(r):
-            nonlocal result
-            nonlocal done
-            result = r
-            done = True
-        self.send_unlock_node(node_id_str, request_id_notify=notify)
-        while not done:
-            yield
-            sleep(self.DEFAULT_SLEEP)
-            self.process_waiting_messages()
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_unlock_node(node_id_str, request_id_notify=notify)
+        )
         return result
 
     @types.coroutine
@@ -99,34 +104,18 @@ class ClientAsync(Client):
 
     @types.coroutine
     def compile(self, node_id_str, program, load=True):
-        result = None
-        done = False
-        def notify(r):
-            nonlocal result
-            nonlocal done
-            result = r
-            done = True
-        self.send_program(node_id_str, program, load, request_id_notify=notify)
-        while not done:
-            yield
-            sleep(self.DEFAULT_SLEEP)
-            self.process_waiting_messages()
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_program(node_id_str, program, load, request_id_notify=notify)
+        )
         return result
 
     @types.coroutine
     def run(self, node_id_str):
-        result = None
-        done = False
-        def notify(r):
-            nonlocal result
-            nonlocal done
-            result = r
-            done = True
-        self.set_vm_execution_state(node_id_str, 1, request_id_notify=notify)
-        while not done:
-            yield
-            sleep(self.DEFAULT_SLEEP)
-            self.process_waiting_messages()
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.set_vm_execution_state(node_id_str, 1, request_id_notify=notify)
+        )
         return result
 
     @staticmethod
