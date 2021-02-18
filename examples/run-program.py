@@ -34,7 +34,7 @@ if __name__ == "__main__":
                             if status == 4:
                                 # ready
                                 client.send_program(node_id_str,
-                                                "leds.top = [0,0,32]\n")
+                                                    "leds.top = [0,0,32]\n")
                                 state = 2
                         elif state == 2:
                             if status == 4:

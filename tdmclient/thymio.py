@@ -19,6 +19,7 @@ class ThymioFB:
         self.localhost_peer = None
         self.nodes = []
         self.last_request_id = 0
+        self.request_id_notify_dict = {}
 
     def create_message(self, msg, schema=None):
         fb = FlatBuffer()
@@ -30,8 +31,10 @@ class ThymioFB:
 
         return encoded_fb
 
-    def next_request_id(self):
+    def next_request_id(self, request_id_notify=None):
         self.last_request_id += 1
+        if request_id_notify is not None:
+            self.request_id_notify_dict[self.last_request_id] = request_id_notify
         return self.last_request_id
 
     def get_node_id(self, node_id_str):
@@ -143,33 +146,33 @@ class ThymioFB:
             ()
         ), self.SCHEMA)
 
-    def create_msg_lock_node(self, node_id_str):
+    def create_msg_lock_node(self, node_id_str, **kwargs):
         return self.create_message((
             5, # LockNode
             (
-                self.next_request_id(),
+                self.next_request_id(**kwargs),
                 (
                     self.get_node_id(node_id_str),
                 ),
             )
         ), self.SCHEMA)
 
-    def create_msg_unlock_node(self, node_id_str):
+    def create_msg_unlock_node(self, node_id_str, **kwargs):
         return self.create_message((
             6, # UnlockNode
             (
-                self.next_request_id(),
+                self.next_request_id(**kwargs),
                 (
                     self.get_node_id(node_id_str),
                 ),
             )
         ), self.SCHEMA)
 
-    def create_msg_program(self, node_id_str, program, load=True):
+    def create_msg_program(self, node_id_str, program, load=True, **kwargs):
         return self.create_message((
             8, # CompileAndLoadCodeOnVM
             (
-                self.next_request_id(),
+                self.next_request_id(**kwargs),
                 (
                     self.get_node_id(node_id_str),
                 ),
@@ -179,11 +182,11 @@ class ThymioFB:
             )
         ), self.SCHEMA)
 
-    def create_msg_set_vm_execution_state(self, node_id_str, state):
+    def create_msg_set_vm_execution_state(self, node_id_str, state, **kwargs):
         return self.create_message((
             24, # SetVMExecutionState
             (
-                self.next_request_id(),
+                self.next_request_id(**kwargs),
                 (
                     self.get_node_id(node_id_str),
                 ),
@@ -233,23 +236,44 @@ class ThymioFB:
                               ", ".join(f"{node['node_id_str']}: status={node['status']}" for node in self.nodes))
             elif fb.root.union_type == 11:
                 # request completed
+                request_id = field_val(fb.root.union_data[1].fields[0], 0)
+                if request_id in self.request_id_notify_dict:
+                    self.request_id_notify_dict[request_id](None)
+                    del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print("ok")
+            elif fb.root.union_type == 12:
+                # error
+                request_id = field_val(fb.root.union_data[1].fields[0], 0)
+                error_code = field_val(fb.root.union_data[1].fields[1], 0)
+                if request_id in self.request_id_notify_dict:
+                    self.request_id_notify_dict[request_id]({"error_code": error_code})
+                    del self.request_id_notify_dict[request_id]
+                if self.debug >= 1:
+                    print(f"error {error_code}")
             elif fb.root.union_type == 13:
                 # CompilationResultFailure
+                request_id = field_val(fb.root.union_data[1].fields[0], 0)
                 error_msg = field_val(fb.root.union_data[1].fields[1], "")
                 error_line = field_val(fb.root.union_data[1].fields[3], 0)
                 error_col = field_val(fb.root.union_data[1].fields[4], 0)
+                if request_id in self.request_id_notify_dict:
+                    self.request_id_notify_dict[request_id]({
+                        "error_msg": error_msg,
+                        "error_line": error_line,
+                        "error_col": error_col,
+                    })
+                    del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print(f"compilation error: {error_msg}")
             elif fb.root.union_type == 14:
                 # compilation result success
+                request_id = field_val(fb.root.union_data[1].fields[0], 0)
+                if request_id in self.request_id_notify_dict:
+                    self.request_id_notify_dict[request_id](None)
+                    del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print("compilation ok")
-            elif fb.root.union_type == 15:
-                # compilation result success
-                if self.debug >= 1:
-                    print("compilation error")
             elif fb.root.union_type == 29:
                 # ping
                 pass
