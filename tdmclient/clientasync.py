@@ -12,7 +12,7 @@ class ClientAsync(Client):
     def __init__(self, **kwargs):
         super(ClientAsync, self).__init__(**kwargs)
 
-    def node(self):
+    def first_node(self):
         return self.nodes[0] if len(self.nodes) > 0 else None
 
     @types.coroutine
@@ -32,7 +32,7 @@ class ClientAsync(Client):
     def wait_for_status(self, expected_status):
         while True:
             if self.process_waiting_messages():
-                node = self.node()
+                node = self.first_node()
                 if node is not None:
                     status = node["status"]
                     if status == expected_status:

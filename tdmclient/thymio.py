@@ -11,6 +11,74 @@ from tdmclient import FlatBuffer, Union, Table
 
 class ThymioFB:
 
+    MESSAGE_TYPE_CONNECTION_HANDSHAKE = 1
+    MESSAGE_TYPE_DEVICE_MANAGER_SHUTDOWN_REQUEST = 2
+    MESSAGE_TYPE_REQUEST_LIST_OF_NODES = 3
+    MESSAGE_TYPE_REQUEST_NODE_ASEBA_VM_DESCRIPTION = 4
+    MESSAGE_TYPE_LOCK_NODE = 5
+    MESSAGE_TYPE_UNLOCK_NODE = 6
+    MESSAGE_TYPE_RENAME_NODE = 7
+    MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM = 8
+    MESSAGE_TYPE_NODES_CHANGED = 9
+    MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION = 10
+    MESSAGE_TYPE_REQUEST_COMPLETED = 11
+    MESSAGE_TYPE_ERROR = 12
+    MESSAGE_TYPE_COMPILATION_RESULT_FAILURE = 13
+    MESSAGE_TYPE_COMPILATION_RESULT_SUCCESS = 14
+    MESSAGE_TYPE_WATCH_NODE = 15
+    MESSAGE_TYPE_VARIABLES_CHANGED = 16
+    MESSAGE_TYPE_SET_VARIABLES = 17
+    MESSAGE_TYPE_EVENTS_DESCRIPTIONS_CHANGED = 18
+    MESSAGE_TYPE_REGISTER_EVENTS = 19
+    MESSAGE_TYPE_SEND_EVENTS = 20
+    MESSAGE_TYPE_EVENTS_EMITTED = 21
+    MESSAGE_TYPE_SET_BREAKPOINTS = 22
+    MESSAGE_TYPE_SET_BREAKPOINTS_RESPONSE = 23
+    MESSAGE_TYPE_SET_VM_EXECUTION_STATE = 24
+    MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED = 25
+    MESSAGE_TYPE_SCRATCHPAD_UPDATE = 26
+    MESSAGE_TYPE_FIRMWARE_UPGRADE_REQUEST = 27
+    MESSAGE_TYPE_FIRMWARE_UPGRADE_STATUS = 28
+    MESSAGE_TYPE_PING = 29
+    MESSAGE_TYPE_ENABLE_THYMIO2_PAIRING_MODE = 30
+    MESSAGE_TYPE_THYMIO2_WIRELESS_DONGLES_CHANGED = 31
+    MESSAGE_TYPE_THYMIO2_WIRELESS_DONGLE_PAIRING_REQUEST = 32
+    MESSAGE_TYPE_THYMIO2_WIRELESS_DONGLE_PAIRING_RESPONSE = 33
+    MESSAGE_TYPE_COMPILE_AND_SAVE = 34
+    MESSAGE_TYPE_SAVE_BYTECODE = 35
+
+    NODE_TYPE_THYMIO2 = 0
+    NODE_TYPE_Thymio2Wireless = 1
+    NODE_TYPE_SIMULATED_THYMIO2 = 2
+    NODE_TYPE_DUMMY_NODE = 3
+    NODE_TYPE_UNKNOWN_TYPE = 4
+
+    NODE_CAPABILITY_RENAME = 0x1
+    NODE_CAPABILITY_FORCE_RESET_AND_STOP = 0x2
+    NODE_CAPABILITY_FIRMWARE_UPGRADE = 0x4
+
+    NODE_STATUS_UNKNOWN = 0
+    NODE_STATUS_CONNECTED = 1
+    NODE_STATUS_AVAILABLE = 2
+    NODE_STATUS_BUSY = 3
+    NODE_STATUS_READY = 4
+    NODE_STATUS_DISCONNECTED = 5
+
+    ERROR_NO_ERROR = 0
+    ERROR_UNKNOWN = 1
+    ERROR_UNKNOWN_NODE = 2
+    ERROR_NODE_BUSY = 3
+    ERROR_UNSUPPORTED_VARIABLE_TYPE = 4
+    ERROR_THYMIO2_PAIRING_WRITE_DONGLE_FAILED = 5
+    ERROR_THYMIO2_PAIRING_WRITE_ROBOT_FAILED = 6
+
+    PROGRAMMING_LANGUAGE_ASEBA = 1
+    PROGRAMMING_LANGUAGE_AESL = 2
+
+    COMPILATION_OPTION_NONE = 1 # according to thymio.fbs
+    COMPILATION_OPTION_LOAD_ON_TARGET = 2
+    COMPILATION_OPTION_FETCH_BYTECODE = 4
+
     def __init__(self, debug=0):
 
         self.debug = debug
@@ -142,13 +210,13 @@ class ThymioFB:
 
     def create_msg_handshake(self):
         return self.create_message((
-            1, # ConnectionHandshake
+            self.MESSAGE_TYPE_CONNECTION_HANDSHAKE,
             ()
         ), self.SCHEMA)
 
     def create_msg_lock_node(self, node_id_str, **kwargs):
         return self.create_message((
-            5, # LockNode
+            self.MESSAGE_TYPE_LOCK_NODE,
             (
                 self.next_request_id(**kwargs),
                 (
@@ -159,7 +227,7 @@ class ThymioFB:
 
     def create_msg_unlock_node(self, node_id_str, **kwargs):
         return self.create_message((
-            6, # UnlockNode
+            self.MESSAGE_TYPE_UNLOCK_NODE,
             (
                 self.next_request_id(**kwargs),
                 (
@@ -170,21 +238,23 @@ class ThymioFB:
 
     def create_msg_program(self, node_id_str, program, load=True, **kwargs):
         return self.create_message((
-            8, # CompileAndLoadCodeOnVM
+            self.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM,
             (
                 self.next_request_id(**kwargs),
                 (
                     self.get_node_id(node_id_str),
                 ),
-                1, # Aseba
+                self.PROGRAMMING_LANGUAGE_ASEBA,
                 program,
-                2 if load else 0, # LoadOnTarget or NoOption
+                self.COMPILATION_OPTION_LOAD_ON_TARGET
+                    if load
+                    else self.COMPILATION_OPTION_NONE,
             )
         ), self.SCHEMA)
 
     def create_msg_set_vm_execution_state(self, node_id_str, state, **kwargs):
         return self.create_message((
-            24, # SetVMExecutionState
+            self.MESSAGE_TYPE_SET_VM_EXECUTION_STATE,
             (
                 self.next_request_id(**kwargs),
                 (
@@ -204,12 +274,10 @@ class ThymioFB:
         if self.debug >= 2:
             fb.dump()
         if type(fb.root) is Union:
-            if fb.root.union_type == 1:
-                # ConnectionHandshake
+            if fb.root.union_type == self.MESSAGE_TYPE_CONNECTION_HANDSHAKE:
                 self.protocol_version = field_val(fb.root.union_data[1].fields[1], 1)
                 self.localhost_peer = field_val(fb.root.union_data[1].fields[4], False)
-            elif fb.root.union_type == 9:
-                # NodesChanged
+            elif fb.root.union_type == self.MESSAGE_TYPE_NODES_CHANGED:
                 if fb.root.union_data[1] is not None:
                     nodes = fb.root.union_data[1].fields[0][1]
                     self.nodes = [
@@ -234,16 +302,14 @@ class ThymioFB:
                     if self.debug >= 1:
                         print("NodesChanged",
                               ", ".join(f"{node['node_id_str']}: status={node['status']}" for node in self.nodes))
-            elif fb.root.union_type == 11:
-                # request completed
+            elif fb.root.union_type == self.MESSAGE_TYPE_REQUEST_COMPLETED:
                 request_id = field_val(fb.root.union_data[1].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print("ok")
-            elif fb.root.union_type == 12:
-                # error
+            elif fb.root.union_type == self.MESSAGE_TYPE_ERROR:
                 request_id = field_val(fb.root.union_data[1].fields[0], 0)
                 error_code = field_val(fb.root.union_data[1].fields[1], 0)
                 if request_id in self.request_id_notify_dict:
@@ -251,8 +317,7 @@ class ThymioFB:
                     del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print(f"error {error_code}")
-            elif fb.root.union_type == 13:
-                # CompilationResultFailure
+            elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_FAILURE:
                 request_id = field_val(fb.root.union_data[1].fields[0], 0)
                 error_msg = field_val(fb.root.union_data[1].fields[1], "")
                 error_line = field_val(fb.root.union_data[1].fields[3], 0)
@@ -266,16 +331,14 @@ class ThymioFB:
                     del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print(f"compilation error: {error_msg}")
-            elif fb.root.union_type == 14:
-                # compilation result success
+            elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_SUCCESS:
                 request_id = field_val(fb.root.union_data[1].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
                 if self.debug >= 1:
                     print("compilation ok")
-            elif fb.root.union_type == 29:
-                # ping
+            elif fb.root.union_type == self.MESSAGE_TYPE_PING:
                 pass
             else:
-                print(f"Got message {fb.root.union_type}")
+                print(f"Got unprocessed message {fb.root.union_type}")
