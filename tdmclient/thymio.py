@@ -188,7 +188,7 @@ class ThymioFB:
             // WatchNode
             T(iT(*u)i)
             // VariablesChanged
-            T(T(*u)*T(s.)l)
+            T(T(*u)*T(sx)l)
             // SetVariables
             T(iT(*u)*T(s.))
             // EventsDescriptionsChanged
@@ -198,7 +198,7 @@ class ThymioFB:
             // SendEvents
             T(iT(*u)*T(s.))
             // EventsEmitted
-            T(T(*u)*T(s.)l)
+            T(T(*u)*T(sx)l)
             // SetBreakpoints
             T(iT(*u)*T(i))
             // SetBreakpointsResponse
@@ -379,7 +379,7 @@ class ThymioFB:
                 variables = [
                     {
                         "name": v.fields[0][1],
-                        # (flexbuffer: not implemented yet)
+                        "value": v.fields[1][1],
                     }
                     for v in fb.root.union_data[1].fields[1][1]
                 ]
