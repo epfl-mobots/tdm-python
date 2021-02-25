@@ -111,6 +111,8 @@ class ThymioFB:
         self.last_request_id = 0
         self.request_id_notify_dict = {}
 
+        self.on_variables_changed = None
+
     def create_message(self, msg, schema=None):
         fb = FlatBuffer()
         if schema is None:

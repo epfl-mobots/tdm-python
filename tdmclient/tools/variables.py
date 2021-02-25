@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # Yves Piguet, Feb 2021
 
-import sys
-import os
 import tkinter as tk
 
 from tdmclient import ClientAsync
