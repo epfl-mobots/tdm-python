@@ -147,6 +147,14 @@ class ClientAsync(Client):
         return result
 
     @staticmethod
+    def step_async_program(co):
+        try:
+            co.send(None)
+            return True
+        except StopIteration:
+            return False
+
+    @staticmethod
     def run_async_program(prog):
         co = prog()
         try:
