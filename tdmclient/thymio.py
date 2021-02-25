@@ -383,6 +383,8 @@ class ThymioFB:
                     }
                     for v in fb.root.union_data[1].fields[1][1]
                 ]
+                if self.on_variables_changed is not None:
+                    self.on_variables_changed(node_id_str, {"variables": variables})
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:
