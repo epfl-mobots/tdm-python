@@ -114,6 +114,14 @@ class ClientAsync(Client):
         return Lock(self, node_id_str)
 
     @types.coroutine
+    def register_events(self, node_id_str, events):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_register_events(node_id_str, events, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def compile(self, node_id_str, program, load=True):
         result = yield from self.send_msg_and_get_result(
             lambda notify:
@@ -138,8 +146,9 @@ class ClientAsync(Client):
         return result
 
     @types.coroutine
-    def watch(self, node_id_str, variables=True, events=True):
-        flags = 0x3f # temporary, for tests only
+    def watch(self, node_id_str, flags=0, variables=False, events=False):
+        flags |= ((self.WATCHABLE_INFO_VARIABLES if variables else 0) |
+                  (self.WATCHABLE_INFO_EVENTS if events else 0))
         result = yield from self.send_msg_and_get_result(
             lambda notify:
                 self.watch_node(node_id_str, flags, request_id_notify=notify)

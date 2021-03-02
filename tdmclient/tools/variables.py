@@ -38,7 +38,7 @@ class VariableTableWindow(tk.Tk):
             self.title(name)
             await self.client.lock_node(self.node_id_str)
             await self.client.wait_for_status(self.client.NODE_STATUS_READY)
-            await self.client.watch(self.node_id_str)
+            await self.client.watch(self.node_id_str, variables=True)
 
         # start coroutine, set to None once finished
         # (then will continue handling incoming messages forever)

@@ -91,6 +91,11 @@ class Client(ThymioFB):
             print(f"send watch node flags={flags} to {node_id_str}")
         self.send_packet(self.create_msg_watch_node(node_id_str, flags, **kwargs))
 
+    def send_register_events(self, node_id_str, events, **kwargs):
+        if self.debug >= 1:
+            print(f"send register {len(events)} events to {node_id_str}")
+        self.send_packet(self.create_msg_register_events(node_id_str, events, **kwargs))
+
     def process_waiting_messages(self):
         at_least_one = False
         if self.tdm:
@@ -98,7 +103,7 @@ class Client(ThymioFB):
                 msg = self.tdm.receive_packet()
                 if msg is None:
                     break
-                if self.debug >= 2:
+                if self.debug >= 3:
                     print("recv", msg)
                 self.process_message(msg)
                 at_least_one = True

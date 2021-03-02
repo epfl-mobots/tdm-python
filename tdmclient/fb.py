@@ -13,6 +13,9 @@ class Table:
         self.fields = fields or []
         self.default_values = default_values
 
+    def __repr__(self):
+        return f"Table({[f[0] if f is not None else None for f in self.fields]})"
+
     def add_field(self, value):
         self.fields.append(FlatBuffer.encode_value(value))
 
@@ -87,6 +90,9 @@ class Union(Table):
         super(Union, self).__init__(fields=[union_type_enc, union_data])
         self.union_type = union_type
         self.union_data = union_data
+
+    def __repr__(self):
+        return f"Union(type={self.union_type},data={self.union_data})"
 
     def create_with_schema(fields, schema):
         if schema[0] != "U":
@@ -194,13 +200,17 @@ class FlatBuffer:
             vec_pos = pos + FlatBuffer.decode_i32(encoded_fb, pos)
             vec_len = FlatBuffer.decode_u32(encoded_fb, vec_pos)
             el_size = FlatBuffer.schema_item_data_size(schema, 1)
-            els = []
-            for i in range(vec_len):
-                # decode element
-                els.append(FlatBuffer.parse_value(encoded_fb,
-                                                  vec_pos + 4 + i * el_size,
-                                                  schema[1:]))
-            return els
+            if schema[1] == "u" and el_size == 1:
+                # special case for bytes: decode as byte array
+                return encoded_fb[vec_pos + 4 : vec_pos + 4 + vec_len] 
+            else:
+                els = []
+                for i in range(vec_len):
+                    # decode element
+                    els.append(FlatBuffer.parse_value(encoded_fb,
+                                                      vec_pos + 4 + i * el_size,
+                                                      schema[1:]))
+                return els
         elif schema[0] == "T":
             # decode vtable
             if schema[1] != "(":
@@ -226,7 +236,7 @@ class FlatBuffer:
                     field_value = FlatBuffer.parse_value(encoded_fb,
                                                          pos_field,
                                                          schema[ix_schema:])
-                    fields.append((None, field_value, FlatBuffer.is_data_inline(schema[ix_schema:])))
+                    fields.append((field_value, None, FlatBuffer.is_data_inline(schema[ix_schema:])))
                 ix_schema += FlatBuffer.schema_item_length(schema, ix_schema)
             return Table(fields=fields)
         elif schema[0] == "U":
@@ -262,7 +272,7 @@ class FlatBuffer:
                 union_value = FlatBuffer.parse_value(encoded_fb,
                                                      pos_field,
                                                      schema[ix_schema:])
-                union_data = (None, union_value, FlatBuffer.is_data_inline(schema[ix_schema:]))
+                union_data = (union_value, None, FlatBuffer.is_data_inline(schema[ix_schema:]))
             return Union(union_type, union_data)
         elif schema[0] == "x":
             # flexbuffer
@@ -404,9 +414,16 @@ class FlatBuffer:
                 else:
                     enc += bytes(value)
             else:
-                for el in value:
-                    _, el_enc, _ = FlatBuffer.convert_with_schema(el, schema[1:])
-                    enc += el_enc
+                vector_data = b""
+                for i, el in enumerate(value):
+                    _, el_enc, el_inline = FlatBuffer.convert_with_schema(el, schema[1:])
+                    if el_inline:
+                        enc += el_enc
+                    else:
+                        el_offset = len(vector_data) + 4 * (len(value) - i)
+                        enc += FlatBuffer.encode_32(el_offset)
+                        vector_data += el_enc
+                enc += vector_data
             # append 0 to 3 nul bytes
             enc += bytes([0 for i in range((4 - len(enc)) % 4)])
             return value, enc, False
