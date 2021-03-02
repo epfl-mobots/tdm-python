@@ -48,16 +48,16 @@ class Client(ThymioFB):
         self.disconnect()
 
     def send_packet(self, b):
+        if self.debug >= 2:
+            # check decoding
+            fb2 = FlatBuffer()
+            fb2.parse(b, self.SCHEMA)
+            fb2.dump()
+
         self.tdm.send_packet(b)
 
     def send_message(self, msg, schema=None):
         encoded_fb = self.create_message(msg, schema)
-
-        if self.debug >= 2:
-            # check decoding
-            fb2 = FlatBuffer()
-            fb2.parse(encoded_fb, self.SCHEMA)
-            fb2.dump()
 
         self.send_packet(encoded_fb)
 
