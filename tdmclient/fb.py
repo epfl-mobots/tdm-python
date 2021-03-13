@@ -202,7 +202,7 @@ class FlatBuffer:
             el_size = FlatBuffer.schema_item_data_size(schema, 1)
             if schema[1] == "u" and el_size == 1:
                 # special case for bytes: decode as byte array
-                return encoded_fb[vec_pos + 4 : vec_pos + 4 + vec_len] 
+                return encoded_fb[vec_pos + 4 : vec_pos + 4 + vec_len]
             else:
                 els = []
                 for i in range(vec_len):
@@ -279,96 +279,12 @@ class FlatBuffer:
             vec_pos = pos + FlatBuffer.decode_i32(encoded_fb, pos)
             vec_len = FlatBuffer.decode_u32(encoded_fb, vec_pos)
             buf = encoded_fb[vec_pos + 4 : vec_pos + 4 + vec_len]
-            return FlatBuffer.parse_flex(buf)
+            return FlexBuffer.parse(buf)
         elif schema[0] == ".":
             # don't parse
             return None
         else:
             raise Exception(f"unknown schema char {schema[0]}")
-
-    def parse_flex(buf):
-        """Convert flexbuffer.
-        """
-
-        # https://google.github.io/flatbuffers/flatbuffers_internals.html
-        # https://chromium.googlesource.com/external/github.com/google/flatbuffers/+/refs/tags/v1.6.0/include/flatbuffers/flexbuffers.h
-
-        # lower 2 bits: size in flexbuffer
-        BIT_WIDTH_8 = 0
-        BIT_WIDTH_16 = 1
-        BIT_WIDTH_32 = 2
-        BIT_WIDTH_64 = 3
-
-        # upper 6 bits: actual type
-        TYPE_NULL = 0
-        TYPE_INT = 1
-        TYPE_UINT = 2
-        TYPE_FLOAT = 3
-        TYPE_KEY = 4
-        TYPE_STRING = 5
-        TYPE_INDIRECT_INT = 6
-        TYPE_INDIRECT_UINT = 7
-        TYPE_INDIRECT_FLOAT = 8
-        TYPE_MAP = 9
-        TYPE_VECTOR = 10
-        TYPE_VECTOR_INT = 11
-        TYPE_VECTOR_UINT = 12
-        TYPE_VECTOR_FLOAT = 13
-        TYPE_VECTOR_KEY = 14
-        TYPE_VECTOR_STRING = 15
-        TYPE_BLOB = 25
-
-        def parse_int(el_byte_size, p, index, type):
-            if type >> 2 not in [TYPE_INT, TYPE_UINT]:
-                raise Exception("flex type not supported")
-            signed = type >> 2 == TYPE_INT
-            p += el_byte_size * index
-            if el_byte_size == 1:
-                val = buf[p]
-                if signed & val & 0x80:
-                    val -= 0x100
-            elif el_byte_size == 2:
-                val = buf[p] | (buf[p + 1] << 8)
-                if signed & val & 0x8000:
-                    val -= 0x10000
-            elif el_byte_size == 4:
-                val = buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16) | (buf[p + 3] << 24)
-                if signed & val & 0x80000000:
-                    val -= 0x100000000
-            else:
-                val = (buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16) | (buf[p + 3] << 24)
-                        | (buf[p + 4] << 32) | (buf[p + 5] << 40) | (buf[p + 6] << 48) | (buf[p + 7] << 56))
-                if signed & val & 0x8000000000000000:
-                    val -= 0x10000000000000000
-            return val
-
-        def parse_array(el_byte_size, p):
-            num_el = parse_int(el_byte_size, p, -1, TYPE_UINT << 2)
-            type_array_offset = p + num_el * el_byte_size
-            array = [
-                parse_int(el_byte_size, p, i, buf[type_array_offset + i])
-                for i in range(num_el)
-            ]
-            return array
-
-        def parse_element(type, p):
-            flex_size = type & 3
-            el_byte_size = 2 ** flex_size
-            actual_type = type >> 2
-            if actual_type == TYPE_NULL:
-                return None
-            elif actual_type == TYPE_VECTOR:
-                return parse_array(el_byte_size, p - buf[p])
-            raise Exception("flex not impl")
-
-        # last byte: root width in bytes
-        root_width = buf[-1]
-        # previous byte: root type
-        root_type = buf[-2]
-
-        root = parse_element(root_type, len(buf) - 2 - root_width)
-
-        return root
 
     def convert_from_native_type(value):
         """Convert native, compact format to FlatBuffer. The following type
@@ -388,7 +304,7 @@ class FlatBuffer:
         self.root = FlatBuffer.convert_from_native_type(value)
 
     def convert_with_schema(value, schema):
-        """Convert value with a schema (required for "2", "U").
+        """Convert value with a schema (required for "2", "U", etc.).
         """
         if schema[0] == "i":
             return value, FlatBuffer.encode_32(value), True
@@ -433,6 +349,13 @@ class FlatBuffer:
         elif schema[0] == "U":
             union = Union.create_with_schema(value, schema)
             return union.encode()
+        elif schema[0] == "x":
+            enc = FlexBuffer.encode_vec_untyped_int16(value)
+            # prepend size
+            enc = FlatBuffer.encode_32(len(enc)) + enc
+            # append 0 to 3 nul bytes
+            enc += bytes([0 for i in range((4 - len(enc)) % 4)])
+            return value, enc, False
         else:
             raise Exception("unknown schema char {schema[0]}")
 
@@ -531,3 +454,150 @@ class FlatBuffer:
                 print("unknown", value)
 
         dump_value(self.root)
+
+class FlexBuffer:
+
+    # https://google.github.io/flatbuffers/flatbuffers_internals.html
+    # https://chromium.googlesource.com/external/github.com/google/flatbuffers/+/refs/tags/v1.6.0/include/flatbuffers/flexbuffers.h
+
+    # lower 2 bits: size in flexbuffer
+    BIT_WIDTH_8 = 0
+    BIT_WIDTH_16 = 1
+    BIT_WIDTH_32 = 2
+    BIT_WIDTH_64 = 3
+
+    # upper 6 bits: actual type
+    TYPE_NULL = 0
+    TYPE_INT = 1
+    TYPE_UINT = 2
+    TYPE_FLOAT = 3
+    TYPE_KEY = 4
+    TYPE_STRING = 5
+    TYPE_INDIRECT_INT = 6
+    TYPE_INDIRECT_UINT = 7
+    TYPE_INDIRECT_FLOAT = 8
+    TYPE_MAP = 9
+    TYPE_VECTOR = 10
+    TYPE_VECTOR_INT = 11
+    TYPE_VECTOR_UINT = 12
+    TYPE_VECTOR_FLOAT = 13
+    TYPE_VECTOR_KEY = 14
+    TYPE_VECTOR_STRING = 15
+    TYPE_BLOB = 25
+
+    @staticmethod
+    def parse(buf):
+        """Convert flexbuffer.
+        """
+
+        def parse_int(el_byte_size, p, index, type):
+            if type >> 2 not in [FlexBuffer.TYPE_INT, FlexBuffer.TYPE_UINT]:
+                raise Exception("flex type not supported")
+            signed = type >> 2 == FlexBuffer.TYPE_INT
+            p += el_byte_size * index
+            if el_byte_size == 1:
+                val = buf[p]
+                if signed and val & 0x80:
+                    val -= 0x100
+            elif el_byte_size == 2:
+                val = buf[p] | (buf[p + 1] << 8)
+                if signed and val & 0x8000:
+                    val -= 0x10000
+            elif el_byte_size == 4:
+                val = buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16) | (buf[p + 3] << 24)
+                if signed and val & 0x80000000:
+                    val -= 0x100000000
+            else:
+                val = (buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16) | (buf[p + 3] << 24)
+                        | (buf[p + 4] << 32) | (buf[p + 5] << 40) | (buf[p + 6] << 48) | (buf[p + 7] << 56))
+                if signed and val & 0x8000000000000000:
+                    val -= 0x10000000000000000
+            return val
+
+        def parse_array(el_byte_size, p):
+            num_el = parse_int(el_byte_size, p, -1, FlexBuffer.TYPE_UINT << 2)
+            type_array_offset = p + num_el * el_byte_size
+            array = [
+                parse_int(el_byte_size, p, i, buf[type_array_offset + i])
+                for i in range(num_el)
+            ]
+            return array
+
+        def parse_element(type, p):
+            flex_size = type & 3
+            el_byte_size = 2 ** flex_size
+            actual_type = type >> 2
+            if actual_type == FlexBuffer.TYPE_NULL:
+                return None
+            elif actual_type == FlexBuffer.TYPE_VECTOR:
+                return parse_array(el_byte_size, p - buf[p])
+            raise Exception("flex not impl")
+
+        # last byte: root width in bytes
+        root_width = buf[-1]
+        # previous byte: root type
+        root_type = buf[-2]
+
+        root = parse_element(root_type, len(buf) - 2 - root_width)
+
+        return root
+
+    @staticmethod
+    def encode_vec_int16(a):
+        # straight encoding as TYPE_VECTOR_INT without any optimization attempt,
+        # 16-bit offsets
+
+        def enc16(n):
+            return bytes([n & 0xff, (n >> 8) & 0xff])
+
+        enc = enc16(len(a))
+        for el in a:
+            enc += enc16(el)
+        # backward offset to array beginning (not size) in bytes
+        enc += enc16(2 * len(a))
+        # root trailer
+        enc += bytes([
+            # type
+            (FlexBuffer.TYPE_VECTOR_INT << 2) | FlexBuffer.BIT_WIDTH_16,
+            # root byte width (just the backward offset)
+            2
+        ])
+        return enc
+
+    @staticmethod
+    def encode_vec_untyped_int16(a):
+        # straight encoding as TYPE_VECTOR without much optimization attempt
+
+        def enc8(n):
+            return bytes([n & 0xff])
+
+        def enc16(n):
+            return bytes([n & 0xff, (n >> 8) & 0xff])
+
+        # array length
+        enc = enc16(len(a))
+        # array elements
+        for el in a:
+            enc += enc16(el)
+        # element types in uint8
+        el_type = enc8((FlexBuffer.TYPE_INT << 2) | FlexBuffer.BIT_WIDTH_16)
+        enc += len(a) * el_type
+        # backward offset to array beginning (not size) in bytes
+        backward_offset = 3 * len(a)
+        backward_offset_size = 1 if backward_offset < 256 else 2
+        if backward_offset_size == 2:
+            # add padding if necessary to align int16
+            if backward_offset & 1:
+                enc += b"\0"
+                backward_offset += 1
+            enc += enc16(backward_offset)
+        else:
+            enc += enc8(backward_offset)
+        # root trailer
+        enc += bytes([
+            # type
+            (FlexBuffer.TYPE_VECTOR << 2) | FlexBuffer.BIT_WIDTH_16,
+            # root byte width (just the backward offset)
+            backward_offset_size
+        ])
+        return enc

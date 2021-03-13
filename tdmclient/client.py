@@ -96,6 +96,11 @@ class Client(ThymioFB):
             print(f"send register {len(events)} events to {node_id_str}")
         self.send_packet(self.create_msg_register_events(node_id_str, events, **kwargs))
 
+    def send_set_variables(self, node_id_str, var_dict, **kwargs):
+        if self.debug >= 1:
+            print(f"send set variables {', '.join([f'{name}={var_dict[name]}' for name in var_dict])}")
+        self.send_packet(self.create_msg_set_variables(node_id_str, var_dict, **kwargs))
+
     def process_waiting_messages(self):
         at_least_one = False
         if self.tdm:

@@ -32,7 +32,7 @@ class ClientAsync(Client):
             if self.process_waiting_messages():
                 node = self.first_node()
                 if node is not None:
-                    return
+                    return node
             else:
                 sleep(self.DEFAULT_SLEEP)
             yield
@@ -122,6 +122,14 @@ class ClientAsync(Client):
         return result
 
     @types.coroutine
+    def set_variables(self, node_id_str, var_dict):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_set_variables(node_id_str, var_dict, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def compile(self, node_id_str, program, load=True):
         result = yield from self.send_msg_and_get_result(
             lambda notify:
@@ -156,7 +164,10 @@ class ClientAsync(Client):
         return result
 
     @staticmethod
-    def step_async_program(co):
+    def step_coroutine(co):
+        """Perform one step of a coroutine (the result of calling an async function).
+        Return True if the coroutine is still running, False when it has terminated.
+        """
         try:
             co.send(None)
             return True
@@ -165,9 +176,26 @@ class ClientAsync(Client):
 
     @staticmethod
     def run_async_program(prog):
+        """Run an async program (typically the name of an async def) until it terminates.
+        """
+
         co = prog()
         try:
             while True:
                 co.send(None)
         except StopIteration:
             pass
+
+    @staticmethod
+    def aw(co):
+        """Like await, but also valid outside a function, typically in the repl.
+        """
+
+        r = None
+
+        async def prog():
+            nonlocal r
+            r = await co
+        
+        ClientAsync.run_async_program(prog)
+        return r

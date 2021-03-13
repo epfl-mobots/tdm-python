@@ -111,6 +111,7 @@ class ThymioFB:
         self.last_request_id = 0
         self.request_id_notify_dict = {}
 
+        self.on_nodes_changed = None
         self.on_variables_changed = None
 
     def create_message(self, msg, schema=None):
@@ -192,13 +193,13 @@ class ThymioFB:
             // VariablesChanged
             T(T(*u)*T(sx)l)
             // SetVariables
-            T(iT(*u)*T(s.))
+            T(iT(*u)*T(sx))
             // EventsDescriptionsChanged
             T(T(*u)*T(sii))
             // RegisterEvents
             T(iT(*u)*T(sii))
             // SendEvents
-            T(iT(*u)*T(s.))
+            T(iT(*u)*T(sx))
             // EventsEmitted
             T(T(*u)*T(sx)l)
             // SetBreakpoints
@@ -319,6 +320,24 @@ class ThymioFB:
             )
         ), self.SCHEMA)
 
+    def create_msg_set_variables(self, node_id_str, var_dict, **kwargs):
+        return self.create_message((
+            self.MESSAGE_TYPE_SET_VARIABLES,
+            (
+                self.next_request_id(**kwargs),
+                (
+                    self.get_node_id(node_id_str),
+                ),
+                [
+                    (
+                        name,
+                        var_dict[name],
+                    )
+                    for name in var_dict
+                ]
+            )
+        ), self.SCHEMA)
+
     def process_message(self, msg):
 
         def field_val(f, default):
@@ -359,6 +378,8 @@ class ThymioFB:
                         }
                         for node in nodes
                     ]
+                    if self.on_nodes_changed is not None:
+                        self.on_nodes_changed(self.nodes)
                     if self.debug >= 1:
                         print("NodesChanged",
                               ", ".join(f"{node['node_id_str']}: status={node['status']}" for node in self.nodes))
@@ -367,16 +388,20 @@ class ThymioFB:
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
-                if self.debug >= 1:
-                    print("ok")
+                    if self.debug >= 1:
+                        print("ok")
+                elif self.debug >= 1:
+                    print(f"ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_ERROR:
                 request_id = field_val(fb.root.union_data[0].fields[0], 0)
                 error_code = field_val(fb.root.union_data[0].fields[1], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id]({"error_code": error_code})
                     del self.request_id_notify_dict[request_id]
-                if self.debug >= 1:
-                    print(f"error {error_code}")
+                    if self.debug >= 1:
+                        print(f"error {error_code}")
+                elif self.debug >= 1:
+                    print(f"error {error_code} request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_FAILURE:
                 request_id = field_val(fb.root.union_data[0].fields[0], 0)
                 error_msg = field_val(fb.root.union_data[0].fields[1], "")
@@ -389,15 +414,19 @@ class ThymioFB:
                         "error_col": error_col,
                     })
                     del self.request_id_notify_dict[request_id]
-                if self.debug >= 1:
-                    print(f"compilation error: {error_msg}")
+                    if self.debug >= 1:
+                        print(f"compilation error: {error_msg}")
+                elif self.debug >= 1:
+                    print(f"compilation error: {error_msg} request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_SUCCESS:
                 request_id = field_val(fb.root.union_data[0].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
-                if self.debug >= 1:
-                    print("compilation ok")
+                    if self.debug >= 1:
+                        print("compilation ok")
+                elif self.debug >= 1:
+                    print(f"compilation ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_VARIABLES_CHANGED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
                 variables = [
