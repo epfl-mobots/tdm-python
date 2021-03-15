@@ -193,8 +193,8 @@ class VariableTableWindow(tk.Tk):
         def on_variables_changed(node_id_str, data):
             if self.edited_variable is None:
                 variables = data["variables"]
-                for i, v in enumerate(variables):
-                    self.add_variable(v["name"], v["value"])
+                for name in variables:
+                    self.add_variable(name, variables[name])
 
         self.client = ClientAsync()
         self.client.on_nodes_changed = on_nodes_changed

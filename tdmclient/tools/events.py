@@ -28,7 +28,7 @@ onevent timer0
                 if error is not None:
                     print(f"Compilation error: {error['error_msg']}")
                 else:
-                    await client.watch(node_id_str)
+                    await client.watch(node_id_str, events=True)
                     error = await client.run(node_id_str)
                     if error is not None:
                         print(f"Error {error['error_code']}")

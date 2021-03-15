@@ -446,51 +446,49 @@ class ThymioFB:
                     print(f"compilation ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_VARIABLES_CHANGED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
-                variables = [
-                    {
-                        "name": v.fields[0][0],
-                        "value": v.fields[1][0],
-                    }
+                variables = {
+                    v.fields[0][0]: v.fields[1][0]
                     for v in fb.root.union_data[0].fields[1][0]
-                ]
+                }
                 if self.on_variables_changed is not None:
                     self.on_variables_changed(node_id_str, {"variables": variables})
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:
-                        for variable in variables:
-                            print(variable["name"], variable["value"])
+                        for name in variables:
+                            print(name, variables[name])
             elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_DESCRIPTIONS_CHANGED:
                 node_or_group_id = bytes_to_hexa(fb.root.union_data[0].fields[0])
-                event_descr = [
-                    {
-                        "name": e.fields[0][0],
-                        "size": field_val(e.fields[1], 0),
-                        "index": field_val(e.fields[2], 0)
+                if fb.root.union_data[0].fields[1] is not None:
+                    event_size = {
+                        e.fields[0][0]: field_val(e.fields[1], 0)
+                        for e in fb.root.union_data[0].fields[1][0]
                     }
-                    for e in fb.root.union_data[0].fields[1][0]
-                ] if fb.root.union_data[0].fields[1] is not None else []
+                    event_index = {
+                        e.fields[0][0]: field_val(e.fields[2], 0)
+                        for e in fb.root.union_data[0].fields[1][0]
+                    }
+                else:
+                    event_size = []
+                    event_index = []
                 if self.debug >= 1:
-                    print(f"event descriptions of node or group {node_or_group_id} changed")
+                    print(f"event sizes of node or group {node_or_group_id} changed")
                     if self.debug >= 2:
                         print("\n".join([
-                            f"{e['name']} size={e['size']} index={e['index']}" for e in event_descr
+                            f"{name}[{event_size[name]}]" for name in event_size
                         ]))
             elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_EMITTED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
-                events = [
-                    {
-                        "name": e.fields[0][0],
-                        "value": e.fields[1][0]
-                    }
+                events = {
+                    e.fields[0][0]: e.fields[1][0]
                     for e in fb.root.union_data[0].fields[1][0]
-                ]
+                }
                 if self.debug >= 1:
                     print(f"events emitted by node {node_id_str}")
                     if self.debug >= 2:
-                        for event in events:
-                            print(event["name"],
-                                  event["value"] if event["value"] is not None else "")
+                        for name in events:
+                            print(name,
+                                  events[name] if events[name] is not None else "")
             elif fb.root.union_type == self.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
                 state = field_val(fb.root.union_data[0].fields[1], 0)
