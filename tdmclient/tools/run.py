@@ -11,15 +11,18 @@ def help():
 Run program on robot, from file or stdin
 
 Options:
-  --debug n   display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
-  --help      display this help message and exit
-  --stop      stop program (no filename or stdin expected)
+  --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
+  --help       display this help message and exit
+  --scratchpad also store program into the TDM scratchpad
+  --sponly     store program into the TDM without running it
+  --stop       stop program (no filename or stdin expected)
 """)
 
 if __name__ == "__main__":
 
     debug = 0
     stop = False
+    scratchpad = 0 # 1=--scratchpad, 2=--sponly
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -27,6 +30,8 @@ if __name__ == "__main__":
                                           [
                                               "debug=",
                                               "help",
+                                              "scratchpad",
+                                              "sponly",
                                               "stop",
                                           ])
     except getopt.error as err:
@@ -38,6 +43,10 @@ if __name__ == "__main__":
             sys.exit(0)
         elif arg == "--debug":
             debug = int(val)
+        elif arg == "--scratchpad":
+            scratchpad = 1
+        elif arg == "--sponly":
+            scratchpad = 2
         elif arg == "--stop":
             stop = True
 
@@ -67,14 +76,20 @@ if __name__ == "__main__":
                         print(f"Stop error {error['error_code']}")
                         status = 2
                 else:
-                    error = await client.compile(node_id_str, program)
-                    if error is not None:
-                        print(f"Compilation error: {error['error_msg']}")
-                        status = 2
-                    else:
-                        error = await client.run(node_id_str)
+                    if scratchpad < 2:
+                        error = await client.compile(node_id_str, program)
                         if error is not None:
-                            print(f"Run error {error['error_code']}")
+                            print(f"Compilation error: {error['error_msg']}")
+                            status = 2
+                        else:
+                            error = await client.run(node_id_str)
+                            if error is not None:
+                                print(f"Run error {error['error_code']}")
+                                status = 2
+                    if scratchpad > 0:
+                        error = await client.set_scratchpad(node_id_str, program)
+                        if error is not None:
+                            print(f"Scratchpad error {error['error_code']}")
                             status = 2
 
         client.run_async_program(prog)
