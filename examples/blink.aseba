@@ -1,0 +1,11 @@
+var on = 0
+
+timer.period[0] = 500
+
+onevent timer0
+    on = 1 - on
+    if on != 0 then
+        leds.top = [32, 32, 0]
+    else
+        leds.top = [0, 0, 0]
+    end
