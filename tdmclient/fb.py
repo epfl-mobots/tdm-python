@@ -48,13 +48,17 @@ class Table:
                 vtable += FlatBuffer.encode_16(0)
             else:
                 _, encoded_field, is_inline = field
-                vtable += FlatBuffer.encode_16(4 + len(data))
-                if is_inline:
-                    data += encoded_field
+                if encoded_field is None:
+                    # no value (default)
+                    vtable += FlatBuffer.encode_16(0)
                 else:
-                    offsets.add((len(data), len(values)))
-                    data += b"1234" # offset placeholder
-                    values += encoded_field
+                    vtable += FlatBuffer.encode_16(4 + len(data))
+                    if is_inline:
+                        data += encoded_field
+                    else:
+                        offsets.add((len(data), len(values)))
+                        data += b"1234" # offset placeholder
+                        values += encoded_field
 
         # prepend vtable header
         vtable = (FlatBuffer.encode_16(len(vtable) + 4)
@@ -344,6 +348,8 @@ class FlatBuffer:
             enc += bytes([0 for i in range((4 - len(enc)) % 4)])
             return value, enc, False
         elif schema[0] == "T":
+            if value is None:
+                return value, None, False
             table = Table.create_with_schema(value, schema)
             return table.encode()
         elif schema[0] == "U":
