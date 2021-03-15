@@ -146,6 +146,14 @@ class ClientAsync(Client):
         return result
 
     @types.coroutine
+    def stop(self, node_id_str):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.set_vm_execution_state(node_id_str, self.VM_EXECUTION_STATE_COMMAND_STOP, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def flash(self, node_id_str):
         result = yield from self.send_msg_and_get_result(
             lambda notify:
