@@ -154,6 +154,14 @@ class ClientAsync(Client):
         return result
 
     @types.coroutine
+    def set_scratchpad(self, node_id_str, program):
+        result = yield from self.send_msg_and_get_result(
+            lambda notify:
+                self.send_set_scratchpad(node_id_str, program, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def watch(self, node_id_str, flags=0, variables=False, events=False):
         flags |= ((self.WATCHABLE_INFO_VARIABLES if variables else 0) |
                   (self.WATCHABLE_INFO_EVENTS if events else 0))
@@ -196,6 +204,6 @@ class ClientAsync(Client):
         async def prog():
             nonlocal r
             r = await co
-        
+
         ClientAsync.run_async_program(prog)
         return r

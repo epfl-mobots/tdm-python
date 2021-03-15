@@ -277,6 +277,23 @@ class ThymioFB:
             )
         ), self.SCHEMA)
 
+    def create_msg_scratchpad_update(self, node_id_str, program, **kwargs):
+        return self.create_message((
+            self.MESSAGE_TYPE_SCRATCHPAD_UPDATE,
+            (
+                self.next_request_id(**kwargs),
+                (
+                    self.get_node_id(node_id_str),
+                ),
+                None,
+                (
+                    self.get_node_id(node_id_str),
+                ),
+                self.PROGRAMMING_LANGUAGE_ASEBA,
+                program,
+            )
+        ), self.SCHEMA)
+
     def create_msg_set_vm_execution_state(self, node_id_str, state, **kwargs):
         return self.create_message((
             self.MESSAGE_TYPE_SET_VM_EXECUTION_STATE,
