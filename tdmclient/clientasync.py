@@ -16,7 +16,7 @@ class ClientAsync(Client):
         return self.nodes[0] if len(self.nodes) > 0 else None
 
     @types.coroutine
-    def sleep(self, duration):
+    def sleep(self, duration=-1):
         t0 = monotonic()
         while duration < 0 or monotonic() < t0 + duration:
             self.process_waiting_messages()
@@ -59,11 +59,13 @@ class ClientAsync(Client):
 
         result = None
         done = False
+
         def notify(r):
             nonlocal result
             nonlocal done
             result = r
             done = True
+
         send_fun(notify)
         while not done:
             yield
@@ -97,13 +99,17 @@ class ClientAsync(Client):
         """
 
         class Lock:
+
             def __init__(self, tdm, node_id_str):
                 self.tdm = tdm
                 self.node_id_str = node_id_str
+
             def __enter__(self):
                 return self.node_id_str
+
             def __exit__(self, type, value, traceback):
                 self.tdm.send_unlock_node(node_id_str)
+
 
         if node_id_str is None:
             yield from self.wait_for_status(self.NODE_STATUS_AVAILABLE)
