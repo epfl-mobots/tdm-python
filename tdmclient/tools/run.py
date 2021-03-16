@@ -6,6 +6,7 @@ import getopt
 
 from tdmclient import ClientAsync
 
+
 def help():
     print("""Usage: python3 -m tdmclient.tools.run [options] [filename]
 Run program on robot, from file or stdin
@@ -18,11 +19,12 @@ Options:
   --stop       stop program (no filename or stdin expected)
 """)
 
+
 if __name__ == "__main__":
 
     debug = 0
     stop = False
-    scratchpad = 0 # 1=--scratchpad, 2=--sponly
+    scratchpad = 0  # 1=--scratchpad, 2=--sponly
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -69,6 +71,7 @@ if __name__ == "__main__":
     with ClientAsync(debug=debug) as client:
 
         async def prog():
+            nonlocal status
             with await client.lock() as node_id_str:
                 if stop:
                     error = await client.stop(node_id_str)
