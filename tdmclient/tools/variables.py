@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
-# Yves Piguet, February-March 2021
+# This file is part of tdmclient.
+# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Miniature Mobile Robots group, Switzerland
+# Author: Yves Piguet
+#
+# SPDX-License-Identifier: BSD-3-Clause
 
 import sys
 import tkinter as tk

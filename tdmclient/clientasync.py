@@ -1,4 +1,9 @@
-# Yves Piguet, Feb 2021
+# This file is part of tdmclient.
+# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Miniature Mobile Robots group, Switzerland
+# Author: Yves Piguet
+#
+# SPDX-License-Identifier: BSD-3-Clause
 
 from time import sleep, monotonic
 from tdmclient import Client
