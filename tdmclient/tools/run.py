@@ -71,7 +71,7 @@ if __name__ == "__main__":
     with ClientAsync(debug=debug) as client:
 
         async def prog():
-            nonlocal status
+            global status
             with await client.lock() as node_id_str:
                 if stop:
                     error = await client.stop(node_id_str)
