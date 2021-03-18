@@ -155,8 +155,36 @@ class ATranspiler:
             aux_statements += aux_st
             code = f"{left} {op_str} {right}"
         elif isinstance(node, ast.BoolOp):
+            # with shortcuts, useful e.g. to avoid out-of-bound array indexing
+            # result is not pretty b/c of aseba's idea of what's acceptable
             op = node.op
-            raise Exception("Boolean op not implemented")
+            cmp = "!=" if isinstance(op, ast.And) else "=="
+            tmp_offset = tmp_req
+            tmp_req += 1
+            for i in range(len(node.values)):
+                value, aux_st, tmp_req1, is_value_boolean = self.compile_expr(node.values[i], self.PRI_ASSIGN, tmp_offset + 1)
+                tmp_req = max(tmp_req, tmp_req1)
+                # store value into tmp[tmp_offset]
+                aux_statements += aux_st
+                if is_value_boolean:
+                    aux_statements += f"""if {value} then
+\ttmp[{tmp_offset}] = 1
+else
+\ttmp[{tmp_offset}] = 0
+end
+"""
+                else:
+                    aux_statements += f"""tmp[{tmp_offset}] = {value}
+"""
+                # continue evaluating terms if true (and) or false (or)
+                if i + 1 < len(node.values):
+                    aux_statements += f"""if tmp[{tmp_offset}] {cmp} 0 then
+"""
+            for i in range(len(node.values) - 1):
+                aux_statements += """end
+"""
+            code = f"tmp[{tmp_offset}]"
+            is_boolean = False
         elif isinstance(node, ast.Compare):
             if len(node.ops) != 1:
                 raise Exception("Chained comparisons not implemented")
