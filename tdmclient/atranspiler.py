@@ -244,17 +244,43 @@ end
         else:
             return code, aux_statements, tmp_req, is_boolean
 
+    def decode_target(self, target):
+        """Decode an assignment target and return variable name (possibly dotted) and
+        index node (or None)
+        """
+        index = None
+        if isinstance(target, ast.Subscript):
+            index = target.slice.value
+            target = target.value
+        name = self.decode_attr(target)
+        return name, index
+
     def compile_node(self, node, tmp_req=0):
         code = ""
         if isinstance(node, ast.Assign):
             if len(node.targets) != 1:
                 raise Exception("Unsupported assignment to multiple targets")
-            target = self.decode_attr(node.targets[0])
+            target, index = self.decode_target(node.targets[0])
             if isinstance(node.value, ast.List):
+                if index is not None:
+                    raise Exception("List assigned to indexed variable")
                 value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.value, self.PRI_ASSIGN, tmp_req)
             else:
                 value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.value, self.PRI_NUMERIC, tmp_req)
             code += aux_statements
+            if index is not None:
+                index_value, aux_statements, tmp_req, is_index_boolean = self.compile_expr(index, self.PRI_NUMERIC, tmp_req)
+                code += aux_statements
+                if is_index_boolean:
+                    code += f"""if {index_value} then
+\ttmp[{tmp_req}] = 1
+else
+\ttmp[{tmp_req}] = 0
+end
+"""
+                    index_value = "tmp[{tmp_req}]"
+                    tmp_req += 1
+                target += "[" + index_value + "]"
             if is_boolean:
                 # convert boolean to number
                 code += f"""if {value} then
@@ -267,7 +293,7 @@ end
             else:
                 code += f"{target} = {value}\n"
             target_size = len(node.value.elts) if isinstance(node.value, ast.List) else None
-            return code, {target: target_size}, tmp_req
+            return code, {target: target_size} if index is None else {}, tmp_req
         else:
             raise Exception(f"Node {ast.dump(node)} not implemented")
 
@@ -281,7 +307,7 @@ end
                 if (name in var and v[name] != var[name] or
                     name in self.PREDEFINED_VARIABLES and v[name] != self.PREDEFINED_VARIABLES[name]):
                     raise Exception(f"Incompatible sizes for list assignment to {name}")
-                var = {**var, **v}
+            var = {**var, **v}
             tmp_req = max(tmp_req, tmp_req1)
         return code, var, tmp_req
 
