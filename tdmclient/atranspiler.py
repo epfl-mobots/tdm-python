@@ -199,6 +199,21 @@ class ATranspiler:
             return code, aux_statements, tmp_req, False
         elif isinstance(node, ast.Name):
             code = self.decode_attr(node)
+        elif isinstance(node, ast.Subscript):
+            name = self.decode_attr(node.value)
+            index = node.slice.value
+            index_value, aux_st, tmp_req, is_index_boolean = self.compile_expr(index, self.PRI_NUMERIC, tmp_req)
+            if is_index_boolean:
+                aux_st += f"""if {index_value} then
+\ttmp[{tmp_req}] = 1
+else
+\ttmp[{tmp_req}] = 0
+end
+"""
+                index_value = f"tmp[{tmp_req}]"
+                tmp_req += 1
+            aux_statements += aux_st
+            code = f"{name}[{index_value}]"
         elif isinstance(node, ast.UnaryOp):
             op = node.op
             if isinstance(op, ast.UAdd):
@@ -238,7 +253,7 @@ else
 end
 """
             tmp_req = max(tmp_req, tmp_offset + 1)
-            return f"tmp[{tmp_offset}]", aux_statements, tmp_req, is_boolean
+            return f"tmp[{tmp_offset}]", aux_statements, tmp_req, False
         elif priority < priority_container:
             return "(" + code + ")", aux_statements, tmp_req, is_boolean
         else:
