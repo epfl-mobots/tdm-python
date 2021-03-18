@@ -330,6 +330,35 @@ end
                 code += f"{target} = {value}\n"
             target_size = len(node.value.elts) if isinstance(node.value, ast.List) else None
             return code, {target: target_size} if index is None else {}, tmp_req
+        elif isinstance(node, ast.If):
+            tmp_offset = tmp_req
+            test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)
+            code += aux_statements
+            code += f"""if {test_value}{"" if is_boolean else " != 0"} then
+"""
+            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+            code += body
+            tmp_req = max(tmp_req, tmp_req1)
+            while len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+                # "if" node as single element of orelse: elif
+                node = node.orelse[0]
+                test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)
+                code += aux_statements
+                code += f"""elseif {test_value}{"" if is_boolean else " != 0"} then
+"""
+                body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+                code += body
+                tmp_req = max(tmp_req, tmp_req1)
+            if len(node.orelse) > 0:
+                # anything else in orelse: else
+                code += f"""else
+"""
+                body, var, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset)
+                code += body
+                tmp_req = max(tmp_req, tmp_req1)
+            code += """end
+"""
+            return code, var, tmp_req
         elif isinstance(node, ast.Pass):
             return "", {}, tmp_req
         else:
