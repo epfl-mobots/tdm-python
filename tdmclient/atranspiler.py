@@ -76,26 +76,19 @@ class ATranspiler:
         event_handlers = {}
         for node in self.ast.body:
             if isinstance(node, ast.FunctionDef):
-                event_id = None
+                event_name = None
                 for decorator in node.decorator_list:
-                    if not isinstance(decorator, ast.Call) or not isinstance(decorator.func, ast.Name):
+                    if not isinstance(decorator, ast.Name):
                         raise Exception(f"Unsupported function decorator type {ast.dump(decorator)}")
-                    if decorator.func.id != "onevent":
-                        raise Exception(f'Unsupported function decorator "{decorator.func.id}"')
-                    if len(decorator.args) != 1:
-                        raise Exception("Unsupported function decorator number of arguments")
-                    if (isinstance(decorator.args[0], ast.Num)):
-                        event_id = decorator.args[0].n
-                        if (event_id & 0xffff) == 0xffff:
-                            # init event handler is made of top-level code,
-                            # not a decorated function
-                            raise Exception("Illegal event id 0xffff")
-                    else:
-                        raise Exception(f"Unsupported function decorator argument type {ast.dump(decorator.args[0])}")
-                if event_id is None:
+                    if decorator.id != "onevent":
+                        raise Exception(f'Unsupported function decorator "{decorator.id}"')
+                    event_name = node.name
+                if event_name is None:
                     functions[node.name] = node
+                elif event_name in event_handlers:
+                    raise Exception(f"Onevent handler {event_name} defined multiple times")
                 else:
-                    event_handlers[event_id] = node
+                    event_handlers[event_name] = node
             else:
                 top_code.append(node)
 
@@ -337,8 +330,17 @@ end
                 code += f"{target} = {value}\n"
             target_size = len(node.value.elts) if isinstance(node.value, ast.List) else None
             return code, {target: target_size} if index is None else {}, tmp_req
+        elif isinstance(node, ast.Pass):
+            return "", {}, tmp_req
         else:
             raise Exception(f"Node {ast.dump(node)} not implemented")
+
+    @staticmethod
+    def check_var_size(var, var_new):
+        for name in var_new:
+            if (name in var and var_new[name] != var[name] or
+                name in ATranspiler.PREDEFINED_VARIABLES and var_new[name] != ATranspiler.PREDEFINED_VARIABLES[name]):
+                raise Exception(f"Incompatible sizes for list assignment to {name}")
 
     def compile_node_array(self, node_array, tmp_req=0):
         code = ""
@@ -346,10 +348,7 @@ end
         for node in node_array:
             c, v, tmp_req1 = self.compile_node(node, tmp_req)
             code += c
-            for name in v:
-                if (name in var and v[name] != var[name] or
-                    name in self.PREDEFINED_VARIABLES and v[name] != self.PREDEFINED_VARIABLES[name]):
-                    raise Exception(f"Incompatible sizes for list assignment to {name}")
+            self.check_var_size(var, v)
             var = {**var, **v}
             tmp_req = max(tmp_req, tmp_req1)
         return code, var, tmp_req
@@ -359,7 +358,22 @@ end
         top_code, functions, event_handlers = self.split()
 
         self.output_src = ""
+
+        # top-level code
         self.output_src, var, tmp_req = self.compile_node_array(top_code)
+
+        # onevent handlers
+        tmp_offset = tmp_req
+        for event_name in event_handlers:
+            event_output_src, var1, tmp_req1 = self.compile_node_array(event_handlers[event_name].body, tmp_offset)
+            tmp_req = max(tmp_req, tmp_req1)
+            self.check_var_size(var, var1)
+            var = {**var, **var1}
+            self.output_src += f"""
+onevent {event_name}
+""" + event_output_src
+
+        # variable declarations
         if tmp_req > 0:
             var["tmp"] = tmp_req
         if len(var) > 0:
