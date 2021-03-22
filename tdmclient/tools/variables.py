@@ -152,8 +152,12 @@ class VariableTableWindow(tk.Tk):
         # main layout: info at bottom (one line), scrollable main content above
         self.main_content = tk.Frame(self)
         self.main_content.pack(fill=tk.BOTH, expand=True)
-        self.info_line = tk.Label(self, anchor="w", bg="#fff", fg="#666", height=1)  # 1 char unit
-        self.info_line.pack(side=tk.BOTTOM, fill=tk.X)
+        status_frame = tk.Frame(self, height=1)
+        status_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.info_mode = tk.Label(status_frame, anchor="w", bg="#fff", fg="#666", width=15)  # char units
+        self.info_mode.pack(side=tk.LEFT)
+        self.info_error = tk.Label(status_frame, anchor="e", bg="#fff", fg="#666")
+        self.info_error.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # variables
         self.canvas = None
@@ -242,13 +246,13 @@ class VariableTableWindow(tk.Tk):
         async def run_a():
             error = await self.client.compile(self.node_id_str, src_aseba)
             if error is not None:
-                print("compile error", error)
                 self.error_msg = error["error_msg"]
+                self.info_error["text"] = self.error_msg
             else:
                 error = await self.client.run(self.node_id_str)
                 if error is not None:
-                    print("run error", error)
                     self.error_msg = f"Run error {error['error_code']}"
+                    self.info_error["text"] = self.error_msg
 
         self.client.run_async_program(run_a)
 
@@ -269,8 +273,8 @@ class VariableTableWindow(tk.Tk):
         async def stop_a():
             error = await self.client.stop(self.node_id_str)
             if error is not None:
-                print("stop error", error)
                 self.error_msg = f"Stop error {error['error_code']}"
+                self.info_error["text"] = self.error_msg
 
         if self.locked:
             self.client.run_async_program(stop_a)
@@ -425,9 +429,9 @@ class VariableTableWindow(tk.Tk):
                 self.node_id_str = None
                 self.clear_variables()
                 self.set_title()
-                self.info_line["text"] = ""
+                self.info_mode["text"] = ""
             else:
-                self.info_line["text"] = {
+                self.info_mode["text"] = {
                     self.client.NODE_STATUS_UNKNOWN: "No robot",
                     self.client.NODE_STATUS_CONNECTED: "Robot connected",
                     self.client.NODE_STATUS_AVAILABLE: "Observe",
