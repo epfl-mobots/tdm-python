@@ -361,6 +361,24 @@ end
             return code, var, tmp_req
         elif isinstance(node, ast.Pass):
             return "", {}, tmp_req
+        elif isinstance(node, ast.While):
+            tmp_offset = tmp_req
+            test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)
+            code += aux_statements
+            code += f"""while {test_value}{"" if is_boolean else " != 0"} do
+"""
+            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+            code += body
+            tmp_req = max(tmp_req, tmp_req1)
+            code += aux_statements  # to evaluate condition
+            code += """end
+"""
+            if node.orelse is not None and len(node.orelse) > 0:
+                # else clause always executed b/c break is not supported
+                body, var, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset)
+                code += body
+                tmp_req = max(tmp_req, tmp_req1)
+            return code, var, tmp_req
         else:
             raise Exception(f"Node {ast.dump(node)} not implemented")
 
