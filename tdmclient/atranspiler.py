@@ -438,8 +438,10 @@ onevent {event_name}
 if __name__ == "__main__":
 
     src = None
-
-    if src is None:
+    if len(sys.argv) >= 2:
+        with open(sys.argv[1]) as f:
+            src = f.read()
+    else:
         src = sys.stdin.read()
 
     transpiler = ATranspiler()
