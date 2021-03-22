@@ -199,7 +199,7 @@ end
                 raise Exception(f"Comparison op {ast.dump(op)} not implemented")
             code = f"{left} {op_str} {right}"
             is_boolean = True
-        elif isinstance(node, ast.Constant):
+        elif isinstance(node, ast.Constant) or isinstance(node, ast.NameConstant):
             if node.value is False:
                 code = "0"
             elif node.value is True:
