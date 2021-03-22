@@ -7,6 +7,7 @@
 
 import sys
 import tkinter as tk
+import tkinter.filedialog as filedialog
 
 from tdmclient import ClientAsync
 
@@ -18,6 +19,9 @@ class VariableTableWindow(tk.Tk):
         self.geometry("600x420")
         self.title("No robot")
 
+        self.program_path = None
+        self.program_src = ""
+
         # menus
         accelerator_key = "Cmd" if sys.platform == "darwin" else "Ctrl"
         bind_key = "Command" if sys.platform == "darwin" else "Control"
@@ -25,14 +29,32 @@ class VariableTableWindow(tk.Tk):
         self.config(menu=menubar)
         self.bind("<" + bind_key + "-q>", lambda event: self.quit())
 
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(
+            label="Open",
+            command=self.open,
+            accelerator=accelerator_key+"-O"
+        )
+        self.bind("<" + bind_key + "-o>", lambda event: self.open())
+        file_menu.add_command(
+            label="Save",
+            command=lambda: self.save(self.program_path),
+            accelerator=accelerator_key+"-S"
+        )
+        self.bind("<" + bind_key + "-s>", lambda event: self.save(self.program_path))
+        file_menu.add_command(
+            label="Save As...",
+            command=lambda: self.save(None),
+            accelerator=accelerator_key+"-Shift-S"
+        )
+        self.bind("<" + bind_key + "-S>", lambda event: self.save(None))
         if sys.platform != "darwin":
-            file_menu = tk.Menu(menubar, tearoff=False)
             file_menu.add_command(
                 label="Quit",
                 command=self.quit,
                 accelerator=accelerator_key+"-Q"
             )
-            menubar.add_cascade(label="File", menu=file_menu)
+        menubar.add_cascade(label="File", menu=file_menu)
 
         def send_event_to_focused_widget(event_id):
             widget = self.focus_get()
@@ -95,7 +117,7 @@ class VariableTableWindow(tk.Tk):
         self.bind("<" + bind_key + "-r>", lambda event: self.run_program())
         menubar.add_cascade(label="Robot", menu=self.robot_menu)
 
-        # main layout: info at bottom (one line), scrollable main cntent above
+        # main layout: info at bottom (one line), scrollable main content above
         self.main_content = tk.Frame(self)
         self.main_content.pack(fill=tk.BOTH, expand=True)
         self.info_line = tk.Label(self, anchor="w", bg="#fff", fg="#666", height=1)  # 1 char unit
@@ -131,6 +153,28 @@ class VariableTableWindow(tk.Tk):
         self.remove_variable_view()
         self.create_program_view()
 
+    def open(self):
+        path = filedialog.askopenfilename(filetypes=[("Aseba", ".aseba"),])
+        if path:
+            with open(path, encoding="utf-8") as f:
+                self.program_src = f.read()
+                self.program_path = path
+                self.set_view_program()
+                self.text_program.delete("1.0", "end")
+                self.text_program.insert("1.0", self.program_src)
+                self.text_program.edit_modified(False)
+
+    def save(self, path):
+        if path is None:
+            path = filedialog.asksaveasfilename(filetypes=[("Aseba", ".aseba"),],
+                                                defaultextension=".aseba")
+        if path:
+            with open(path, "wb") as f:
+                self.program_src = self.text_program.get("1.0", "end")
+                f.write(bytes(self.program_src, "utf-8"))
+                self.text_program.edit_modified(False)
+                self.program_path = path
+
     def run_src(self, src_aseba):
 
         async def run_a():
@@ -148,8 +192,8 @@ class VariableTableWindow(tk.Tk):
 
     def run_program(self):
         if self.locked and self.text_program is not None:
-            src = self.text_program.get("1.0", "end")
-            self.run_src(src)
+            self.program_src = self.text_program.get("1.0", "end")
+            self.run_src(self.program_src)
 
     async def init_prog(self):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
@@ -228,6 +272,11 @@ class VariableTableWindow(tk.Tk):
                 v = self.variables[name]
                 v["text"] = text
                 v["vwidget"]["text"] = text
+        else:
+            # just remember value
+            self.variables[name] = {
+                "value": value
+            }
 
     def clear_variables(self):
         self.end_editing(cancel=True)
@@ -270,6 +319,7 @@ class VariableTableWindow(tk.Tk):
 
     def remove_program_view(self):
         if self.text_program is not None:
+            self.program_src = self.text_program.get("1.0", "end")
             self.text_program.destroy()
             self.text_program = None
             self.scrollbar.destroy()
@@ -282,6 +332,8 @@ class VariableTableWindow(tk.Tk):
             self.text_program = tk.Text(self.main_content, yscrollcommand=self.scrollbar.set)
             self.text_program.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             self.scrollbar.config(command=self.text_program.yview)
+            self.text_program.insert("1.0", self.program_src)
+            self.text_program.focus_set()
 
     def connect(self):
 
