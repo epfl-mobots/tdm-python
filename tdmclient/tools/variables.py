@@ -125,6 +125,13 @@ class VariableTableWindow(tk.Tk):
             accelerator=accelerator_key+"-R"
         )
         self.bind("<" + bind_key + "-r>", lambda event: self.run_program())
+        self.robot_menu.add_command(
+            label="Stop",
+            command=self.stop_program,
+            state="disabled",
+            accelerator="Escape"
+        )
+        self.bind("<Escape>", lambda event: self.stop_program())
         self.robot_menu.add_separator()
         self.language_var = tk.IntVar()
         self.robot_menu.add_radiobutton(
@@ -257,6 +264,17 @@ class VariableTableWindow(tk.Tk):
                 aseba_src = self.program_src
             self.run_src(aseba_src)
 
+    def stop_program(self):
+
+        async def stop_a():
+            error = await self.client.stop(self.node_id_str)
+            if error is not None:
+                print("stop error", error)
+                self.error_msg = f"Stop error {error['error_code']}"
+
+        if self.locked:
+            self.client.run_async_program(stop_a)
+
     async def init_prog(self):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
         self.node = self.client.first_node()
@@ -268,9 +286,11 @@ class VariableTableWindow(tk.Tk):
         if locked:
             self.client.send_lock_node(self.node_id_str)
             self.robot_menu.entryconfig("Run", state="normal")
+            self.robot_menu.entryconfig("Stop", state="normal")
         else:
             self.client.send_unlock_node(self.node_id_str)
             self.robot_menu.entryconfig("Run", state="disabled")
+            self.robot_menu.entryconfig("Stop", state="disabled")
         self.locked = locked
 
     def remove_variable_view(self):
