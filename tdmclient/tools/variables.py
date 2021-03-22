@@ -34,9 +34,50 @@ class VariableTableWindow(tk.Tk):
             )
             menubar.add_cascade(label="File", menu=file_menu)
 
-        robot_menu = tk.Menu(menubar, tearoff=False)
+        def send_event_to_focused_widget(event_id):
+            widget = self.focus_get()
+            if widget is not None:
+                widget.event_generate(event_id)
+
+        edit_menu = tk.Menu(menubar, tearoff=False)
+        edit_menu.add_command(
+            label="Cut",
+            command=lambda: send_event_to_focused_widget("<<Cut>>")
+        )
+        edit_menu.add_command(
+            label="Copy",
+            command=lambda: send_event_to_focused_widget("<<Copy>>")
+        )
+        edit_menu.add_command(
+            label="Paste",
+            command=lambda: send_event_to_focused_widget("<<Paste>>")
+        )
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+
+        view_menu = tk.Menu(menubar, tearoff=False)
+        self.view_var = tk.IntVar()
+        view_menu.add_radiobutton(
+            label="Variables",
+            variable=self.view_var,
+            value=1,
+            command=self.set_view_variables,
+            accelerator=accelerator_key+"-1"
+        )
+        self.bind("<" + bind_key + "-1>", lambda event: self.set_view_variables())
+        view_menu.add_radiobutton(
+            label="Program",
+            variable=self.view_var,
+            value=2,
+            command=self.set_view_program,
+            accelerator=accelerator_key+"-2"
+        )
+        self.bind("<" + bind_key + "-2>", lambda event: self.set_view_program())
+        menubar.add_cascade(label="View", menu=view_menu)
+        self.view_var.set(1)
+
+        self.robot_menu = tk.Menu(menubar, tearoff=False)
         lock_node_var = tk.BooleanVar()
-        robot_menu.add_checkbutton(
+        self.robot_menu.add_checkbutton(
             label="Control",
             variable=lock_node_var,
             accelerator=accelerator_key+"-L"
@@ -44,18 +85,29 @@ class VariableTableWindow(tk.Tk):
         self.bind("<" + bind_key + "-l>", lambda event: lock_node_var.set(not lock_node_var.get()))
         lock_node_var.trace_add("write",
                                 lambda var, index, mode: self.lock_node(lock_node_var.get()))
-        menubar.add_cascade(label="Robot", menu=robot_menu)
+        self.robot_menu.add_separator()
+        self.robot_menu.add_command(
+            label="Run",
+            command=self.run_program,
+            state="disabled",
+            accelerator=accelerator_key+"-R"
+        )
+        self.bind("<" + bind_key + "-r>", lambda event: self.run_program())
+        menubar.add_cascade(label="Robot", menu=self.robot_menu)
 
-        # main layout: info at top (one line), scrollable variables below
+        # main layout: info at bottom (one line), scrollable main cntent above
         self.main_content = tk.Frame(self)
         self.main_content.pack(fill=tk.BOTH, expand=True)
-        self.info_line = tk.Label(self, anchor="w", bg="#fff", fg="#666", height=1) # 1 char unit
+        self.info_line = tk.Label(self, anchor="w", bg="#fff", fg="#666", height=1)  # 1 char unit
         self.info_line.pack(side=tk.BOTTOM, fill=tk.X)
 
         # variables
         self.canvas = None
         self.scrollbar = None
         self.frame = None
+
+        # program
+        self.text_program = None
 
         # key=name, value={"widget": w, "value": v}
         self.variables = {}
@@ -65,10 +117,41 @@ class VariableTableWindow(tk.Tk):
         self.client = None
         self.node = None
         self.node_id_str = None
+        self.locked = False
 
         self.start_co = None
 
-    async def prog(self):
+    def set_view_variables(self):
+        self.view_var.set(1)
+        self.remove_program_view()
+        self.create_variable_view()
+
+    def set_view_program(self):
+        self.view_var.set(2)
+        self.remove_variable_view()
+        self.create_program_view()
+
+    def run_src(self, src_aseba):
+
+        async def run_a():
+            error = await self.client.compile(self.node_id_str, src_aseba)
+            if error is not None:
+                print("compile error", error)
+                self.error_msg = error["error_msg"]
+            else:
+                error = await self.client.run(self.node_id_str)
+                if error is not None:
+                    print("run error", error)
+                    self.error_msg = f"Run error {error['error_code']}"
+
+        self.client.run_async_program(run_a)
+
+    def run_program(self):
+        if self.locked and self.text_program is not None:
+            src = self.text_program.get("1.0", "end")
+            self.run_src(src)
+
+    async def init_prog(self):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
         self.node = self.client.first_node()
         self.node_id_str = self.node["node_id_str"]
@@ -81,47 +164,67 @@ class VariableTableWindow(tk.Tk):
     def lock_node(self, locked):
         if locked:
             self.client.send_lock_node(self.node_id_str)
+            self.robot_menu.entryconfig("Run", state="normal")
         else:
             self.client.send_unlock_node(self.node_id_str)
+            self.robot_menu.entryconfig("Run", state="disabled")
+        self.locked = locked
+
+    def remove_variable_view(self):
+        if self.canvas is not None:
+            self.canvas.destroy()
+            self.canvas = None
+            self.frame = None
+            self.scrollbar.destroy()
+            self.scrollbar = None
+
+    def create_variable_row(self, name, value):
+        f = tk.Frame(self.frame)
+        f.pack(fill=tk.X, expand=True)
+        title = name + (f"[{len(value)}]" if len(value) > 1 else "")
+        l = tk.Label(f, text=title, anchor="w", width=25)
+        l.pack(side=tk.LEFT)
+        text = ", ".join([str(item) for item in value])
+        v = tk.Label(f, text=text, anchor="w")
+        v.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        v.bind("<Button-1>",
+            lambda e: self.begin_editing(name))
+        self.variables[name] = {
+            "widget": f,
+            "vwidget": v,
+            "ewidget": None,
+            "value": value,
+            "text": text,
+        }
+
+    def create_variable_view(self):
+        if self.frame is None:
+            self.canvas = tk.Canvas(self.main_content)
+            self.canvas.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+            self.scrollbar = tk.Scrollbar(self.main_content, orient="vertical", command=self.canvas.yview)
+            self.scrollbar.pack(side=tk.RIGHT, fill="y")
+            self.canvas.configure(yscrollcommand=self.scrollbar.set)
+            self.canvas.bind("<Configure>",
+                            lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+            self.canvas.bind("<Enter>",
+                             lambda event: self.canvas.bind_all("<MouseWheel>",
+                                                                lambda event: self.canvas.yview_scroll(-event.delta // 120, "units")))
+            self.canvas.bind("<Leave>",
+                             lambda event: self.canvas.unbind_all("<MouseWheel>"))
+            self.frame = tk.Frame(self.canvas)
+            self.frame.bind("<Configure>",
+                            lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+            self.canvas.create_window((0, 0), window=self.frame, anchor="nw")
+            for name in self.variables:
+                self.create_variable_row(name, self.variables[name]["value"])
 
     def add_variable(self, name, value):
-        if value is not None:
-            text = ", ".join([str(item) for item in value])
+        if self.view_var.get() == 1 and value is not None:
             if name not in self.variables:
-                if self.frame is None:
-                    self.canvas = tk.Canvas(self.main_content)
-                    self.canvas.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
-                    self.scrollbar = tk.Scrollbar(self.main_content, orient="vertical", command=self.canvas.yview)
-                    self.scrollbar.pack(side=tk.RIGHT, fill="y")
-                    self.canvas.configure(yscrollcommand=self.scrollbar.set)
-                    self.canvas.bind("<Configure>",
-                                    lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-                    self.canvas.bind("<Enter>",
-                                     lambda event: self.canvas.bind_all("<MouseWheel>",
-                                                                        lambda event: self.canvas.yview_scroll(-event.delta // 120, "units")))
-                    self.canvas.bind("<Leave>",
-                                     lambda event: self.canvas.unbind_all("<MouseWheel>"))
-                    self.frame = tk.Frame(self.canvas)
-                    self.frame.bind("<Configure>",
-                                    lambda event: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-                    self.canvas.create_window((0, 0), window=self.frame, anchor="nw")
-                f = tk.Frame(self.frame)
-                f.pack(fill=tk.X, expand=True)
-                title = name + (f"[{len(value)}]" if len(value) > 1 else "")
-                l = tk.Label(f, text=title, anchor="w", width=25)
-                l.pack(side=tk.LEFT)
-                v = tk.Label(f, text=text, anchor="w")
-                v.pack(side=tk.LEFT, fill=tk.X, expand=True)
-                v.bind("<Button-1>",
-                    lambda e: self.begin_editing(name))
-                self.variables[name] = {
-                    "widget": f,
-                    "vwidget": v,
-                    "ewidget": None,
-                    "value": value,
-                    "text": text,
-                }
+                self.create_variable_view()
+                self.create_variable_row(name, value)
             else:
+                text = ", ".join([str(item) for item in value])
                 v = self.variables[name]
                 v["text"] = text
                 v["vwidget"]["text"] = text
@@ -131,12 +234,7 @@ class VariableTableWindow(tk.Tk):
         for name in self.variables:
             self.variables[name]["widget"].destroy()
         self.variables = {}
-        if self.canvas is not None:
-            self.canvas.destroy()
-            self.canvas = None
-            self.frame = None
-            self.scrollbar.destroy()
-            self.scrollbar = None
+        self.remove_variable_view()
 
     def begin_editing(self, name):
         if self.node["status"] != self.client.NODE_STATUS_READY or not self.end_editing(keep_editing_on_error=True):
@@ -170,6 +268,21 @@ class VariableTableWindow(tk.Tk):
             self.edited_variable = None
         return True
 
+    def remove_program_view(self):
+        if self.text_program is not None:
+            self.text_program.destroy()
+            self.text_program = None
+            self.scrollbar.destroy()
+            self.scrollbar = None
+
+    def create_program_view(self):
+        if self.frame is None:
+            self.scrollbar = tk.Scrollbar(self.main_content, orient="vertical")
+            self.scrollbar.pack(side=tk.RIGHT, fill="y")
+            self.text_program = tk.Text(self.main_content, yscrollcommand=self.scrollbar.set)
+            self.text_program.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.scrollbar.config(command=self.text_program.yview)
+
     def connect(self):
 
         def on_nodes_changed(nodes):
@@ -192,7 +305,7 @@ class VariableTableWindow(tk.Tk):
                 }[self.node["status"]]
                 if self.node_id_str is None:
                     # new node, set it up by starting coroutine
-                    self.start_co = self.prog()
+                    self.start_co = self.init_prog()
 
         def on_variables_changed(node_id_str, data):
             if self.edited_variable is None:
