@@ -17,7 +17,6 @@ class VariableTableWindow(tk.Tk):
     def __init__(self):
         super(VariableTableWindow, self).__init__()
         self.geometry("600x420")
-        self.title("No robot")
 
         self.program_path = None
         self.program_src = ""
@@ -30,6 +29,13 @@ class VariableTableWindow(tk.Tk):
         self.bind("<" + bind_key + "-q>", lambda event: self.quit())
 
         file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(
+            label="New",
+            command=self.new,
+            accelerator=accelerator_key+"-N"
+        )
+        self.bind("<" + bind_key + "-n>", lambda event: self.new())
+        file_menu.add_separator()
         file_menu.add_command(
             label="Open",
             command=self.open,
@@ -49,6 +55,7 @@ class VariableTableWindow(tk.Tk):
         )
         self.bind("<" + bind_key + "-S>", lambda event: self.save(None))
         if sys.platform != "darwin":
+            file_menu.add_separator()
             file_menu.add_command(
                 label="Quit",
                 command=self.quit,
@@ -143,15 +150,35 @@ class VariableTableWindow(tk.Tk):
 
         self.start_co = None
 
+        self.set_title()
+
+    def set_title(self):
+        name = self.node["name"] if self.node is not None else "No robot"
+        if self.client is not None and self.client.tdm_addr is not None:
+            name += f" (TDM: {self.client.tdm_addr}:{self.client.tdm_port})"
+        if self.text_program is not None:
+            name += " - "
+            name += os.path.basename(self.program_path) if self.program_path is not None else "Untitled"
+        self.title(name)
+
     def set_view_variables(self):
         self.view_var.set(1)
         self.remove_program_view()
         self.create_variable_view()
+        self.set_title()
 
     def set_view_program(self):
         self.view_var.set(2)
         self.remove_variable_view()
         self.create_program_view()
+        self.set_title()
+
+    def new(self):
+        self.program_src = ""
+        self.program_path = None
+        self.set_view_program()
+        self.text_program.delete("1.0", "end")
+        self.text_program.edit_modified(False)
 
     def open(self):
         path = filedialog.askopenfilename(filetypes=[("Aseba", ".aseba"),])
@@ -161,7 +188,8 @@ class VariableTableWindow(tk.Tk):
                 self.program_path = path
                 self.set_view_program()
                 self.text_program.delete("1.0", "end")
-                self.text_program.insert("1.0", self.program_src)
+                if self.program_src.strip():
+                    self.text_program.insert("1.0", self.program_src)
                 self.text_program.edit_modified(False)
 
     def save(self, path):
@@ -199,10 +227,7 @@ class VariableTableWindow(tk.Tk):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
         self.node = self.client.first_node()
         self.node_id_str = self.node["node_id_str"]
-        name = self.node["name"]
-        if self.client.tdm_addr is not None:
-            name += f" (TDM: {self.client.tdm_addr}:{self.client.tdm_port})"
-        self.title(name)
+        self.set_title()
         await self.client.watch(self.node_id_str, variables=True)
 
     def lock_node(self, locked):
@@ -332,7 +357,8 @@ class VariableTableWindow(tk.Tk):
             self.text_program = tk.Text(self.main_content, yscrollcommand=self.scrollbar.set)
             self.text_program.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             self.scrollbar.config(command=self.text_program.yview)
-            self.text_program.insert("1.0", self.program_src)
+            if self.program_src.strip():
+                self.text_program.insert("1.0", self.program_src)
             self.text_program.focus_set()
 
     def connect(self):
@@ -344,7 +370,7 @@ class VariableTableWindow(tk.Tk):
             if self.node is None:
                 self.node_id_str = None
                 self.clear_variables()
-                self.title("No robot")
+                self.set_title()
                 self.info_line["text"] = ""
             else:
                 self.info_line["text"] = {
