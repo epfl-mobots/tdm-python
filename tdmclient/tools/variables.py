@@ -6,10 +6,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import sys
+import os
 import tkinter as tk
 import tkinter.filedialog as filedialog
 
 from tdmclient import ClientAsync
+from tdmclient.atranspiler import ATranspiler
 
 
 class VariableTableWindow(tk.Tk):
@@ -20,6 +22,7 @@ class VariableTableWindow(tk.Tk):
 
         self.program_path = None
         self.program_src = ""
+        self.language = "aseba"
 
         # menus
         accelerator_key = "Cmd" if sys.platform == "darwin" else "Ctrl"
@@ -51,7 +54,7 @@ class VariableTableWindow(tk.Tk):
         file_menu.add_command(
             label="Save As...",
             command=lambda: self.save(None),
-            accelerator=accelerator_key+"-Shift-S"
+            accelerator=accelerator_key+"-Shift-"
         )
         self.bind("<" + bind_key + "-S>", lambda event: self.save(None))
         if sys.platform != "darwin":
@@ -90,17 +93,17 @@ class VariableTableWindow(tk.Tk):
             variable=self.view_var,
             value=1,
             command=self.set_view_variables,
-            accelerator=accelerator_key+"-1"
+            accelerator=accelerator_key+"-Shift-V"
         )
-        self.bind("<" + bind_key + "-1>", lambda event: self.set_view_variables())
+        self.bind("<" + bind_key + "-V>", lambda event: self.set_view_variables())
         view_menu.add_radiobutton(
             label="Program",
             variable=self.view_var,
             value=2,
             command=self.set_view_program,
-            accelerator=accelerator_key+"-2"
+            accelerator=accelerator_key+"-Shift-P"
         )
-        self.bind("<" + bind_key + "-2>", lambda event: self.set_view_program())
+        self.bind("<" + bind_key + "-P>", lambda event: self.set_view_program())
         menubar.add_cascade(label="View", menu=view_menu)
         self.view_var.set(1)
 
@@ -122,6 +125,21 @@ class VariableTableWindow(tk.Tk):
             accelerator=accelerator_key+"-R"
         )
         self.bind("<" + bind_key + "-r>", lambda event: self.run_program())
+        self.robot_menu.add_separator()
+        self.language_var = tk.IntVar()
+        self.robot_menu.add_radiobutton(
+            label="Aseba",
+            variable=self.language_var,
+            value=1,
+            command=lambda: self.set_language("aseba")
+        )
+        self.robot_menu.add_radiobutton(
+            label="Python",
+            variable=self.language_var,
+            value=2,
+            command=lambda: self.set_language("py")
+        )
+        self.language_var.set(1)
         menubar.add_cascade(label="Robot", menu=self.robot_menu)
 
         # main layout: info at bottom (one line), scrollable main content above
@@ -173,29 +191,38 @@ class VariableTableWindow(tk.Tk):
         self.create_program_view()
         self.set_title()
 
+    def set_language(self, language):
+        self.language_var.set({
+            "aseba": 1,
+            "py": 2,
+        }[language])
+        self.language = language
+
     def new(self):
+        self.remove_program_view()
         self.program_src = ""
         self.program_path = None
         self.set_view_program()
-        self.text_program.delete("1.0", "end")
-        self.text_program.edit_modified(False)
 
     def open(self):
-        path = filedialog.askopenfilename(filetypes=[("Aseba", ".aseba"),])
+        path = filedialog.askopenfilename(filetypes=[("All",".aseba .py"),
+                                                     ("Aseba", ".aseba"),
+                                                     ("Python", ".py")])
         if path:
             with open(path, encoding="utf-8") as f:
+                self.remove_program_view()
                 self.program_src = f.read()
                 self.program_path = path
                 self.set_view_program()
-                self.text_program.delete("1.0", "end")
-                if self.program_src.strip():
-                    self.text_program.insert("1.0", self.program_src)
                 self.text_program.edit_modified(False)
+                self.set_language("py"
+                                  if os.path.splitext(path)[1] == ".py"
+                                  else "aseba")
 
     def save(self, path):
         if path is None:
             path = filedialog.asksaveasfilename(filetypes=[("Aseba", ".aseba"),],
-                                                defaultextension=".aseba")
+                                                defaultextension = "." + self.language)
         if path:
             with open(path, "wb") as f:
                 self.program_src = self.text_program.get("1.0", "end")
@@ -221,7 +248,14 @@ class VariableTableWindow(tk.Tk):
     def run_program(self):
         if self.locked and self.text_program is not None:
             self.program_src = self.text_program.get("1.0", "end")
-            self.run_src(self.program_src)
+            if self.language == "py":
+                transpiler = ATranspiler()
+                transpiler.set_source(self.program_src)
+                transpiler.transpile()
+                aseba_src = transpiler.get_output()
+            else:
+                aseba_src = self.program_src
+            self.run_src(aseba_src)
 
     async def init_prog(self):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
