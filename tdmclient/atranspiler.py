@@ -88,6 +88,8 @@ class ATranspiler:
                 elif event_name in event_handlers:
                     raise Exception(f"Onevent handler {event_name} defined multiple times")
                 else:
+                    if len(node.args.args) > 0:
+                        raise Exception(f"Unexpected arguments in onevent handler {event_name}")
                     event_handlers[event_name] = node
             else:
                 top_code.append(node)
