@@ -163,9 +163,9 @@ class ATranspiler:
                 aux_statements += aux_st
                 if is_value_boolean:
                     aux_statements += f"""if {value} then
-\ttmp[{tmp_offset}] = 1
+tmp[{tmp_offset}] = 1
 else
-\ttmp[{tmp_offset}] = 0
+tmp[{tmp_offset}] = 0
 end
 """
                 else:
@@ -228,9 +228,9 @@ end
             index_value, aux_st, tmp_req, is_index_boolean = self.compile_expr(index, self.PRI_NUMERIC, tmp_req)
             if is_index_boolean:
                 aux_st += f"""if {index_value} then
-\ttmp[{tmp_req}] = 1
+tmp[{tmp_req}] = 1
 else
-\ttmp[{tmp_req}] = 0
+tmp[{tmp_req}] = 0
 end
 """
                 index_value = f"tmp[{tmp_req}]"
@@ -270,9 +270,9 @@ end
             # work around aseba's idea of what's acceptable
             # (no boolean in arithmetic subexpressions or variables)
             aux_statements += f"""if {code} then
-\ttmp[{tmp_offset}] = 1
+tmp[{tmp_offset}] = 1
 else
-\ttmp[{tmp_offset}] = 0
+tmp[{tmp_offset}] = 0
 end
 """
             tmp_req = max(tmp_req, tmp_offset + 1)
@@ -311,9 +311,9 @@ end
                 code += aux_statements
                 if is_index_boolean:
                     code += f"""if {index_value} then
-\ttmp[{tmp_req}] = 1
+tmp[{tmp_req}] = 1
 else
-\ttmp[{tmp_req}] = 0
+tmp[{tmp_req}] = 0
 end
 """
                     index_value = "tmp[{tmp_req}]"
@@ -322,9 +322,9 @@ end
             if is_boolean:
                 # convert boolean to number
                 code += f"""if {value} then
-\t{target} = 1
+{target} = 1
 else
-\t{target} = 0
+{target} = 0
 end
 """
                 tmp_req = max(tmp_req, 1)
@@ -534,8 +534,41 @@ onevent {event_name}
             ])
             self.output_src = var_decl + "\n" + self.output_src
 
+    @staticmethod
+    def pretty_print(src):
+        """Indent Aseba code
+        """
+
+        level = 0
+
+        def indent(line):
+            nonlocal level
+            # expect keyword+space+whatever
+            keyword = line.split(" ")[0].replace(":", "")
+            next_level = level
+            if keyword in {"onevent", "sub"}:
+                level = 0
+                next_level = 1
+            elif keyword in {"for", "if", "when", "while"}:
+                next_level = level + 1
+            elif keyword in {"else", "elseif"}:
+                next_level = level
+                level = max(level - 1, 0)
+            elif keyword == "end":
+                level = max(level - 1, 0)
+                next_level = level
+            line = level * "\t" + line
+            level = next_level
+            return line
+
+        src = "\n".join([
+            indent(line)
+            for line in src.split("\n")
+        ])
+        return src
+
     def get_output(self):
-        return self.output_src
+        return self.pretty_print(self.output_src)
 
 
 if __name__ == "__main__":
