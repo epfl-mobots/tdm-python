@@ -340,6 +340,87 @@ end
             else:
                 target_size = None
             return code, {target: target_size} if index is None else {}, tmp_req
+        elif isinstance(node, ast.For):
+            # for var in range(...): ...
+            if not isinstance(node.target, ast.Name):
+                raise Exception("for loop with unsupported target (not a plain variable)")
+            if (not isinstance(node.iter, ast.Call) or
+                not isinstance(node.iter.func, ast.Name) or
+                node.iter.func.id != "range" or
+                len(node.iter.args) < 1 or len(node.iter.args) > 3):
+                raise Exception("for loop with unsupported iterator (not range)")
+            range_args = node.iter.args
+            target = self.decode_attr(node.target)
+            var = {target: None}
+            if len(range_args) == 1:
+                # for var in range(a): ...
+                # stores limit a in tmp[tmp_offset]
+                tmp_offset = tmp_req
+                value, aux_statements, tmp_req, is_boolean = self.compile_expr(range_args[0], self.PRI_NUMERIC, tmp_offset)
+                tmp_req = max(tmp_req, tmp_offset + 1)
+                code += aux_statements
+                code += f"""{target} = 0
+tmp[{tmp_offset}] = {value}
+while {target} < tmp[{tmp_offset}] do
+"""
+            elif len(range_args) == 2:
+                # for var in range(a, b)
+                # stores limit b in tmp[tmp_offset]
+                tmp_offset = tmp_req
+                value, aux_statements, tmp_req, is_boolean = self.compile_expr(range_args[0], self.PRI_NUMERIC, tmp_offset)
+                tmp_req = max(tmp_req, tmp_offset + 1)
+                code += aux_statements
+                code += f"""{target} = {value}
+"""
+                value, aux_statements, tmp_req1, is_boolean = self.compile_expr(range_args[1], self.PRI_NUMERIC, tmp_offset)
+                tmp_req = max(tmp_req, tmp_req1)
+                code += aux_statements
+                code += f"""tmp[{tmp_offset}] = {value}
+while {target} < tmp[{tmp_offset}] do
+"""
+            else:
+                # for var in range(a, b, c)
+                # stores limit b in tmp[tmp_offset] and step c in tmp[tmp_offset+1]
+                tmp_offset = tmp_req
+                value, aux_statements, tmp_req, is_boolean = self.compile_expr(range_args[0], self.PRI_NUMERIC, tmp_offset)
+                tmp_req = max(tmp_req, tmp_offset + 2)
+                code += aux_statements
+                code += f"""{target} = {value}
+"""
+                value, aux_statements, tmp_req1, is_boolean = self.compile_expr(range_args[1], self.PRI_NUMERIC, tmp_offset)
+                tmp_req = max(tmp_req, tmp_req1)
+                code += aux_statements
+                code += f"""tmp[{tmp_offset}] = {value}
+"""
+                value, aux_statements, tmp_req1, is_boolean = self.compile_expr(range_args[2], self.PRI_NUMERIC, tmp_offset + 1)
+                tmp_req = max(tmp_req, tmp_req1)
+                code += aux_statements
+                code += f"""tmp[{tmp_offset + 1}] = {value}
+while {target} < tmp[{tmp_offset}] do
+"""
+            body, var1, tmp_req1 = self.compile_node_array(node.body, tmp_offset, var0=var0)
+            code += body
+            self.check_var_size(var, var1)
+            var = {**var, **var1}
+            tmp_req = max(tmp_req, tmp_req1)
+            if len(range_args) <= 2:
+                # just increment target
+                code += f"""{target}++
+"""
+            else:
+                # increment target by step
+                code += f"""{target} += tmp[{tmp_offset + 1}]
+"""
+            code += """end
+"""
+            if node.orelse is not None and len(node.orelse) > 0:
+                # else clause always executed b/c break is not supported
+                body, var1, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset, var0=var0)
+                code += body
+                self.check_var_size(var, var1)
+                var = {**var, **var1}
+                tmp_req = max(tmp_req, tmp_req1)
+            return code, var, tmp_req
         elif isinstance(node, ast.If):
             tmp_offset = tmp_req
             test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)
@@ -363,7 +444,7 @@ end
                 tmp_req = max(tmp_req, tmp_req1)
             if len(node.orelse) > 0:
                 # anything else in orelse: else
-                code += f"""else
+                code += """else
 """
                 body, var1, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset, var0=var0)
                 code += body
