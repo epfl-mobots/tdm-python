@@ -291,7 +291,7 @@ end
         name = self.decode_attr(target)
         return name, index
 
-    def compile_node(self, node, tmp_req=0):
+    def compile_node(self, node, tmp_req=0, var0=None):
         code = ""
         if isinstance(node, ast.Assign):
             if len(node.targets) != 1:
@@ -328,7 +328,15 @@ end
                 tmp_req = max(tmp_req, 1)
             else:
                 code += f"{target} = {value}\n"
-            target_size = len(node.value.elts) if isinstance(node.value, ast.List) else None
+            if isinstance(node.value, ast.List):
+                # var = [...]
+                target_size = len(node.value.elts)
+            elif isinstance(node.value, ast.Name):
+                # var1 = var2: inherit size
+                name_right = self.decode_attr(node.value)
+                target_size = var0[name_right] if var0 is not None and name_right in var0 else None
+            else:
+                target_size = None
             return code, {target: target_size} if index is None else {}, tmp_req
         elif isinstance(node, ast.If):
             tmp_offset = tmp_req
@@ -336,7 +344,7 @@ end
             code += aux_statements
             code += f"""if {test_value}{"" if is_boolean else " != 0"} then
 """
-            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset, var0=var0)
             code += body
             tmp_req = max(tmp_req, tmp_req1)
             while len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
@@ -346,15 +354,19 @@ end
                 code += aux_statements
                 code += f"""elseif {test_value}{"" if is_boolean else " != 0"} then
 """
-                body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+                body, var1, tmp_req1 = self.compile_node_array(node.body, tmp_offset, var0=var0)
                 code += body
+                self.check_var_size(var, var1)
+                var = {**var, **var1}
                 tmp_req = max(tmp_req, tmp_req1)
             if len(node.orelse) > 0:
                 # anything else in orelse: else
                 code += f"""else
 """
-                body, var, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset)
+                body, var1, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset, var0=var0)
                 code += body
+                self.check_var_size(var, var1)
+                var = {**var, **var1}
                 tmp_req = max(tmp_req, tmp_req1)
             code += """end
 """
@@ -367,7 +379,7 @@ end
             code += aux_statements
             code += f"""while {test_value}{"" if is_boolean else " != 0"} do
 """
-            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset)
+            body, var, tmp_req1 = self.compile_node_array(node.body, tmp_offset, var0=var0)
             code += body
             tmp_req = max(tmp_req, tmp_req1)
             code += aux_statements  # to evaluate condition
@@ -375,8 +387,10 @@ end
 """
             if node.orelse is not None and len(node.orelse) > 0:
                 # else clause always executed b/c break is not supported
-                body, var, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset)
+                body, var1, tmp_req1 = self.compile_node_array(node.orelse, tmp_offset, var0=var0)
                 code += body
+                self.check_var_size(var, var1)
+                var = {**var, **var1}
                 tmp_req = max(tmp_req, tmp_req1)
             return code, var, tmp_req
         else:
@@ -389,11 +403,11 @@ end
                 name in ATranspiler.PREDEFINED_VARIABLES and var_new[name] != ATranspiler.PREDEFINED_VARIABLES[name]):
                 raise Exception(f"Incompatible sizes for list assignment to {name}")
 
-    def compile_node_array(self, node_array, tmp_req=0):
+    def compile_node_array(self, node_array, tmp_req=0, var0=None):
         code = ""
-        var = {}
+        var = var0 or {}
         for node in node_array:
-            c, v, tmp_req1 = self.compile_node(node, tmp_req)
+            c, v, tmp_req1 = self.compile_node(node, tmp_req, var0=var)
             code += c
             self.check_var_size(var, v)
             var = {**var, **v}
@@ -412,7 +426,7 @@ end
         # onevent handlers
         tmp_offset = tmp_req
         for event_name in event_handlers:
-            event_output_src, var1, tmp_req1 = self.compile_node_array(event_handlers[event_name].body, tmp_offset)
+            event_output_src, var1, tmp_req1 = self.compile_node_array(event_handlers[event_name].body, tmp_offset, var0=var)
             tmp_req = max(tmp_req, tmp_req1)
             self.check_var_size(var, var1)
             var = {**var, **var1}
