@@ -13,9 +13,8 @@ if __name__ == "__main__":
 
         async def prog():
             await client.wait_for_node()
-            node_id_str = client.first_node()["node_id_str"]
-            await client.watch(node_id_str, flags=0x3f) # all
-            while True:
-                await client.sleep(1)
+            node = client.first_node()
+            await node.watch(flags=0x3f)  # all
+            await client.sleep()
 
         client.run_async_program(prog)

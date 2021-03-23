@@ -14,6 +14,135 @@ Author: Yves Piguet, EPFL
 from tdmclient import FlatBuffer, Union, Table
 
 
+class Node:
+
+    def __init__(self, thymio, node_dict):
+        self.thymio = thymio
+        self.props = node_dict
+        self.id = node_dict["node_id"]
+        self.id_str = node_dict["node_id_str"]
+        self.status = node_dict["status"]
+
+    def __repr__(self):
+        return f"Node {self.id_str}"
+
+    def create_msg_lock_node(self, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_LOCK_NODE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_unlock_node(self, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_UNLOCK_NODE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_program(self, program, load=True, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                ThymioFB.PROGRAMMING_LANGUAGE_ASEBA,
+                program,
+                ThymioFB.COMPILATION_OPTION_LOAD_ON_TARGET
+                    if load
+                    else ThymioFB.COMPILATION_OPTION_NONE,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_scratchpad_update(self, program, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_SCRATCHPAD_UPDATE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                None,
+                (
+                    self.id,
+                ),
+                ThymioFB.PROGRAMMING_LANGUAGE_ASEBA,
+                program,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_set_vm_execution_state(self, state, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_SET_VM_EXECUTION_STATE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                state
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_watch_node(self, flags, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_WATCH_NODE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                flags
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_register_events(self, events, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_REGISTER_EVENTS,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                [
+                    (
+                        event[0], # name (str)
+                        event[1], # fixed size (int)
+                        0, # index (int)
+                    )
+                    for event in events
+                ]
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_set_variables(self, var_dict, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_SET_VARIABLES,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                [
+                    (
+                        name,
+                        var_dict[name],
+                    )
+                    for name in var_dict
+                ]
+            )
+        ), ThymioFB.SCHEMA)
+
+
 class ThymioFB:
 
     MESSAGE_TYPE_CONNECTION_HANDSHAKE = 1
@@ -119,27 +248,16 @@ class ThymioFB:
         self.on_nodes_changed = None
         self.on_variables_changed = None
 
-    def create_message(self, msg, schema=None):
-        fb = FlatBuffer()
-        if schema is None:
-            fb.load_from_native_type(msg)
-        else:
-            fb.load_with_schema(msg, schema)
-        encoded_fb = fb.encode()
-
-        return encoded_fb
+    def create_node(self, node_dict):
+        """Create a Node object, of class Node or a subclass.
+        """
+        return Node(self, node_dict)
 
     def next_request_id(self, request_id_notify=None):
         self.last_request_id += 1
         if request_id_notify is not None:
             self.request_id_notify_dict[self.last_request_id] = request_id_notify
         return self.last_request_id
-
-    def get_node_id(self, node_id_str):
-        for node in self.nodes:
-            if node["node_id_str"] == node_id_str:
-                return node["node_id"]
-        raise Exception("node id not found")
 
     SCHEMA = """
         // see https://github.com/Mobsya/aseba/blob/master/aseba/flatbuffers/thymio.fbs
@@ -238,127 +356,27 @@ class ThymioFB:
         )
     """
 
+    @staticmethod
+    def create_message(msg, schema=None):
+        fb = FlatBuffer()
+        if schema is None:
+            fb.load_from_native_type(msg)
+        else:
+            fb.load_with_schema(msg, schema)
+        encoded_fb = fb.encode()
+
+        return encoded_fb
+
     def create_msg_handshake(self):
         return self.create_message((
-            self.MESSAGE_TYPE_CONNECTION_HANDSHAKE,
+            ThymioFB.MESSAGE_TYPE_CONNECTION_HANDSHAKE,
             ()
-        ), self.SCHEMA)
+        ), ThymioFB.SCHEMA)
 
-    def create_msg_lock_node(self, node_id_str, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_LOCK_NODE,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-            )
-        ), self.SCHEMA)
-
-    def create_msg_unlock_node(self, node_id_str, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_UNLOCK_NODE,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-            )
-        ), self.SCHEMA)
-
-    def create_msg_program(self, node_id_str, program, load=True, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                self.PROGRAMMING_LANGUAGE_ASEBA,
-                program,
-                self.COMPILATION_OPTION_LOAD_ON_TARGET
-                    if load
-                    else self.COMPILATION_OPTION_NONE,
-            )
-        ), self.SCHEMA)
-
-    def create_msg_scratchpad_update(self, node_id_str, program, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_SCRATCHPAD_UPDATE,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                None,
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                self.PROGRAMMING_LANGUAGE_ASEBA,
-                program,
-            )
-        ), self.SCHEMA)
-
-    def create_msg_set_vm_execution_state(self, node_id_str, state, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_SET_VM_EXECUTION_STATE,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                state
-            )
-        ), self.SCHEMA)
-
-    def create_msg_watch_node(self, node_id_str, flags, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_WATCH_NODE,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                flags
-            )
-        ), self.SCHEMA)
-
-    def create_msg_register_events(self, node_id_str, events, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_REGISTER_EVENTS,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                [
-                    (
-                        event[0], # name (str)
-                        event[1], # fixed size (int)
-                        0, # index (int)
-                    )
-                    for event in events
-                ]
-            )
-        ), self.SCHEMA)
-
-    def create_msg_set_variables(self, node_id_str, var_dict, **kwargs):
-        return self.create_message((
-            self.MESSAGE_TYPE_SET_VARIABLES,
-            (
-                self.next_request_id(**kwargs),
-                (
-                    self.get_node_id(node_id_str),
-                ),
-                [
-                    (
-                        name,
-                        var_dict[name],
-                    )
-                    for name in var_dict
-                ]
-            )
-        ), self.SCHEMA)
+    def find_node(self, node_id_str):
+        for node in self.nodes:
+            if node.id_str == node_id_str:
+                return node
 
     def process_message(self, msg):
 
@@ -372,7 +390,7 @@ class ThymioFB:
                 return "".join([f"{b if type(b) is int else ord(b):02x}" for b in f[0].fields[0][0]])
 
         fb = FlatBuffer()
-        fb.parse(msg, self.SCHEMA)
+        fb.parse(msg, ThymioFB.SCHEMA)
         if self.debug >= 3:
             fb.dump()
         if type(fb.root) is Union:
@@ -385,7 +403,7 @@ class ThymioFB:
                 if fb.root.union_data[0] is not None:
                     nodes = fb.root.union_data[0].fields[0][0]
                     self.nodes = [
-                        {
+                        self.create_node({
                             "node_id":
                                 None if node.fields[0] is None
                                 else node.fields[0][0].fields[0][0] if type(node.fields[0][0].fields[0][0]) is bytes
@@ -397,14 +415,14 @@ class ThymioFB:
                             "name": field_val(node.fields[4], ""),
                             "capabilities": field_val(node.fields[5], 0),
                             "fw_version": field_val(node.fields[6], None),
-                        }
+                        })
                         for node in nodes
                     ]
                     if self.on_nodes_changed is not None:
                         self.on_nodes_changed(self.nodes)
                     if self.debug >= 1:
                         print("NodesChanged",
-                              ", ".join(f"{node['node_id_str']}: status={node['status']}" for node in self.nodes))
+                              ", ".join(f"{node.id_str}: status={node.status}" for node in self.nodes))
             elif fb.root.union_type == self.MESSAGE_TYPE_REQUEST_COMPLETED:
                 request_id = field_val(fb.root.union_data[0].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
@@ -456,7 +474,7 @@ class ThymioFB:
                     for v in fb.root.union_data[0].fields[1][0]
                 }
                 if self.on_variables_changed is not None:
-                    self.on_variables_changed(node_id_str, {"variables": variables})
+                    self.on_variables_changed(self.find_node(node_id_str), {"variables": variables})
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:

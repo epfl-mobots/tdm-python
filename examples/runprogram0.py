@@ -22,25 +22,24 @@ if __name__ == "__main__":
                 if client.process_waiting_messages():
                     if len(client.nodes) > 0:
                         node = client.nodes[0]
-                        node_id_str = node["node_id_str"]
+                        node_id_str = node.id_str
                         status = node["status"]
                         if state == 0:
                             print("node", node_id_str, "state", state, "node satus", status)
                             if status == 2:
                                 # available
-                                client.send_lock_node(node_id_str)
+                                node.send_lock_node()
                                 state = 1
                         elif state == 1:
                             print("node", node_id_str, "state", state, "node satus", status)
                             if status == 4:
                                 # ready
-                                client.send_program(node_id_str,
-                                                    "leds.top = [0,0,32]\n")
+                                node.send_program("leds.top = [0,0,32]\n")
                                 state = 2
                         elif state == 2:
                             if status == 4:
                                 # ready: run
-                                client.set_vm_execution_state(node_id_str, 1)
+                                node.set_vm_execution_state(1)
                                 state = 3
                 else:
                     sleep(0.1)

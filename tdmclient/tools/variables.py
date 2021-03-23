@@ -174,7 +174,6 @@ class VariableTableWindow(tk.Tk):
 
         self.client = None
         self.node = None
-        self.node_id_str = None
         self.locked = False
 
         self.start_co = None
@@ -182,7 +181,7 @@ class VariableTableWindow(tk.Tk):
         self.set_title()
 
     def set_title(self):
-        name = self.node["name"] if self.node is not None else "No robot"
+        name = self.node.props["name"] if self.node is not None else "No robot"
         if self.client is not None and self.client.tdm_addr is not None:
             name += f" (TDM: {self.client.tdm_addr}:{self.client.tdm_port})"
         if self.text_program is not None:
@@ -244,12 +243,12 @@ class VariableTableWindow(tk.Tk):
     def run_src(self, src_aseba):
 
         async def run_a():
-            error = await self.client.compile(self.node_id_str, src_aseba)
+            error = await self.node.compile(src_aseba)
             if error is not None:
                 self.error_msg = error["error_msg"]
                 self.info_error["text"] = self.error_msg
             else:
-                error = await self.client.run(self.node_id_str)
+                error = await self.node.run()
                 if error is not None:
                     self.error_msg = f"Run error {error['error_code']}"
                     self.info_error["text"] = self.error_msg
@@ -276,7 +275,7 @@ class VariableTableWindow(tk.Tk):
     def stop_program(self):
 
         async def stop_a():
-            error = await self.client.stop(self.node_id_str)
+            error = await self.node.stop()
             if error is not None:
                 self.error_msg = f"Stop error {error['error_code']}"
                 self.info_error["text"] = self.error_msg
@@ -287,17 +286,16 @@ class VariableTableWindow(tk.Tk):
     async def init_prog(self):
         await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
         self.node = self.client.first_node()
-        self.node_id_str = self.node["node_id_str"]
         self.set_title()
-        await self.client.watch(self.node_id_str, variables=True)
+        await self.node.watch(variables=True)
 
     def lock_node(self, locked):
         if locked:
-            self.client.send_lock_node(self.node_id_str)
+            self.node.send_lock_node()
             self.robot_menu.entryconfig("Run", state="normal")
             self.robot_menu.entryconfig("Stop", state="normal")
         else:
-            self.client.send_unlock_node(self.node_id_str)
+            self.node.send_unlock_node()
             self.robot_menu.entryconfig("Run", state="disabled")
             self.robot_menu.entryconfig("Stop", state="disabled")
         self.locked = locked
@@ -374,7 +372,7 @@ class VariableTableWindow(tk.Tk):
         self.remove_variable_view()
 
     def begin_editing(self, name):
-        if self.node["status"] != self.client.NODE_STATUS_READY or not self.end_editing(keep_editing_on_error=True):
+        if self.node.status != self.client.NODE_STATUS_READY or not self.end_editing(keep_editing_on_error=True):
             return
         self.edited_variable = name
         v = self.variables[name]
@@ -395,7 +393,7 @@ class VariableTableWindow(tk.Tk):
                     new_value = [int(s) for s in text.split(",")]
                     if len(new_value) != len(v["value"]):
                         raise Exception()
-                    self.client.send_set_variables(self.node_id_str, {self.edited_variable: new_value})
+                    self.node.send_set_variables({self.edited_variable: new_value})
                 except Exception as e:
                     print(type(e), e)
                     if keep_editing_on_error:
@@ -428,10 +426,9 @@ class VariableTableWindow(tk.Tk):
 
         def on_nodes_changed(nodes):
             self.node = (nodes[0]
-                         if len(nodes) > 0 and nodes[0]["status"] != self.client.NODE_STATUS_DISCONNECTED
+                         if len(nodes) > 0 and nodes[0].status != self.client.NODE_STATUS_DISCONNECTED
                          else None)
             if self.node is None:
-                self.node_id_str = None
                 self.clear_variables()
                 self.set_title()
                 self.info_mode["text"] = ""
@@ -443,16 +440,16 @@ class VariableTableWindow(tk.Tk):
                     self.client.NODE_STATUS_BUSY: "Observe (robot busy)",
                     self.client.NODE_STATUS_READY: "Control",
                     self.client.NODE_STATUS_DISCONNECTED: "Robot disconnected",
-                }[self.node["status"]]
-                if self.node_id_str is None:
-                    # new node, set it up by starting coroutine
-                    self.start_co = self.init_prog()
+                }[self.node.status]
+                # new node, set it up by starting coroutine
+                self.start_co = self.init_prog()
 
-        def on_variables_changed(node_id_str, data):
+        def on_variables_changed(node, data):
             if self.edited_variable is None:
                 variables = data["variables"]
                 for name in variables:
-                    self.add_variable(name, variables[name])
+                    if variables[name] is not None:
+                        self.add_variable(name, variables[name])
 
         self.client = ClientAsync()
         self.client.on_nodes_changed = on_nodes_changed

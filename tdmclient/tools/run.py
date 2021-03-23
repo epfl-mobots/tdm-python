@@ -76,25 +76,25 @@ if __name__ == "__main__":
 
         async def prog():
             global status
-            with await client.lock() as node_id_str:
+            with await client.lock() as node:
                 if stop:
-                    error = await client.stop(node_id_str)
+                    error = await node.stop()
                     if error is not None:
                         print(f"Stop error {error['error_code']}")
                         status = 2
                 else:
                     if scratchpad < 2:
-                        error = await client.compile(node_id_str, program)
+                        error = await node.compile(program)
                         if error is not None:
                             print(f"Compilation error: {error['error_msg']}")
                             status = 2
                         else:
-                            error = await client.run(node_id_str)
+                            error = await node.run()
                             if error is not None:
                                 print(f"Run error {error['error_code']}")
                                 status = 2
                     if scratchpad > 0:
-                        error = await client.set_scratchpad(node_id_str, program)
+                        error = await node.set_scratchpad(program)
                         if error is not None:
                             print(f"Scratchpad error {error['error_code']}")
                             status = 2

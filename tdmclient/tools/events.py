@@ -23,17 +23,17 @@ onevent timer0
 """
 
         async def prog():
-            with await client.lock() as node_id_str:
-                error = await client.register_events(node_id_str, [
+            with await client.lock() as node:
+                error = await node.register_events([
                     ("e0", 0),
                     ("e2", 2),
                 ])
-                error = await client.compile(node_id_str, thymio_program)
+                error = await node.compile(thymio_program)
                 if error is not None:
                     print(f"Compilation error: {error['error_msg']}")
                 else:
-                    await client.watch(node_id_str, events=True)
-                    error = await client.run(node_id_str)
+                    await node.watch(events=True)
+                    error = await node.run()
                     if error is not None:
                         print(f"Error {error['error_code']}")
                 await client.sleep(10)
