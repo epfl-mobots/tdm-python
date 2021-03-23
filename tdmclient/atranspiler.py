@@ -375,6 +375,12 @@ end
             return code, var, tmp_req
         elif isinstance(node, ast.Pass):
             return "", {}, tmp_req
+        elif isinstance(node, ast.Return):
+            if node.value is not None:
+                raise Exception("Unsupported value in return statement")
+            code += """return
+"""
+            return code, {}, tmp_req
         elif isinstance(node, ast.While):
             tmp_offset = tmp_req
             test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)
