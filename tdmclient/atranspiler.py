@@ -395,6 +395,38 @@ end
             else:
                 code += f"{target} {op_str}= {value}\n"
             return code, {}, tmp_req
+        elif isinstance(node, ast.Expr):
+            # plain expression without assignment
+            expr = node.value
+            # hard-coded ... (ellipsis, alias of None, synonym of pass)
+            if isinstance(expr, ast.Ellipsis):
+                return "", {}, tmp_req
+            # hard-coded emit(name, params...)
+            if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
+                if expr.func.id == "emit":
+                    if (len(expr.args) < 1 or
+                        not isinstance(expr.args[0], ast.Constant) or
+                        not isinstance(expr.args[0].value, str)):
+                        print(expr.args[0])
+                        raise Exception("Bad event name in emit")
+                    event_name = expr.args[0].value
+                    code = f"emit {event_name}"
+                    aux_statements = ""
+                    if len(expr.args) > 1:
+                        tmp_req0 = tmp_req
+                        for i in range(len(expr.args) - 1):
+                            value, aux_st, tmp_req1, is_boolean = self.compile_expr(expr.args[1 + i], self.PRI_NUMERIC, tmp_req0)
+                            aux_statements += aux_st
+                            code += " [" if i == 0 else ", "
+                            code += value
+                            tmp_req = max(tmp_req, tmp_req1)
+                        code += "]"
+                    code = aux_statements + code
+                    return code, {}, tmp_req
+            # parse expression
+            value, aux_statements, tmp_req, is_boolean = self.compile_expr(expr, self.PRI_NUMERIC, tmp_req)
+            # ignore it because nothing can cause side effects now
+            return "", {}, tmp_req
         elif isinstance(node, ast.For):
             # for var in range(...): ...
             if not isinstance(node.target, ast.Name):

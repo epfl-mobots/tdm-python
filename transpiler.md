@@ -29,9 +29,11 @@ Here are the implemented features:
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
 - Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
 - Programming constructs `if` `elif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
-- Functions exclusively for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Arguments are not supported.
+- Function definitions exclusively for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Arguments are not supported.
+- Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
+- Naked expressions which aren't a part of a statement described above, such as `1+2`, are ignored. This is also the case for the ellipsis `...` which can be used as a synonym of `pass`.
 
-Currently, a major difference with the semantic of Python is that all variables are global. This is not satisfactory and is likely to be fixed soon. To ensure forward compatibility, variables in functions (currently for event handlers) should be declared in a `global` statement, which is ignored currently; or be local and avoid any conflict elsewhere in the code (i.e. reusing a variable `i` in two loops is fine provided that the loops are not nested).
+Currently, a major difference with the semantic of Python is that all variables are global. This is not satisfactory and is likely to be fixed soon. To ensure forward compatibility, variables in function definitions (currently only for event handlers) should be declared in a `global` statement, which is ignored currently; or be local and avoid any conflict elsewhere in the code (i.e. reusing a variable `i` in two loops is fine provided that the loops are not nested).
 
 Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has another operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`.
 
