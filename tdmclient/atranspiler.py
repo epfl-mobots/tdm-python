@@ -180,6 +180,20 @@ end
 """
             code = f"tmp[{tmp_offset}]"
             is_boolean = False
+        elif isinstance(node, ast.Call):
+            # a very few set of functions
+            if not isinstance(node.func, ast.Name):
+                raise Exception("Function call where function is not a name")
+            fun_name = node.func.id
+            if fun_name == "abs":
+                if len(node.args) != 1:
+                    raise Exception("Wrong number of arguments for abs")
+                code, aux_st, tmp_req, is_boolean = self.compile_expr(node.args[0], self.PRI_COMMA, tmp_req)
+                aux_statements += aux_st
+                code = f"abs({code})"
+                return code, aux_statements, tmp_req, False
+            else:
+                raise Exception(f"Unknown function {fun_name}")
         elif isinstance(node, ast.Compare):
             if len(node.ops) != 1:
                 raise Exception("Chained comparisons not implemented")
