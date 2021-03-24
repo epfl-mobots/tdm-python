@@ -6,9 +6,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import sys
+import os
 import getopt
 
 from tdmclient import ClientAsync
+from tdmclient.atranspiler import ATranspiler
 
 
 def help():
@@ -18,6 +20,7 @@ Run program on robot, from file or stdin
 Options:
   --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help       display this help message and exit
+  --language=L programming language (aseba or python); default=automatic
   --scratchpad also store program into the TDM scratchpad
   --sponly     store program into the TDM without running it
   --stop       stop program (no filename or stdin expected)
@@ -27,6 +30,7 @@ Options:
 if __name__ == "__main__":
 
     debug = 0
+    language = None  # auto
     stop = False
     scratchpad = 0  # 1=--scratchpad, 2=--sponly
 
@@ -36,6 +40,7 @@ if __name__ == "__main__":
                                           [
                                               "debug=",
                                               "help",
+                                              "language=",
                                               "scratchpad",
                                               "sponly",
                                               "stop",
@@ -49,6 +54,8 @@ if __name__ == "__main__":
             sys.exit(0)
         elif arg == "--debug":
             debug = int(val)
+        elif arg == "--language":
+            language = val
         elif arg == "--scratchpad":
             scratchpad = 1
         elif arg == "--sponly":
@@ -63,14 +70,35 @@ if __name__ == "__main__":
     else:
         if len(values) == 0:
             program = sys.stdin.read()
+            if language is None:
+                # try to transpile code from Python
+                try:
+                    transpiler = ATranspiler()
+                    transpiler.set_source(program)
+                    transpiler.transpile()
+                    # successful, must be Python
+                    language = "python"
+                except:
+                    # failure, assume Aseba
+                    language = "aseba"
         elif len(values) == 1:
             with open(values[0]) as f:
                 program = f.read()
+            if language is None:
+                # guess language from file extension
+                language = "python" if os.path.splitext(values[0])[1] == ".py" else "aseba"
         else:
             help()
             sys.exit(1)
 
     status = 0
+
+    if language == "python":
+        # transpile from Python to Aseba
+        transpiler = ATranspiler()
+        transpiler.set_source(program)
+        transpiler.transpile()
+        program = transpiler.get_output()
 
     with ClientAsync(debug=debug) as client:
 
