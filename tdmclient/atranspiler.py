@@ -138,7 +138,7 @@ class ATranspiler:
                 ast.BitOr: ("|", self.PRI_BINARY_OR),
                 ast.BitXor: ("^", self.PRI_BINARY_XOR),
                 ast.FloorDiv: ("/", self.PRI_MULT),
-                ast.LShift: ("+¨<<", self.PRI_SHIFT),
+                ast.LShift: ("<<", self.PRI_SHIFT),
                 ast.Mod: ("%", self.PRI_MOD),
                 ast.Mult: ("*", self.PRI_MULT),
                 ast.RShift: (">>", self.PRI_SHIFT),
@@ -340,6 +340,47 @@ end
             else:
                 target_size = None
             return code, {target: target_size} if index is None else {}, tmp_req
+        elif isinstance(node, ast.AugAssign):
+            op_str = {
+                ast.Add: "+",
+                ast.BitAnd: "&",
+                ast.BitOr: "|",
+                ast.BitXor: "^",
+                ast.FloorDiv: "/",
+                ast.LShift: "<<",
+                ast.Mod: "%",
+                ast.Mult: "*",
+                ast.RShift: ">>",
+                ast.Sub: "-",
+            }[type(node.op)]
+            target, index = self.decode_target(node.target)
+            value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.value, self.PRI_NUMERIC, tmp_req)
+            code += aux_statements
+            if index is not None:
+                index_value, aux_statements, tmp_req, is_index_boolean = self.compile_expr(index, self.PRI_NUMERIC, tmp_req)
+                code += aux_statements
+                if is_index_boolean:
+                    code += f"""if {index_value} then
+tmp[{tmp_req}] = 1
+else
+tmp[{tmp_req}] = 0
+end
+"""
+                    index_value = "tmp[{tmp_req}]"
+                    tmp_req += 1
+                target += "[" + index_value + "]"
+            if is_boolean:
+                # convert boolean to number
+                code += f"""if {value} then
+{target} {op_str}= 1
+else
+{target} {op_str}= 0
+end
+"""
+                tmp_req = max(tmp_req, 1)
+            else:
+                code += f"{target} {op_str}= {value}\n"
+            return code, {}, tmp_req
         elif isinstance(node, ast.For):
             # for var in range(...): ...
             if not isinstance(node.target, ast.Name):
@@ -498,8 +539,9 @@ while {target} < tmp[{tmp_offset}] do
     def compile_node_array(self, node_array, tmp_req=0, var0=None):
         code = ""
         var = var0 or {}
+        tmp_req0 = tmp_req
         for node in node_array:
-            c, v, tmp_req1 = self.compile_node(node, tmp_req, var0=var)
+            c, v, tmp_req1 = self.compile_node(node, tmp_req0, var0=var)
             code += c
             self.check_var_size(var, v)
             var = {**var, **v}

@@ -22,16 +22,20 @@ The transpiler is implemented in class `ATranspiler`, completely independently o
 
 Here are the implemented features:
 - Python syntax. The official Python parser is used, hence no surprise should be expected, including with spaces, tabs, parentheses, and comments.
+- Integer and boolean base types. Both are stored as signed 16-bit numbers, without error on overflow.
 - Global variables. Variables are collected from the left-hand side part of plain assignments (assignment to variables without indexing). For arrays, there must exist at least one assignment of a list, directly or indirectly (i.e. `a=[1,2];b=a` is valid). Size conflicts are flagged as errors.
 - Expressions with scalar arithmetic, comparisons and boolean logic with short-circuit evaluation. Numbers and booleans can be mixed freely. The following Python operators are supported: infix operators `+`, `-`, `*`, `//` (integer division), `%` (converted to modulo instead of remainder, whose sign can differ with negative operands), `&`, `|`, `^`, `<<`, `>>`, `==`, `!=`, `>`, `>=`, `<`, `<=`; and prefix operators `+`, `-`, `~`, `not`.
 - Constants `False` and `True`.
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
+- Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
 - Programming constructs `if` `elseif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
 - Functions exclusively for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Arguments are not supported.
 
 Currently, a major difference with the semantic of Python is that all variables are global. This is not satisfactory and is likely to be fixed soon. To ensure forward compatibility, variables in functions (currently for event handlers) should be declared in a `global` statement, which is ignored currently; or be local and avoid any conflict elsewhere in the code (i.e. reusing a variable `i` in two loops is fine provided that the loops are not nested).
 
-The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges.
+Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has another operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`.
+
+The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the Python parser used for the first phase ignores them.
 
 ### Example
 
@@ -53,4 +57,26 @@ def timer0():
 To transpile this program, assuming it's stored in `examples/blink.py`:
 ```
 python3 -m tdmclient.atranspiler examples/blink.py
+```
+
+The result is
+```
+var on
+var tmp[1]
+
+on = 0
+timer.period[0] = 500
+
+onevent timer0
+    if on == 0 then
+        tmp[0] = 1
+    else
+        tmp[0] = 0
+    end
+    on = tmp[0]
+    if on != 0 then
+        leds.top = [32, 32, 0]
+    else
+        leds.top = [0, 0, 0]
+    end
 ```
