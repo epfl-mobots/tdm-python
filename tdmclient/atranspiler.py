@@ -421,6 +421,9 @@ while {target} < tmp[{tmp_offset}] do
                 var = {**var, **var1}
                 tmp_req = max(tmp_req, tmp_req1)
             return code, var, tmp_req
+        elif isinstance(node, ast.Global):
+            # ignored, but should be used in functions for forward compatibility
+            return "", {}, tmp_req
         elif isinstance(node, ast.If):
             tmp_offset = tmp_req
             test_value, aux_statements, tmp_req, is_boolean = self.compile_expr(node.test, self.PRI_LOW, tmp_req)

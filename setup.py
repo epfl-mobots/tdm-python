@@ -7,8 +7,10 @@
 
 from setuptools import setup
 
-with open("help.md", "r") as fh:
-    long_description = fh.read()
+with open("help.md", "r") as f:
+    long_description = f.read()
+with open("transpiler.md", "r") as f:
+    long_description += f.read()
 
 setup(
     name='tdmclient',

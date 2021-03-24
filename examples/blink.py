@@ -4,6 +4,7 @@ timer.period[0] = 500
 
 @onevent
 def timer0():
+    global on
     on = not on
     if on:
         leds.top = [32, 32, 0]
