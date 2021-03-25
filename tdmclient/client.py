@@ -58,33 +58,47 @@ class ClientNode(Node):
 class Client(ThymioFB):
 
 
-    def __init__(self, **kwargs):
+    def __init__(self, tdm_addr=None, tdm_port=None, **kwargs):
 
         super(Client, self).__init__(**kwargs)
 
-        self.tdm_addr = None
-        self.tdm_port = None
+        self.tdm_addr = tdm_addr
+        self.tdm_port = tdm_port
         self.tdm = None
 
         def on_change(is_added, addr, port, ws_port):
             if is_added and self.tdm_addr is None:
                 if self.debug >= 1:
-                    print(f"TDM {addr}:{port} on")
+                    print(f"Zeroconf: TDM {addr}:{port} on")
                 self.tdm_addr = addr
                 self.tdm_port = port
                 self.connect()
                 self.send_handshake()
             elif not is_added and addr == self.tdm_addr and port == self.tdm_port:
                 if self.debug >= 1:
-                    print(f"TDM {addr}:{port} off")
+                    print(f"Zeroconf: TDM {addr}:{port} off")
                 self.disconnect()
                 self.tdm_addr = None
                 self.tdm_port = None
 
-        self.zc = TDMZeroconfBrowser(on_change)
+        if tdm_port is None:
+            # no port provided: rely on zeroconf
+            self.zc = TDMZeroconfBrowser(on_change)
+        else:
+            # port provided: use it without zeroconf
+            self.zc = None
+            if tdm_addr is None:
+                # localhost by default
+                self.tdm_addr = "127.0.0.1"
+            if self.debug >= 1:
+                print(f"TDM {addr}:{port}")
+            self.connect()
+            self.send_handshake()
 
     def close(self):
-        self.zc.close()
+        if self.zc is not None:
+            self.zc.close()
+            self.zc = None
 
     def connect(self):
         self.tdm = TDMConnection(self.tdm_addr, self.tdm_port)
