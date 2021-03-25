@@ -283,6 +283,5 @@ with ClientAsync() as client:
         with await client.lock() as node:
             error = await node.compile(thymio_program_aseba)
             error = await node.run()
-            await client.sleep()
     client.run_async_program(prog)
 ```
