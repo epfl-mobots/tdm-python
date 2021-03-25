@@ -247,3 +247,42 @@ with ClientAsync() as client:
             await client.sleep()
     client.run_async_program(prog)
 ```
+
+Compare with an equivalent Python program running directly on the Thymio:
+```
+@onevent
+def prox():
+    prox_front = prox.horizontal[2]
+    speed = -prox_front // 10
+    motor.left.target = speed
+    motor.right.target = speed
+```
+
+You could save it as a .py file and run it with `tdmclient.tools.run` as explained above. If you want to do everything yourself, to understand precisely how tdmclient works or because you want to eventually combine processing on the Thymio and on your computer, here is a Python program running on the PC to convert it to Aseba, compile and load it, and run it.
+```
+from tdmclient import ClientAsync
+from tdmclient.atranspiler import ATranspiler
+
+thymio_program_python = r"""
+@onevent
+def prox():
+    prox_front = prox.horizontal[2]
+    speed = -prox_front // 10
+    motor.left.target = speed
+    motor.right.target = speed
+"""
+
+# convert program from Python to Aseba
+transpiler = ATranspiler()
+transpiler.set_source(thymio_program_python)
+transpiler.transpile()
+thymio_program_aseba = transpiler.get_output()
+
+with ClientAsync() as client:
+    async def prog():
+        with await client.lock() as node:
+            error = await node.compile(thymio_program_aseba)
+            error = await node.run()
+            await client.sleep()
+    client.run_async_program(prog)
+```
