@@ -7,6 +7,7 @@
 
 import sys
 import os
+import getopt
 import tkinter as tk
 import tkinter.filedialog as filedialog
 
@@ -16,13 +17,16 @@ from tdmclient.atranspiler import ATranspiler
 
 class VariableTableWindow(tk.Tk):
 
-    def __init__(self):
+    def __init__(self, tdm_addr=None, tdm_port=None, language=None, debug=0):
         super(VariableTableWindow, self).__init__()
-        self.geometry("600x420")
+        self.geometry("800x600")
 
         self.program_path = None
         self.program_src = ""
-        self.language = "aseba"
+        self.language = language or "aseba"
+        self.tdm_addr = tdm_addr
+        self.tdm_port = tdm_port
+        self.debug = debug
 
         # menus
         accelerator_key = "Cmd" if sys.platform == "darwin" else "Ctrl"
@@ -451,7 +455,7 @@ class VariableTableWindow(tk.Tk):
                     if variables[name] is not None:
                         self.add_variable(name, variables[name])
 
-        self.client = ClientAsync()
+        self.client = ClientAsync(tdm_addr=self.tdm_addr, tdm_port=self.tdm_port, debug=self.debug)
         self.client.on_nodes_changed = on_nodes_changed
         self.client.on_variables_changed = on_variables_changed
         # schedule communication
@@ -467,8 +471,52 @@ class VariableTableWindow(tk.Tk):
         self.after(100, self.run)
 
 
+def help():
+    print("""Usage: python3 -m tdmclient.tools.variables [options]
+Variable browser and code editor
+
+Options:
+  --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
+  --help       display this help message and exit
+  --language=L programming language (aseba or python); default=automatic
+  --tdmaddr=H  tdm address (default: localhost or from zeroconf)
+  --tdmport=P  tdm port (default: from zeroconf)
+""")
+
+
 if __name__ == "__main__":
 
-    win = VariableTableWindow()
+    debug = 0
+    language = None  # auto
+    tdm_addr = None
+    tdm_port = None
+
+    try:
+        arguments, values = getopt.getopt(sys.argv[1:],
+                                          "",
+                                          [
+                                              "debug=",
+                                              "help",
+                                              "language=",
+                                              "tdmaddr=",
+                                              "tdmport=",
+                                          ])
+    except getopt.error as err:
+        print(str(err))
+        sys.exit(1)
+    for arg, val in arguments:
+        if arg == "--help":
+            help()
+            sys.exit(0)
+        elif arg == "--debug":
+            debug = int(val)
+        elif arg == "--language":
+            language = val
+        elif arg == "--tdmaddr":
+            tdm_addr = val
+        elif arg == "--tdmport":
+            tdm_port = int(val)
+
+    win = VariableTableWindow(tdm_addr=tdm_addr, tdm_port=tdm_port, language=language, debug=debug)
     win.connect()
     win.mainloop()

@@ -24,6 +24,8 @@ Options:
   --scratchpad also store program into the TDM scratchpad
   --sponly     store program into the TDM without running it
   --stop       stop program (no filename or stdin expected)
+  --tdmaddr=H  tdm address (default: localhost or from zeroconf)
+  --tdmport=P  tdm port (default: from zeroconf)
 """)
 
 
@@ -33,6 +35,8 @@ if __name__ == "__main__":
     language = None  # auto
     stop = False
     scratchpad = 0  # 1=--scratchpad, 2=--sponly
+    tdm_addr = None
+    tdm_port = None
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -44,6 +48,8 @@ if __name__ == "__main__":
                                               "scratchpad",
                                               "sponly",
                                               "stop",
+                                              "tdmaddr=",
+                                              "tdmport=",
                                           ])
     except getopt.error as err:
         print(str(err))
@@ -62,6 +68,10 @@ if __name__ == "__main__":
             scratchpad = 2
         elif arg == "--stop":
             stop = True
+        elif arg == "--tdmaddr":
+            tdm_addr = val
+        elif arg == "--tdmport":
+            tdm_port = int(val)
 
     if stop:
         if len(values) > 0:
@@ -100,7 +110,7 @@ if __name__ == "__main__":
         transpiler.transpile()
         program = transpiler.get_output()
 
-    with ClientAsync(debug=debug) as client:
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
 
         async def prog():
             global status
