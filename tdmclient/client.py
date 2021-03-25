@@ -105,7 +105,7 @@ class Client(ThymioFB):
 
     def disconnect(self):
         if self.tdm is not None:
-            self.tdm.close()
+            self.tdm.request_shutdown()
             self.tdm = None
 
     def __enter__(self):
