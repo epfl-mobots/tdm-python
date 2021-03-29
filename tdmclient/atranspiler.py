@@ -15,12 +15,18 @@ import ast
 
 class Context:
 
-    def __init__(self, parent_context=None, function_name=None):
+    def __init__(self, parent_context=None, function_name=None, function_def=None, is_onevent=False):
         # reference to base context for functions or None for base context itself
         self.parent_context = parent_context
 
         # function name, to be used as the namespace of local variables
         self.function_name = function_name
+
+        # ast.FunctionDef node for function
+        self.function_def = function_def
+
+        # whether it's an event handler (decorator @onevent)
+        self.is_onevent = is_onevent
 
         # size of local variables
         self.var = {}
@@ -125,31 +131,27 @@ class ATranspiler:
             raise Exception("Invalid name")
         return name
 
-    def split(self):
+    def split(self, parent_context):
         top_code = []
         functions = {}
-        event_handlers = {}
         for node in self.ast.body:
             if isinstance(node, ast.FunctionDef):
-                event_name = None
+                is_onevent = False
                 for decorator in node.decorator_list:
                     if not isinstance(decorator, ast.Name):
                         raise Exception(f"Unsupported function decorator type {ast.dump(decorator)}")
                     if decorator.id != "onevent":
                         raise Exception(f'Unsupported function decorator "{decorator.id}"')
-                    event_name = node.name
-                if event_name is None:
-                    functions[node.name] = node
-                elif event_name in event_handlers:
-                    raise Exception(f"Onevent handler {event_name} defined multiple times")
-                else:
-                    if len(node.args.args) > 0:
-                        raise Exception(f"Unexpected arguments in onevent handler {event_name}")
-                    event_handlers[event_name] = node
+                    is_onevent = True
+                if node.name in functions:
+                    raise Exception(f"Onevent handler {node.name} defined multiple times")
+                elif len(node.args.args) > 0:
+                    raise Exception(f"Unexpected arguments in onevent handler {node.name}")
+                functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
 
-        return top_code, functions, event_handlers
+        return top_code, functions
 
     # http://wiki.thymio.org/en:asebalanguage
     PRI_LOW = 0
@@ -233,7 +235,7 @@ end
             code = context.tmp_var_str(tmp_offset)
             is_boolean = False
         elif isinstance(node, ast.Call):
-            # a very few set of functions
+            # a very small set of functions
             if not isinstance(node.func, ast.Name):
                 raise Exception("Function call where function is not a name")
             fun_name = node.func.id
@@ -619,32 +621,31 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
         return code
 
     def transpile(self):
-        self.ast = ast.parse(self.src)
-        top_code, functions, event_handlers = self.split()
-
-        self.output_src = ""
-
-        # top-level code
+        # top-level context
         context_top = Context()
+
+        # parse and split into top code and function definitions
+        self.ast = ast.parse(self.src)
+        top_code, functions = self.split(context_top)
+
+        # compile top-level code
         self.output_src = self.compile_node_array(top_code, context_top)
 
         # onevent handlers
-        context_fun = {}
-        for event_name in event_handlers:
-            context_fun[event_name] = Context(context_top, event_name)
+        for fun_name in functions:
             # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
-            event_output_src = self.compile_node_array(event_handlers[event_name].body, context_fun[event_name])
+            event_output_src = self.compile_node_array(functions[fun_name].function_def.body, functions[fun_name])
             # second pass to produce transpiled code with correct local variable names
-            event_output_src = self.compile_node_array(event_handlers[event_name].body, context_fun[event_name])
+            fun_output_src = self.compile_node_array(functions[fun_name].function_def.body, functions[fun_name])
             self.output_src += f"""
-onevent {event_name}
-""" + event_output_src
+{"onevent" if functions[fun_name].is_onevent else "sub"} {fun_name}
+""" + fun_output_src
 
         # variable declarations
         var_decl = context_top.var_declarations()
         var_decl += "".join([
-            context_fun[event_name].var_declarations()
-            for event_name in event_handlers
+            functions[fun_name].var_declarations()
+            for fun_name in functions
         ])
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
