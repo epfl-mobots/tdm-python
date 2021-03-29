@@ -34,6 +34,9 @@ class Context:
         # set of variables declared as global
         self.global_var = set()
 
+        # function definitions indexed by function name (nodes ast.FunctionDef)
+        self.functions = {}
+
         self.has_return_val = False
         self.tmp_req = 0
 
@@ -73,6 +76,12 @@ class Context:
         if n > self.tmp_req:
             self.tmp_req = n
             self.var["_tmp"] = self.tmp_req
+
+    def get_function_definition(self, fun_name):
+        return (self.functions[fun_name] if fun_name in self.functions
+                else self.parent_context.functions[fun_name] if self.parent_context is not None and fun_name in self.parent_context.functions
+                else None)
+
 
 class ATranspiler:
 
@@ -133,7 +142,6 @@ class ATranspiler:
 
     def split(self, parent_context):
         top_code = []
-        functions = {}
         for node in self.ast.body:
             if isinstance(node, ast.FunctionDef):
                 is_onevent = False
@@ -143,35 +151,36 @@ class ATranspiler:
                     if decorator.id != "onevent":
                         raise Exception(f'Unsupported function decorator "{decorator.id}"')
                     is_onevent = True
-                if node.name in functions:
+                if node.name in parent_context.functions:
                     raise Exception(f"Onevent handler {node.name} defined multiple times")
                 elif len(node.args.args) > 0:
                     raise Exception(f"Unexpected arguments in onevent handler {node.name}")
-                functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
+                parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
 
-        return top_code, functions
+        return top_code
 
     # http://wiki.thymio.org/en:asebalanguage
     PRI_LOW = 0
-    PRI_ASSIGN = 1
-    PRI_COMMA = 2
-    PRI_LOGICAL_OR = 3
-    PRI_LOGICAL_AND = 4
-    PRI_LOGICAL_NOT = 5
-    PRI_COMPARISON = 6
-    PRI_NUMERIC = 7
-    PRI_BINARY_OR = 8
-    PRI_BINARY_XOR = 9
-    PRI_BINARY_AND = 10
-    PRI_SHIFT = 11
-    PRI_ADD = 12
-    PRI_MOD = 13
-    PRI_MULT = 14
-    PRI_ABS = 15
-    PRI_BINARY_NOT = 16
-    PRI_UNARY_MINUS = 17
+    PRI_EXPR = 1  # ast.Expr
+    PRI_ASSIGN = 2
+    PRI_COMMA = 3
+    PRI_LOGICAL_OR = 4
+    PRI_LOGICAL_AND = 5
+    PRI_LOGICAL_NOT = 6
+    PRI_COMPARISON = 7
+    PRI_NUMERIC = 8
+    PRI_BINARY_OR = 9
+    PRI_BINARY_XOR = 10
+    PRI_BINARY_AND = 11
+    PRI_SHIFT = 12
+    PRI_ADD = 13
+    PRI_MOD = 14
+    PRI_MULT = 15
+    PRI_ABS = 16
+    PRI_BINARY_NOT = 17
+    PRI_UNARY_MINUS = 18
     PRI_HIGH = 100
 
     def compile_expr(self, node, context, priority_container=PRI_LOW, tmp_offset=0):
@@ -235,19 +244,32 @@ end
             code = context.tmp_var_str(tmp_offset)
             is_boolean = False
         elif isinstance(node, ast.Call):
-            # a very small set of functions
             if not isinstance(node.func, ast.Name):
                 raise Exception("Function call where function is not a name")
             fun_name = node.func.id
-            if fun_name == "abs":
-                if len(node.args) != 1:
-                    raise Exception("Wrong number of arguments for abs")
-                code, aux_st, is_boolean = self.compile_expr(node.args[0], context, self.PRI_COMMA, tmp_offset)
-                aux_statements += aux_st
-                code = f"abs({code})"
+            function_def = context.get_function_definition(fun_name)
+            if function_def is not None:
+                # call (assume no argument)
+                aux_statements += f"""callsub {fun_name}
+"""
+                if function_def.has_return_val:
+                    raise Exception("Function call with return value not implemented")
+                else:
+                    # no return value: must be called in a subexpression
+                    if priority_container != self.PRI_EXPR:
+                        raise Exception("Function without return value called in an expression")
                 return code, aux_statements, False
             else:
-                raise Exception(f"Unknown function {fun_name}")
+                # hard-coded functions
+                if fun_name == "abs":
+                    if len(node.args) != 1:
+                        raise Exception("Wrong number of arguments for abs")
+                    code, aux_st, is_boolean = self.compile_expr(node.args[0], context, self.PRI_COMMA, tmp_offset)
+                    aux_statements += aux_st
+                    code = f"abs({code})"
+                    return code, aux_statements, False
+                else:
+                    raise Exception(f"Unknown function {fun_name}")
         elif isinstance(node, ast.Compare):
             if len(node.ops) != 1:
                 raise Exception("Chained comparisons not implemented")
@@ -463,7 +485,6 @@ end
                     if (len(expr.args) < 1 or
                         not isinstance(expr.args[0], ast.Constant) or
                         not isinstance(expr.args[0].value, str)):
-                        print(expr.args[0])
                         raise Exception("Bad event name in emit")
                     event_name = expr.args[0].value
                     code = f"emit {event_name}"
@@ -478,9 +499,9 @@ end
                     code = aux_statements + code
                     return code
             # parse expression
-            value, aux_statements, is_boolean = self.compile_expr(expr, context, self.PRI_NUMERIC, tmp_offset)
-            # ignore it because nothing can cause side effects now
-            return ""
+            value, aux_statements, is_boolean = self.compile_expr(expr, context, self.PRI_EXPR, tmp_offset)
+            # ignore result
+            return aux_statements
         elif isinstance(node, ast.For):
             # for var in range(...): ...
             if not isinstance(node.target, ast.Name):
@@ -626,26 +647,26 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
 
         # parse and split into top code and function definitions
         self.ast = ast.parse(self.src)
-        top_code, functions = self.split(context_top)
+        top_code = self.split(context_top)
 
         # compile top-level code
         self.output_src = self.compile_node_array(top_code, context_top)
 
         # onevent handlers
-        for fun_name in functions:
+        for fun_name in context_top.functions:
             # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
-            event_output_src = self.compile_node_array(functions[fun_name].function_def.body, functions[fun_name])
+            event_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             # second pass to produce transpiled code with correct local variable names
-            fun_output_src = self.compile_node_array(functions[fun_name].function_def.body, functions[fun_name])
+            fun_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             self.output_src += f"""
-{"onevent" if functions[fun_name].is_onevent else "sub"} {fun_name}
+{"onevent" if context_top.functions[fun_name].is_onevent else "sub"} {fun_name}
 """ + fun_output_src
 
         # variable declarations
         var_decl = context_top.var_declarations()
         var_decl += "".join([
-            functions[fun_name].var_declarations()
-            for fun_name in functions
+            context_top.functions[fun_name].var_declarations()
+            for fun_name in context_top.functions
         ])
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
