@@ -31,6 +31,11 @@ class Context:
         # size of local variables
         self.var = {}
 
+        # add function arguments (all are assumed to be scalar)
+        if function_def is not None:
+            for arg in function_def.args.args:
+                self.var[arg.arg] = None
+
         # set of variables declared as global
         self.global_var = set()
 
@@ -154,7 +159,10 @@ class ATranspiler:
                 if node.name in parent_context.functions:
                     raise Exception(f"Onevent handler {node.name} defined multiple times")
                 elif len(node.args.args) > 0:
-                    raise Exception(f"Unexpected arguments in onevent handler {node.name}")
+                    if is_onevent:
+                        raise Exception(f"Unexpected arguments in onevent handler {node.name}")
+                    if len(node.args.defaults) > 0:
+                        raise Exception(f"Unsupported default values for arguments of {node.name}")
                 parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
@@ -249,13 +257,24 @@ end
             fun_name = node.func.id
             function_def = context.get_function_definition(fun_name)
             if function_def is not None:
-                # call (assume no argument)
+                # set arguments (assign values to function's local variables)
+                if len(node.args) > len(function_def.function_def.args.args):
+                    raise Exception("Too many arguments in call to function {fun_name}")
+                elif len(node.args) < len(function_def.function_def.args.args):
+                    raise Exception("Too few arguments in call to function {fun_name}")
+                for i, arg_def in enumerate(function_def.function_def.args.args):
+                    arg = node.args[i]
+                    code, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_COMMA, tmp_offset)
+                    aux_statements += aux_st
+                    aux_statements += f"""{function_def.var_str(arg_def.arg)} = {code}
+"""
+                # call
                 aux_statements += f"""callsub {fun_name}
 """
                 if function_def.has_return_val:
                     raise Exception("Function call with return value not implemented")
                 else:
-                    # no return value: must be called in a subexpression
+                    # no return value: must not be called in a subexpression
                     if priority_container != self.PRI_EXPR:
                         raise Exception("Function without return value called in an expression")
                 return code, aux_statements, False
