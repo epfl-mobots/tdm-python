@@ -204,6 +204,10 @@ class ATranspiler:
                         raise Exception(f"Unexpected arguments in @onevent function {node.name}")
                     if len(node.args.defaults) > 0:
                         raise Exception(f"Unsupported default values for arguments of {node.name}")
+                elif node.args.vararg is not None:
+                    raise Exception(f"Unsupported vararg in arguments of {node.name}")
+                elif node.args.kwarg is not None:
+                    raise Exception(f"Unsupported kwarg in arguments of {node.name}")
                 parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
