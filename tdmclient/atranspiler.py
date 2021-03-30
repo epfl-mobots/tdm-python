@@ -50,22 +50,34 @@ class Context:
         self.called_functions = set()
 
     def is_global(self, name):
+        """Check if a variable is global or not.
+        """
         return name not in self.var or name in ATranspiler.PREDEFINED_VARIABLES
 
     def var_str(self, name):
+        """Convert a variable name to its string representation in output
+        source code.
+        """
         return name if self.function_name is None or self.is_global(name) else f"_{self.function_name}_{name}"
 
     def tmp_var_str(self, index):
+        """Convert a temporary variable specified by index to its string
+        representation in output source code.
+        """
         # _tmp is always local to avoid interference with caller's
         name = "_tmp" if self.function_name is None else f"_{self.function_name}__tmp"
         return f"{name}[{index}]"
 
     def declare_global(self, name):
+        """Declare a global variable.
+        """
         if name in self.var:
             raise Exception(f"Variable {name} declared global after being assigned to")
         self.global_var.add(name)
 
     def declare_var(self, name, size=None):
+        """Declare a variable with its size (array size, or None if scalar).
+        """
         var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
         if name in var:
             if (size != var[name] or
@@ -75,6 +87,8 @@ class Context:
             var[name] = size
 
     def var_declarations(self):
+        """Output source code for local variable declarations.
+        """
         return "".join([
             f"var {self.var_str(name)}{f'[{self.var[name]}]' if self.var[name] is not None else ''}\n"
             for name in self.var
@@ -82,24 +96,35 @@ class Context:
         ])
 
     def reset_tmp_req_current_expr(self):
+        """Reset the requirements for temporary variables for the current
+        expression.
+        """
         self.tmp_req_current_expr = 0
 
     def request_tmp(self, total):
+        """Request at least the specified amount of temporary variables.
+        """
         if total > self.tmp_req:
             self.tmp_req = total
             self.var["_tmp"] = self.tmp_req
 
     def request_tmp_expr(self, n=1):
+        """Request temporary variable(s) and return its index.
+        """
         tmp_offset = self.tmp_req_current_expr
         self.tmp_req_current_expr += n
         self.request_tmp(self.tmp_req_current_expr)
         return tmp_offset
 
     def freeze_return_type(self):
+        """Freeze the return type (void if no return statement).
+        """
         if self.has_return_val is None:
             self.has_return_val = False
 
     def get_function_definition(self, fun_name):
+        """Get a function definition in the current or parent context.
+        """
         return (self.functions[fun_name] if fun_name in self.functions
                 else self.parent_context.functions[fun_name] if self.parent_context is not None and fun_name in self.parent_context.functions
                 else None)
@@ -130,6 +155,8 @@ class Context:
         return None
 
 class ATranspiler:
+    """Transpiler from a subset of Python3 to Aseba.
+    """
 
     PREDEFINED_VARIABLES = {
         "acc": 3,
@@ -171,11 +198,15 @@ class ATranspiler:
         self.output_src = None
 
     def set_source(self, source):
+        """Set the Python source code and reset transpilation.
+        """
         self.src = source
         self.ast = None
         self.output_src = None
 
     def decode_attr(self, node):
+        """Decode an attribute or name and convert it to a dotted name.
+        """
         name = ""
         while isinstance(node, ast.Attribute):
             name = "." + node.attr + name
@@ -187,6 +218,9 @@ class ATranspiler:
         return name
 
     def split(self, parent_context):
+        """Split the Python source code into top-level source code, which is
+        returned, and function definitions, which are stored into parent_context.
+        """
         top_code = []
         for node in self.ast.body:
             if isinstance(node, ast.FunctionDef):
@@ -454,6 +488,8 @@ end
         return name, index
 
     def compile_node(self, node, context, var0=None):
+        """Compile an ast statement node.
+        """
         code = ""
         context.reset_tmp_req_current_expr()
         if isinstance(node, ast.Assign):
@@ -714,12 +750,17 @@ return
 
     @staticmethod
     def check_var_size(var, var_new):
+        """Check that the variable size is compatible with previous occurences
+        if any.
+        """
         for name in var_new:
             if (name in var and var_new[name] != var[name] or
                 name in ATranspiler.PREDEFINED_VARIABLES and var_new[name] != ATranspiler.PREDEFINED_VARIABLES[name]):
                 raise Exception(f"Incompatible sizes for list assignment to {name}")
 
     def compile_node_array(self, node_array, context):
+        """Compile an array of ast statement nodes.
+        """
         code = ""
         for node in node_array:
             c = self.compile_node(node, context)
@@ -727,6 +768,9 @@ return
         return code
 
     def transpile(self):
+        """Transpile whole Python source code.
+        """
+
         # top-level context
         context_top = Context()
 
@@ -802,6 +846,8 @@ return
         return src
 
     def get_output(self):
+        """Get transpiled output.
+        """
         return self.pretty_print(self.output_src)
 
 
