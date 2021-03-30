@@ -230,9 +230,9 @@ def motors(left, right):
         "motor.right.target": [right],
     }
 
-def on_variables_changed(node, data):
+def on_variables_changed(node, variables):
     try:
-        prox = data["variables"]["prox.horizontal"]
+        prox = variables["prox.horizontal"]
         prox_front = prox[2]
         speed = -prox_front // 10
         node.send_set_variables(motors(speed, speed))

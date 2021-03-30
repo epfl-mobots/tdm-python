@@ -9,17 +9,24 @@ from tdmclient import ClientAsync
 
 if __name__ == "__main__":
 
-    with ClientAsync(debug=2) as client:
+    with ClientAsync() as client:
+
+        def on_event_received(node, event_name, event_data):
+            print(event_name, event_data)
+
+        client.on_event_received = on_event_received
 
         thymio_program = """
+var i = 0
 leds.top = [0, 0, 32]
 leds.bottom.left = [32, 0, 0]
 leds.bottom.right = [0, 32, 0]
-timer.period[0] = 1000
+timer.period[0] = 500
 
 onevent timer0
     emit e0
-    emit e2 [1, 23]
+    emit e2 [123, i]
+    i++
 """
 
         async def prog():

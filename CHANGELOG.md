@@ -7,6 +7,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - Arguments, return value and local variables in function definitions.
+- New method Client.shutdown_tdm
+- New callbacks Client.on_events_received, Client.on_event_received
+- Argument of callback Client.on_variables_changed simplified
 
 ## [0.1.1] - 2021-03-25
 

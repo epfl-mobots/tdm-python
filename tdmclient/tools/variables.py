@@ -456,9 +456,8 @@ class VariableTableWindow(tk.Tk):
                 else:
                     self.robot_menu.entryconfig("Control", state="disabled")
 
-        def on_variables_changed(node, data):
+        def on_variables_changed(node, variables):
             if self.edited_variable is None:
-                variables = data["variables"]
                 for name in variables:
                     if variables[name] is not None:
                         self.add_variable(name, variables[name])

@@ -245,8 +245,14 @@ class ThymioFB:
         self.last_request_id = 0
         self.request_id_notify_dict = {}
 
+        # on_nodes_changed(node_list)
         self.on_nodes_changed = None
+        # on_variables_changed(node, variable_dict)
         self.on_variables_changed = None
+        # on_events_received(node, event_dict)
+        self.on_events_received = None
+        # on_event_received(node, event_name, event_data)
+        self.on_event_received = None
 
     def create_node(self, node_dict):
         """Create a Node object, of class Node or a subclass.
@@ -482,7 +488,7 @@ class ThymioFB:
                     for v in fb.root.union_data[0].fields[1][0]
                 }
                 if self.on_variables_changed is not None:
-                    self.on_variables_changed(self.find_node(node_id_str), {"variables": variables})
+                    self.on_variables_changed(self.find_node(node_id_str), variables)
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:
@@ -514,6 +520,12 @@ class ThymioFB:
                     e.fields[0][0]: e.fields[1][0]
                     for e in fb.root.union_data[0].fields[1][0]
                 }
+                node = self.find_node(node_id_str)
+                if self.on_events_received is not None:
+                    self.on_events_received(node, events)
+                if self.on_event_received is not None:
+                    for name in events:
+                        self.on_event_received(node, name, events[name])
                 if self.debug >= 1:
                     print(f"events emitted by node {node_id_str}")
                     if self.debug >= 2:
