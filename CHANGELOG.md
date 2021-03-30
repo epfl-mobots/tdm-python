@@ -6,7 +6,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
-- Local variables in function definitions.
+- Arguments, return value and local variables in function definitions.
 
 ## [0.1.1] - 2021-03-25
 

@@ -29,9 +29,10 @@ Here are the implemented features:
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
 - Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
 - Programming constructs `if` `elif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
-- Function definitions exclusively for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Variables are local unless declared as global or not assigned to. Arguments are not supported.
+- Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected).
+- Function definitions for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Variables are local unless declared as global or not assigned to. Arguments are not supported.
 - Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
-- Naked expressions which aren't a part of a statement described above, such as `1+2`, are ignored. This is also the case for the ellipsis `...` which can be used as a synonym of `pass`.
+- In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
 
 Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`. High on our to-do list: functions with arguments and return value.
 
