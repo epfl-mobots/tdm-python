@@ -36,7 +36,7 @@ Here are the implemented features:
 
 Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`. High on our to-do list: functions with arguments and return value.
 
-The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the official Python parser used for the first phase ignores them.
+The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the official Python parser used for the first phase ignores them. Since functions are transpiled to subroutines, recursive functions are forbidden.
 
 ### Example
 

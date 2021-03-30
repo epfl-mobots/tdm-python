@@ -46,6 +46,9 @@ class Context:
         self.tmp_req = 0
         self.tmp_req_current_expr = 0
 
+        # set of called functions, used for dependencies and recursivity check
+        self.called_functions = set()
+
     def is_global(self, name):
         return name not in self.var or name in ATranspiler.PREDEFINED_VARIABLES
 
@@ -101,6 +104,30 @@ class Context:
                 else self.parent_context.functions[fun_name] if self.parent_context is not None and fun_name in self.parent_context.functions
                 else None)
 
+    def is_recursive(self, fun_dict):
+        """Check if function or what it calls is recursive.
+        """
+
+        # for each function, set of functions called directly or indirectly
+        connections = {}
+
+        # fill connections starting for function fun_name
+        # return True and exit early if recursive
+        def connect(fun_name):
+            if fun_name not in connections:
+                c = fun_dict[fun_name].called_functions.copy()
+                for f in fun_dict[fun_name].called_functions:
+                    if f == self.function_name or connect(f):
+                        return True
+                    c |= connections[f]
+                connections[fun_name] = c
+            return False
+
+        for fun_name in self.called_functions:
+            if connect(fun_name):
+                return fun_name
+
+        return None
 
 class ATranspiler:
 
@@ -271,6 +298,7 @@ end
             fun_name = node.func.id
             function_def = context.get_function_definition(fun_name)
             if function_def is not None:
+                context.called_functions.add(fun_name)
                 # set arguments (assign values to function's local variables)
                 if len(node.args) > len(function_def.function_def.args.args):
                     raise Exception("Too many arguments in call to function {fun_name}")
@@ -719,6 +747,11 @@ return
 
         # compile top-level code again, now that function return types are known
         self.output_src = self.compile_node_array(top_code, context_top) + function_src
+
+        # check recursivity
+        for fun_name in context_top.functions:
+            if context_top.functions[fun_name].is_recursive(context_top.functions):
+                raise Exception(f"Recursive function {fun_name}")
 
         # variable declarations
         var_decl = context_top.var_declarations()
