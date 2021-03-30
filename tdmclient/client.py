@@ -24,6 +24,11 @@ class ClientNode(Node):
             print(f"send unlock node {self.id_str}")
         self.thymio.send_packet(self.create_msg_unlock_node(**kwargs))
 
+    def send_rename_node(self, name, **kwargs):
+        if self.thymio.debug >= 1:
+            print(f"send rename node {self.id_str} as {name}")
+        self.thymio.send_packet(self.create_msg_rename_node(name, **kwargs))
+
     def send_program(self, program, load=True, **kwargs):
         if self.thymio.debug >= 1:
             print(f"send program to {self.id_str}")

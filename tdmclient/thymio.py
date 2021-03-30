@@ -48,6 +48,18 @@ class Node:
             )
         ), ThymioFB.SCHEMA)
 
+    def create_msg_rename_node(self, name, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_RENAME_NODE,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                name,
+            )
+        ), ThymioFB.SCHEMA)
+
     def create_msg_program(self, program, load=True, **kwargs):
         return ThymioFB.create_message((
             ThymioFB.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM,

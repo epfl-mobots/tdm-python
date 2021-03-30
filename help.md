@@ -114,6 +114,11 @@ It's also available as a string:
 node_id_str = node.id_str
 ```
 
+The node properties are stored as a dict in `node.props`. For example `node.props["name"]` is the robot name, which you can change:
+```
+ClientAsync.aw(node.rename("my white Thymio"))
+```
+
 Lock the robot to change variables or run programs (make sure it isn't already used in Thymio Suite):
 ```
 ClientAsync.aw(node.lock())

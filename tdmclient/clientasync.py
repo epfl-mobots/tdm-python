@@ -54,6 +54,14 @@ class ClientAsyncNode(ClientNode):
         self.send_unlock_node()
 
     @types.coroutine
+    def rename(self, name):
+        result = yield from self.thymio.send_msg_and_get_result(
+            lambda notify:
+                self.send_rename_node(name, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def register_events(self, events):
         result = yield from self.thymio.send_msg_and_get_result(
             lambda notify:
