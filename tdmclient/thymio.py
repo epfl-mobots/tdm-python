@@ -373,6 +373,14 @@ class ThymioFB:
             ()
         ), ThymioFB.SCHEMA)
 
+    def create_msg_device_manager_shutdown_request(self, **kwargs):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_DEVICE_MANAGER_SHUTDOWN_REQUEST,
+            (
+                self.next_request_id(**kwargs),
+            )
+        ), ThymioFB.SCHEMA)
+
     def find_node(self, node_id_str):
         for node in self.nodes:
             if node.id_str == node_id_str:

@@ -136,6 +136,13 @@ class Client(ThymioFB):
             print("send handshake")
         self.send_packet(self.create_msg_handshake())
 
+    def shutdown_tdm(self, **kwargs):
+        """Send a shutdown request. No reply should be expected.
+        """
+        if self.debug >= 1:
+            print("send tdm shutdown request")
+        self.send_packet(self.create_msg_device_manager_shutdown_request(**kwargs))
+
     def process_waiting_messages(self):
         at_least_one = False
         if self.tdm:
