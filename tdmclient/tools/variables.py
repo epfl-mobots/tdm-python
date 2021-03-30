@@ -158,7 +158,7 @@ class VariableTableWindow(tk.Tk):
         self.main_content.pack(fill=tk.BOTH, expand=True)
         status_frame = tk.Frame(self, height=1)
         status_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        self.info_mode = tk.Label(status_frame, anchor="w", bg="#fff", fg="#666", width=15)  # char units
+        self.info_mode = tk.Label(status_frame, anchor="w", bg="#fff", fg="#666", width=16)  # char units
         self.info_mode.pack(side=tk.LEFT)
         self.info_error = tk.Label(status_frame, anchor="e", bg="#fff", fg="#666")
         self.info_error.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -449,6 +449,12 @@ class VariableTableWindow(tk.Tk):
                 }[self.node.status]
                 # new node, set it up by starting coroutine
                 self.start_co = self.init_prog()
+                # disable menu Control if busy
+                if self.node.status in {self.client.NODE_STATUS_AVAILABLE,
+                                        self.client.NODE_STATUS_READY}:
+                    self.robot_menu.entryconfig("Control", state="normal")
+                else:
+                    self.robot_menu.entryconfig("Control", state="disabled")
 
         def on_variables_changed(node, data):
             if self.edited_variable is None:
