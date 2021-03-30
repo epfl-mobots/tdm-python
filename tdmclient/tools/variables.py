@@ -288,7 +288,9 @@ class VariableTableWindow(tk.Tk):
             self.client.run_async_program(stop_a)
 
     async def init_prog(self):
-        await self.client.wait_for_status(self.client.NODE_STATUS_AVAILABLE)
+        await self.client.wait_for_status_set({self.client.NODE_STATUS_AVAILABLE,
+                                               self.client.NODE_STATUS_BUSY,
+                                               self.client.NODE_STATUS_READY})
         self.node = self.client.first_node()
         self.set_title()
         await self.node.watch(variables=True)

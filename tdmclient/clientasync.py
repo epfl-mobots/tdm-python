@@ -157,10 +157,25 @@ class ClientAsync(Client):
 
     @types.coroutine
     def wait_for_status(self, expected_status):
+        """Wait until the first node has the specified status.
+        """
         while True:
             if self.process_waiting_messages():
                 node = self.first_node()
                 if node is not None and node.status == expected_status:
+                    return
+            else:
+                sleep(self.DEFAULT_SLEEP)
+            yield
+
+    @types.coroutine
+    def wait_for_status_set(self, expected_status_set):
+        """Wait until the first node has one of the specified statuses.
+        """
+        while True:
+            if self.process_waiting_messages():
+                node = self.first_node()
+                if node is not None and node.status in expected_status_set:
                     return
             else:
                 sleep(self.DEFAULT_SLEEP)
