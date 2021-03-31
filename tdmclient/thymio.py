@@ -136,6 +136,24 @@ class Node:
             )
         ), ThymioFB.SCHEMA)
 
+    def create_msg_send_events(self, event_dict, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_SEND_EVENTS,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+                [
+                    (
+                        name,
+                        event_dict[name],
+                    )
+                    for name in event_dict
+                ]
+            )
+        ), ThymioFB.SCHEMA)
+
     def create_msg_set_variables(self, var_dict, **kwargs):
         return ThymioFB.create_message((
             ThymioFB.MESSAGE_TYPE_SET_VARIABLES,

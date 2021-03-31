@@ -54,6 +54,11 @@ class ClientNode(Node):
             print(f"send register {len(events)} events to {self.id_str}")
         self.thymio.send_packet(self.create_msg_register_events(events, **kwargs))
 
+    def send_send_events(self, event_dict, **kwargs):
+        if self.thymio.debug >= 1:
+            print(f"send events to {self.id_str} {', '.join([f'{name}={event_dict[name]}' for name in event_dict])}")
+        self.thymio.send_packet(self.create_msg_send_events(event_dict, **kwargs))
+
     def send_set_variables(self, var_dict, **kwargs):
         if self.thymio.debug >= 1:
             print(f"send set variables for {self.id_str} {', '.join([f'{name}={var_dict[name]}' for name in var_dict])}")

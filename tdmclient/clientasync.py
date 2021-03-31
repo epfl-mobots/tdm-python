@@ -70,6 +70,14 @@ class ClientAsyncNode(ClientNode):
         return result
 
     @types.coroutine
+    def send_events(self, event_dict):
+        result = yield from self.thymio.send_msg_and_get_result(
+            lambda notify:
+                self.send_send_events(event_dict, request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def set_variables(self, var_dict):
         result = yield from self.thymio.send_msg_and_get_result(
             lambda notify:

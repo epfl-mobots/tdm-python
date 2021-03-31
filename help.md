@@ -114,7 +114,7 @@ It's also available as a string:
 node_id_str = node.id_str
 ```
 
-The node properties are stored as a dict in `node.props`. For example `node.props["name"]` is the robot name, which you can change:
+The node properties are stored as a dict in `node.props`. For example `node.props["name"]` is the robot's name, which you can change:
 ```
 ClientAsync.aw(node.rename("my white Thymio"))
 ```
@@ -177,7 +177,34 @@ Unlock the robot:
 ClientAsync.aw(node.unlock())
 ```
 
-Getting variable values is done by observing changes, which requires a function. This is easier to do in a Python program file. We'll do it in the next section.
+Getting variable values is done by observing changes, which requires a function; likewise to receive events. This is easier to do in a Python program file. We'll do it in the next section.
+
+Here is how to send custom events from Python to the robot. The robot must run a program which defines an `onevent` event handler; but in order to accept a custom event name, we have to declare it first to the TDM, outside the program. We'll define an event to send two values for the speed of the wheels, `"speed"`. Method `node.register_events` has one argument, an array of tuples where each tuple contains the event name and the size of its data between 0 for none and a maximum of 32. The robot must be locked if it isn't already to accept `register_events`, `compile`, `run`, and `send_events`.
+```
+ClientAsync.aw(node.lock())
+ClientAsync.aw(node.register_events([("speed", 2)]))
+```
+
+Then we can send and run the program. The event data are obtained from variable `event.args`; in our case only the first two elements are used.
+```
+program = """
+onevent speed
+    motor.left.target = event.args[0]
+    motor.right.target = event.args[1]
+"""
+ClientAsync.aw(node.compile(program))
+ClientAsync.aw(node.run())
+```
+
+Finally, the Python program can send events. Method `node.send_events` has one argument, a dict where keys correspond to event names and values to event data.
+```
+# turn right
+ClientAsync.aw(node.send_events({"speed": [40, 20]}))
+# wait 1 second, or wait yourself before typing the next command
+ClientAsync.aw(client.sleep(1))
+# stop the robot
+ClientAsync.aw(node.send_events({"speed": [0, 0]}))
+```
 
 ### Python program
 
