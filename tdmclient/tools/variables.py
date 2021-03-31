@@ -256,6 +256,9 @@ class VariableTableWindow(tk.Tk):
                 if error is not None:
                     self.error_msg = f"Run error {error['error_code']}"
                     self.info_error["text"] = self.error_msg
+                else:
+                    self.error_msg = None
+                    self.info_error["text"] = "OK"
 
         self.client.run_async_program(run_a)
 
