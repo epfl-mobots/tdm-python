@@ -190,7 +190,7 @@ class VariableTableWindow(tk.Tk):
             name += f" (TDM: {self.client.tdm_addr}:{self.client.tdm_port})"
         if self.text_program is not None:
             name += " - "
-            name += os.path.basename(self.program_path) if self.program_path is not None else "Untitled"
+            name += os.path.basename(self.program_path) if self.program_path is not None else f"Untitled.{self.language}"
         self.title(name)
 
     def set_view_variables(self):
@@ -211,6 +211,7 @@ class VariableTableWindow(tk.Tk):
             "py": 2,
         }[language])
         self.language = language
+        self.set_title()
 
     def new(self):
         self.remove_program_view()
