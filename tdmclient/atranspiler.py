@@ -402,6 +402,24 @@ end
                 code = "1"
             else:
                 raise Exception(f"Unsupported constant {node.value}")
+        elif isinstance(node, ast.IfExp):
+            tmp_offset = context.request_tmp_expr()
+            value, aux_st, is_boolean = self.compile_expr(node.test, context, self.PRI_ASSIGN)
+            aux_statements += aux_st
+            aux_statements += f"""if {value}{"" if is_boolean else " != 0"} then
+"""
+            value, aux_st, is_boolean = self.compile_expr(node.body, context, self.PRI_NUMERIC)
+            aux_statements += aux_st
+            aux_statements += f"""{context.tmp_var_str(tmp_offset)} = {value}
+else
+"""
+            value, aux_st, is_boolean = self.compile_expr(node.orelse, context, self.PRI_NUMERIC)
+            aux_statements += aux_st
+            aux_statements += f"""{context.tmp_var_str(tmp_offset)} = {value}
+end
+"""
+            code = context.tmp_var_str(tmp_offset)
+            is_boolean = False
         elif isinstance(node, ast.List):
             if priority_container > self.PRI_ASSIGN:
                 raise Exception("List not supported in expression")
