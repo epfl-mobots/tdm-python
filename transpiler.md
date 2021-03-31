@@ -86,3 +86,48 @@ To run this program:
 ```
 python3 -m tdmclient.tools.run examples/blink.py
 ```
+
+### Feature comparison
+
+The table below shows a mapping between Aseba and Python features. Empty cells stand for lack of a direct equivalent. Prefixes `const_`, `numeric_` or `bool_` indicate restrictions on what's permitted. Standard Python features which are missing are not transpiled; they cause an error.
+
+| Aseba | Python
+| --- | ---
+| infix `+` `-` `*` `/` | infix `+` `-` `*` `//` `%`
+| infix `%` (remainder) | infix `%` (modulo)
+| infix `<<` `>>` `|` `&` `^` | infix `<<` `>>` `|` `&` `^`
+| prefix `-` `~` `not` | prefix `-` `~` `not`
+| | prefix +
+| `==` `!=` `<` `<=` `>` `>=` | `==` `!=` `<` `<=` `>` `>=`
+| `and` `or` (without shortcut) | `and` `or` (with shortcut)
+| | `val1 if test else val2`
+| `var v` | no declarations
+| `var a[size]` |
+| `var a[] = [...]` | `a = [...]`
+| `v = numeric_expr` | `v = any_expr`
+| `v[index_expr]` | `v[index_expr]`
+| `v[constant_range]` |
+| `if bool_expr then` | `if any_expr:`
+| `elseif bool_expr then` | `elif any_expr:`
+| `else` | `else:`
+| `end` | indenting
+| `when bool_expr do` |
+| `while bool_expr do` | `while any_expr:`
+| `for v in 0 : const_b - 1 do` | `for v in range(expr_a, expr_b):`
+| `for v in const_a : const_b - 1 do` | `for v in range(expr_a, expr_b):`
+| `for v in const_a : const_b -/+ 1 step const_s do` | `for v in range(expr_a, expr_b, expr_s):`
+| `sub fun` | `def fun():`
+| all variables are global | `global g`
+| | assigned variables are local by default
+| | `def fun(arg1, arg2, ...):`
+| `return` | `return`
+| | `return expr`
+| `callsub fun` | `fun()`
+| | `fun(expr1, expr2, ...)`
+| | `fun(...)` in expression
+| `onevent name` | `@onevent` `def name():`
+| all variables are global | `global g`
+| | assigned variables are local by default
+| `emit name` | `emit("name")`
+| `emit name [expr1, expr2, ...]` | `emit("name", expr1, expr2, ...)`
+| `call name expr1, expr2, ...` |
