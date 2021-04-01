@@ -604,6 +604,9 @@ end
             # hard-coded ... (ellipsis, alias of None, synonym of pass)
             if isinstance(expr, ast.Ellipsis):
                 return ""
+            # hard-coded constants, such as strings used for documentation
+            if isinstance(expr, ast.Constant):
+                return ""
             # hard-coded emit(name, params...)
             if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
                 if expr.func.id == "emit":
