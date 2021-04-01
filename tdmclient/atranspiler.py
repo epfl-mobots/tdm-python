@@ -154,6 +154,33 @@ class Context:
 
         return None
 
+
+class PredefinedFunction:
+    """Transpilation information for predefined functions.
+    """
+
+    def __init__(self, name, argin, nargout, fun):
+        """argin: arrays of False for scalars or True for arrays;
+        nargout: number of scalar outputs (unpacked to scalar variables or
+        used in expression if nargout is 1)
+        """
+        self.name = name
+        self.argin = argin
+        self.nargout = nargout
+        self.fun = fun
+
+    def get_code(self, atranspiler, context, args):
+        aux_statements = ""
+        arg_code = []
+        for arg in args:
+            value, aux_st, _ = atranspiler.compile_expr(arg, context, ATranspiler.PRI_NUMERIC)
+            aux_statements += aux_st
+            arg_code.append(value)
+        values, aux_st = self.fun(context, arg_code)
+        aux_statements += aux_st
+        return values, aux_statements
+
+
 class ATranspiler:
     """Transpiler from a subset of Python3 to Aseba.
     """
@@ -196,6 +223,167 @@ class ATranspiler:
         self.src = None
         self.ast = None
         self.output_src = None
+
+        self.predefined_function_dict = {}
+
+        def predefined_function(name, argin, nargout=0):
+            def register(fun):
+                self.predefined_function_dict[name] = PredefinedFunction(name, argin, nargout, fun)
+                return fun
+            return register
+
+        @predefined_function("nf.math.copy", [True, True])
+        def math_copy(context, args):
+            return None, f"""call math.copy({args[0]}, {args[1]})
+"""
+
+        @predefined_function("nf.math.fill", [True, False])
+        def math_fill(context, args):
+            return None, f"""call math.fill({args[0]}, {args[1]})
+"""
+
+        @predefined_function("nf.math.addscalar", [True, True, False])
+        def math_addscalar(context, args):
+            return None, f"""call math.addscalar({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.add", [True, True, True])
+        def math_add(context, args):
+            return None, f"""call math.add({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.sub", [True, True, True])
+        def math_sub(context, args):
+            return None, f"""call math.sub({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.mul", [True, True, True])
+        def math_mul(context, args):
+            return None, f"""call math.mul({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.div", [True, True, True])
+        def math_div(context, args):
+            return None, f"""call math.div({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.min", [True, True, True])
+        def math_min(context, args):
+            return None, f"""call math.min({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("math.min", [False, False], 1)
+        def fun_math_min(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.min({var_str}, [{args[0]}], [{args[1]}])
+"""
+
+        @predefined_function("nf.math.max", [True, True, True])
+        def math_max(context, args):
+            return None, f"""call math.max({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("math.max", [False, False], 1)
+        def fun_math_max(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.max({var_str}, [{args[0]}], [{args[1]}])
+"""
+
+        @predefined_function("nf.math.clamp", [True, True, True, True])
+        def math_clamp(context, args):
+            return None, f"""call math.clamp({args[0]}, {args[1]}, {args[2]}, {args[3]})
+"""
+
+        @predefined_function("math.clamp", [False, False, False], 1)
+        def fun_math_clamp(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
+"""
+
+        @predefined_function("nf.math.rand", [True])
+        def math_rand(context, args):
+            return None, f"""call math.rand({args[0]})
+"""
+
+        @predefined_function("math.rand", [], 1)
+        def fun_math_rand(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.rand({var_str})
+"""
+
+        @predefined_function("nf.math.sort", [True])
+        def math_sort(context, args):
+            return None, f"""call math.sort({args[0]})
+"""
+
+        @predefined_function("nf.math.muldiv", [True, True, True, True])
+        def math_muldiv(context, args):
+            return None, f"""call math.muldiv({args[0]}, {args[1]}, {args[2]}, {args[3]})
+"""
+
+        @predefined_function("math.muldiv", [False, False, False], 1)
+        def fun_math_muldiv(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
+"""
+
+        @predefined_function("nf.math.atan2", [True, True, True])
+        def math_atan2(context, args):
+            return None, f"""call math.atan2({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("math.atan2", [False, False], 1)
+        def fun_math_atan2(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.atan2({var_str}, [{args[0]}], [{args[1]}])
+"""
+
+        @predefined_function("nf.math.sin", [True, True])
+        def math_sin(context, args):
+            return None, f"""call math.sin({args[0]}, {args[1]})
+"""
+
+        @predefined_function("math.sin", [False], 1)
+        def fun_math_sin(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.sin({var_str}, [{args[0]}])
+"""
+
+        @predefined_function("nf.math.cos", [True, True])
+        def math_cos(context, args):
+            return None, f"""call math.cos({args[0]}, {args[1]})
+"""
+
+        @predefined_function("math.cos", [False], 1)
+        def fun_math_cos(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.cos({var_str}, [{args[0]}])
+"""
+
+        @predefined_function("nf.math.rot2", [True, True, False])
+        def math_rot2(context, args):
+            return None, f"""call math.rot2({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @predefined_function("nf.math.sqrt", [True, True])
+        def math_sqrt(context, args):
+            return None, f"""call math.sqrt({args[0]}, {args[1]})
+"""
+
+        @predefined_function("math.sqrt", [False], 1)
+        def fun_math_sqrt(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call math.sqrt({var_str}, [{args[0]}])
+"""
 
     def set_source(self, source):
         """Set the Python source code and reset transpilation.
@@ -333,9 +521,7 @@ end
             code = context.tmp_var_str(tmp_offset)
             is_boolean = False
         elif isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name):
-                raise Exception("Function call where function is not a name")
-            fun_name = node.func.id
+            fun_name = self.decode_attr(node.func)
             function_def = context.get_function_definition(fun_name)
             if function_def is not None:
                 context.called_functions.add(fun_name)
@@ -363,6 +549,14 @@ end
                     if priority_container != self.PRI_EXPR:
                         raise Exception("Function without return value called in an expression")
                 return code, aux_statements, False
+            elif fun_name in self.predefined_function_dict:
+                predefined_function = self.predefined_function_dict[fun_name]
+                if len(node.args) != len(predefined_function.argin):
+                    raise Exception(f"Wrong number of arguments for function {fun_name}")
+                if predefined_function.nargout != 1:
+                    raise Exception(f"Wrong number of results for function {fun_name}")
+                values, aux_statements = predefined_function.get_code(self, context, node.args)
+                return values[0], aux_statements, False
             else:
                 # hard-coded functions
                 if fun_name == "abs":
@@ -607,9 +801,18 @@ end
             # hard-coded constants, such as strings used for documentation
             if isinstance(expr, ast.Constant):
                 return ""
-            # hard-coded emit(name, params...)
-            if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
-                if expr.func.id == "emit":
+            # special functions
+            if isinstance(expr, ast.Call):
+                fun_name = self.decode_attr(expr.func)
+                if fun_name in self.predefined_function_dict:
+                    # will ignore any output
+                    predefined_function = self.predefined_function_dict[fun_name]
+                    if len(expr.args) != len(predefined_function.argin):
+                        raise Exception(f"Wrong number of arguments for function {fun_name}")
+                    _, aux_statements = predefined_function.get_code(self, context, expr.args)
+                    return aux_statements
+                elif fun_name == "emit":
+                    # hard-coded emit(name, params...)
                     if (len(expr.args) < 1 or
                         not isinstance(expr.args[0], ast.Constant) or
                         not isinstance(expr.args[0].value, str)):
