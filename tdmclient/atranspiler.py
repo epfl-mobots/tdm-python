@@ -86,14 +86,14 @@ class Context:
         else:
             var[name] = size
 
-    def is_var_array(self, name):
-        """Return True if name is a local or global array variable,
-        False if it is a local or global scalar, or None if unknown.
+    def var_array_size(self, name):
+        """Return size if name is a local or global array variable,
+        None if it is a local or global scalar, or False if unknown.
         """
         var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
                else self.parent_context.var if name in self.global_var and self.parent_context is not None
                else self.var)
-        return None if name not in var else var[name] is not None
+        return False if name not in var else var[name]
 
     def var_declarations(self):
         """Output source code for local variable declarations.
@@ -575,6 +575,17 @@ end
                     aux_statements += aux_st
                     code = f"abs({code})"
                     return code, aux_statements, False
+                elif fun_name == "len":
+                    if len(node.args) != 1:
+                        raise Exception("Wrong number of arguments for len")
+                    if isinstance(node.args[0], ast.Name):
+                        len_arg_size = context.var_array_size(node.args[0].id)
+                        code = f"{len_arg_size}" if len_arg_size is not None else "0"
+                    elif isinstance(node.args[0], ast.List):
+                        code = f"{len(node.args[0].elts)}"
+                    else:
+                        raise Exception("Type of argument of len is not a list")
+                    return code, aux_statements, False
                 else:
                     raise Exception(f"Unknown function {fun_name}")
         elif isinstance(node, ast.Compare):
@@ -636,12 +647,12 @@ end
             code += "]"
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
-            if context.is_var_array(node.id):
+            if isinstance(context.var_array_size(node.id), int):
                 raise Exception(f"List variable {node.id} used in expression")
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
-            if not context.is_var_array(name):
+            if context.var_array_size(name) is None:
                 raise Exception(f"Indexing of variable {name} which is not a list")
             index = node.slice.value
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
