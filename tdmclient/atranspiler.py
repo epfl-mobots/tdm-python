@@ -663,12 +663,18 @@ end
             code += "]"
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
-            if type(context.var_array_size(node.id)) is int:
+            var_array_size = context.var_array_size(node.id)
+            if var_array_size is False:
+                raise TranspilerError(f"unknown variable {node.id}", node)
+            elif type(var_array_size) is int:
                 raise TranspilerError(f"list variable {node.id} used in expression", node)
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
-            if context.var_array_size(name) is None:
+            var_array_size = context.var_array_size(name)
+            if var_array_size is False:
+                raise TranspilerError(f"unknown variable {name}", node)
+            elif var_array_size is None:
                 raise TranspilerError(f"indexing of variable {name} which is not a list", node)
             index = node.slice.value
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
@@ -682,7 +688,7 @@ end
 """
                 index_value = context.tmp_var_str(tmp_offset)
             aux_statements += aux_st
-            code = f"{name}[{index_value}]"
+            code = f"{context.var_str(name)}[{index_value}]"
         elif isinstance(node, ast.UnaryOp):
             op = node.op
             if isinstance(op, ast.UAdd):
@@ -745,10 +751,30 @@ end
         code = ""
         context.reset_tmp_req_current_expr()
         if isinstance(node, ast.Assign):
+            # decide target
             if len(node.targets) != 1:
                 raise TranspilerError("unsupported assignment to multiple targets", node)
             target, index = self.decode_target(node.targets[0])
             target_str = context.var_str(target)
+            if index is None:
+                # declare target
+                if isinstance(node.value, ast.List):
+                    # var = [...]
+                    target_size = len(node.value.elts)
+                    context.declare_var(target, target_size, ast_node=node)
+                elif isinstance(node.value, ast.Name) or isinstance(node.value, ast.Attribute):
+                    # var1 = var2: inherit size
+                    name_right = self.decode_attr(node.value)
+                    target_size = context.var_array_size(name_right)
+                    if target_size is False:
+                        raise TranspilerError(f"unknown variable {name_right}", node)
+                    context.declare_var(target, target_size, ast_node=node)
+                    # code special case (parsing of var2 as an expression would fail)
+                    return f"""{target_str} = {context.var_str(name_right)}
+"""
+                else:
+                    context.declare_var(target, ast_node=node)
+            # compile value
             if isinstance(node.value, ast.List):
                 if index is not None:
                     raise TranspilerError("list assigned to indexed variable", node)
@@ -756,6 +782,7 @@ end
             else:
                 value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             code += aux_statements
+            # generate code, taking care of indexing and boolean conversion
             if index is not None:
                 index_value, aux_statements, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
                 code += aux_statements
@@ -778,18 +805,8 @@ else
 end
 """
             else:
-                code += f"{target_str} = {value}\n"
-            if isinstance(node.value, ast.List):
-                # var = [...]
-                target_size = len(node.value.elts)
-                context.declare_var(target, target_size, ast_node=node)
-            elif isinstance(node.value, ast.Name):
-                # var1 = var2: inherit size
-                name_right = self.decode_attr(node.value)
-                target_size = var0[name_right] if var0 is not None and name_right in var0 else None
-                context.declare_var(target, target_size, ast_node=node)
-            elif index is None:
-                context.declare_var(target, ast_node=node)
+                code += f"""{target_str} = {value}
+"""
             return code
         elif isinstance(node, ast.AugAssign):
             op_str = {
