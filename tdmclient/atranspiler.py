@@ -86,6 +86,15 @@ class Context:
         else:
             var[name] = size
 
+    def is_var_array(self, name):
+        """Return True if name is a local or global array variable,
+        False if it is a local or global scalar, or None if unknown.
+        """
+        var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
+               else self.parent_context.var if name in self.global_var and self.parent_context is not None
+               else self.var)
+        return None if name not in var else var[name] is not None
+
     def var_declarations(self):
         """Output source code for local variable declarations.
         """
@@ -627,9 +636,13 @@ end
             code += "]"
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
+            if context.is_var_array(node.id):
+                raise Exception(f"List variable {node.id} used in expression")
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
+            if not context.is_var_array(name):
+                raise Exception(f"Indexing of variable {name} which is not a list")
             index = node.slice.value
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
             if is_index_boolean:

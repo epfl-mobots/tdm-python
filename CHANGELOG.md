@@ -11,10 +11,6 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - New callbacks Client.on_events_received, Client.on_event_received
 - Argument of callback Client.on_variables_changed simplified
 
-### Known issues
-
-- In transpiler, list variables in expressions aren't flagged as errors
-
 ## [0.1.1] - 2021-03-25
 
 ### Added
