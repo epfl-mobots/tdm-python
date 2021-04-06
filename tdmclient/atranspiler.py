@@ -13,6 +13,22 @@ import sys
 import ast
 
 
+class TranspilerError(Exception):
+
+    def __init__(self, message, ast_node=None, syntax_error=None):
+        self.message = message
+        self.ast_node = ast_node
+        self.syntax_error = syntax_error
+
+    def __str__(self):
+        s = self.message
+        if self.ast_node is not None:
+            s += f" (line {self.ast_node.lineno})"
+        elif self.syntax_error is not None:
+            s += f" (line {self.syntax_error.args[1][1]})"
+        return s
+
+
 class Context:
 
     def __init__(self, parent_context=None, function_name=None, function_def=None, is_onevent=False):
@@ -68,21 +84,21 @@ class Context:
         name = "_tmp" if self.function_name is None else f"_{self.function_name}__tmp"
         return f"{name}[{index}]"
 
-    def declare_global(self, name):
+    def declare_global(self, name, ast_node=None):
         """Declare a global variable.
         """
         if name in self.var:
-            raise Exception(f"Variable {name} declared global after being assigned to")
+            raise TranspilerError(f"variable {name} declared global after being assigned to", ast_node)
         self.global_var.add(name)
 
-    def declare_var(self, name, size=None):
+    def declare_var(self, name, size=None, ast_node=None):
         """Declare a variable with its size (array size, or None if scalar).
         """
         var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
         if name in var:
             if (size != var[name] or
                 name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
-                raise Exception(f"Incompatible sizes for list assignment to {name}")
+                raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
         else:
             var[name] = size
 
@@ -411,7 +427,7 @@ class ATranspiler:
         if isinstance(node, ast.Name):
             name = node.id + name
         else:
-            raise Exception("Invalid name")
+            raise TranspilerError("invalid name", ast_node=node)
         return name
 
     def split(self, parent_context):
@@ -424,23 +440,23 @@ class ATranspiler:
                 is_onevent = False
                 for decorator in node.decorator_list:
                     if not isinstance(decorator, ast.Name):
-                        raise Exception(f"Unsupported function decorator type {ast.dump(decorator)}")
+                        raise TranspilerError(f"unsupported function decorator type {ast.dump(decorator)}", ast_node=node)
                     if decorator.id != "onevent":
-                        raise Exception(f'Unsupported function decorator "{decorator.id}"')
+                        raise TranspilerError(f'unsupported function decorator "{decorator.id}"', ast_node=node)
                     is_onevent = True
                 if node.name in parent_context.functions:
-                    raise Exception(f"Function {node.name} defined multiple times")
+                    raise TranspilerError(f"function {node.name} defined multiple times", ast_node=node)
                 elif len(node.args.args) > 0:
                     if is_onevent:
-                        raise Exception(f"Unexpected arguments in @onevent function {node.name}")
+                        raise TranspilerError(f"unexpected arguments in @onevent function {node.name}", ast_node=node)
                     if len(node.args.defaults) > 0:
-                        raise Exception(f"Unsupported default values for arguments of {node.name}")
+                        raise TranspilerError(f"unsupported default values for arguments of {node.name}", ast_node=node)
                     if len({a.arg for a in node.args.args}) < len(node.args.args):
-                        raise Exception(f"Multiple arguments with the same name in function {node.name}")
+                        raise TranspilerError(f"multiple arguments with the same name in function {node.name}", ast_node=node)
                 if node.args.vararg is not None:
-                    raise Exception(f"Unsupported varargs in arguments of {node.name}")
+                    raise TranspilerError(f"unsupported varargs in arguments of {node.name}", ast_node=node)
                 if node.args.kwarg is not None:
-                    raise Exception(f"Unsupported kwargs in arguments of {node.name}")
+                    raise TranspilerError(f"unsupported kwargs in arguments of {node.name}", ast_node=node)
                 parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
@@ -536,9 +552,9 @@ end
                 context.called_functions.add(fun_name)
                 # set arguments (assign values to function's local variables)
                 if len(node.args) > len(function_def.function_def.args.args):
-                    raise Exception("Too many arguments in call to function {fun_name}")
+                    raise TranspilerError(f"too many arguments in call to function {fun_name}", ast_node=node)
                 elif len(node.args) < len(function_def.function_def.args.args):
-                    raise Exception("Too few arguments in call to function {fun_name}")
+                    raise TranspilerError(f"too few arguments in call to function {fun_name}", ast_node=node)
                 for i, arg_def in enumerate(function_def.function_def.args.args):
                     arg = node.args[i]
                     code, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_COMMA)
@@ -556,41 +572,41 @@ end
                 elif function_def.has_return_val == False:
                     # no return value: must not be called in a subexpression
                     if priority_container != self.PRI_EXPR:
-                        raise Exception("Function without return value called in an expression")
+                        raise TranspilerError("function without return value called in an expression", ast_node=node)
                 return code, aux_statements, False
             elif fun_name in self.predefined_function_dict:
                 predefined_function = self.predefined_function_dict[fun_name]
                 if len(node.args) != len(predefined_function.argin):
-                    raise Exception(f"Wrong number of arguments for function {fun_name}")
+                    raise TranspilerError(f"wrong number of arguments for function {fun_name}", ast_node=node)
                 if predefined_function.nargout != 1:
-                    raise Exception(f"Wrong number of results for function {fun_name}")
+                    raise TranspilerError(f"wrong number of results for function {fun_name}", ast_node=node)
                 values, aux_statements = predefined_function.get_code(self, context, node.args)
                 return values[0], aux_statements, False
             else:
                 # hard-coded functions
                 if fun_name == "abs":
                     if len(node.args) != 1:
-                        raise Exception("Wrong number of arguments for abs")
+                        raise TranspilerError("wrong number of arguments for abs", ast_node=node)
                     code, aux_st, is_boolean = self.compile_expr(node.args[0], context, self.PRI_COMMA)
                     aux_statements += aux_st
                     code = f"abs({code})"
                     return code, aux_statements, False
                 elif fun_name == "len":
                     if len(node.args) != 1:
-                        raise Exception("Wrong number of arguments for len")
+                        raise TranspilerError("wrong number of arguments for len", ast_node=node)
                     if isinstance(node.args[0], ast.Name):
                         len_arg_size = context.var_array_size(node.args[0].id)
                         code = f"{len_arg_size}" if len_arg_size is not None else "0"
                     elif isinstance(node.args[0], ast.List):
                         code = f"{len(node.args[0].elts)}"
                     else:
-                        raise Exception("Type of argument of len is not a list")
+                        raise TranspilerError("type of argument of len is not a list", ast_node=node)
                     return code, aux_statements, False
                 else:
-                    raise Exception(f"Unknown function {fun_name}")
+                    raise TranspilerError(f"unknown function {fun_name}", ast_node=node)
         elif isinstance(node, ast.Compare):
             if len(node.ops) != 1:
-                raise Exception("Chained comparisons not implemented")
+                raise TranspilerError("chained comparisons not implemented", ast_node=node)
             op = node.ops[0]
             op_str = {
                 ast.Eq: "==",
@@ -606,7 +622,7 @@ end
             right, aux_st, _ = self.compile_expr(node.comparators[0], context, self.PRI_NUMERIC)
             aux_statements += aux_st
             if op_str is None:
-                raise Exception(f"Comparison op {ast.dump(op)} not implemented")
+                raise TranspilerError(f"comparison op {ast.dump(op)} not implemented", ast_node=node)
             code = f"{left} {op_str} {right}"
             is_boolean = True
         elif isinstance(node, ast.Constant) or isinstance(node, ast.NameConstant):
@@ -615,7 +631,7 @@ end
             elif node.value is True:
                 code = "1"
             else:
-                raise Exception(f"Unsupported constant {node.value}")
+                raise TranspilerError(f"unsupported constant {node.value}", node)
         elif isinstance(node, ast.IfExp):
             tmp_offset = context.request_tmp_expr()
             value, aux_st, is_boolean = self.compile_expr(node.test, context, self.PRI_ASSIGN)
@@ -636,7 +652,7 @@ end
             is_boolean = False
         elif isinstance(node, ast.List):
             if priority_container > self.PRI_ASSIGN:
-                raise Exception("List not supported in expression")
+                raise TranspilerError("list not supported in expression", node)
             for el in node.elts:
                 el_code, aux_st, is_boolean = self.compile_expr(el, context, self.PRI_NUMERIC)
                 aux_statements += aux_st
@@ -647,13 +663,13 @@ end
             code += "]"
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
-            if isinstance(context.var_array_size(node.id), int):
-                raise Exception(f"List variable {node.id} used in expression")
+            if type(context.var_array_size(node.id)) is int:
+                raise TranspilerError(f"list variable {node.id} used in expression", node)
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
             if context.var_array_size(name) is None:
-                raise Exception(f"Indexing of variable {name} which is not a list")
+                raise TranspilerError(f"indexing of variable {name} which is not a list", node)
             index = node.slice.value
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
             if is_index_boolean:
@@ -692,9 +708,9 @@ end
                 aux_statements += aux_st
                 code = "-" + operand
             else:
-                raise Exception(f"Unsupported unary op {op}")
+                raise TranspilerError(f"unsupported unary op {op}", node)
         else:
-            raise Exception(f"Node {ast.dump(node)} not implemented")
+            raise TranspilerError(f"node {ast.dump(node)} not implemented", node)
 
         if priority < self.PRI_NUMERIC and priority_container >= self.PRI_NUMERIC:
             # work around aseba's idea of what's acceptable
@@ -730,12 +746,12 @@ end
         context.reset_tmp_req_current_expr()
         if isinstance(node, ast.Assign):
             if len(node.targets) != 1:
-                raise Exception("Unsupported assignment to multiple targets")
+                raise TranspilerError("unsupported assignment to multiple targets", node)
             target, index = self.decode_target(node.targets[0])
             target_str = context.var_str(target)
             if isinstance(node.value, ast.List):
                 if index is not None:
-                    raise Exception("List assigned to indexed variable")
+                    raise TranspilerError("list assigned to indexed variable", node)
                 value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_ASSIGN)
             else:
                 value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
@@ -766,14 +782,14 @@ end
             if isinstance(node.value, ast.List):
                 # var = [...]
                 target_size = len(node.value.elts)
-                context.declare_var(target, target_size)
+                context.declare_var(target, target_size, ast_node=node)
             elif isinstance(node.value, ast.Name):
                 # var1 = var2: inherit size
                 name_right = self.decode_attr(node.value)
                 target_size = var0[name_right] if var0 is not None and name_right in var0 else None
-                context.declare_var(target, target_size)
+                context.declare_var(target, target_size, ast_node=node)
             elif index is None:
-                context.declare_var(target)
+                context.declare_var(target, ast_node=node)
             return code
         elif isinstance(node, ast.AugAssign):
             op_str = {
@@ -832,7 +848,7 @@ end
                     # will ignore any output
                     predefined_function = self.predefined_function_dict[fun_name]
                     if len(expr.args) != len(predefined_function.argin):
-                        raise Exception(f"Wrong number of arguments for function {fun_name}")
+                        raise TranspilerError(f"wrong number of arguments for function {fun_name}", node)
                     _, aux_statements = predefined_function.get_code(self, context, expr.args)
                     return aux_statements
                 elif fun_name == "emit":
@@ -840,7 +856,7 @@ end
                     if (len(expr.args) < 1 or
                         not isinstance(expr.args[0], ast.Constant) or
                         not isinstance(expr.args[0].value, str)):
-                        raise Exception("Bad event name in emit")
+                        raise TranspilerError("bad event name in emit", node)
                     event_name = expr.args[0].value
                     code = f"emit {event_name}"
                     aux_statements = ""
@@ -860,16 +876,16 @@ end
         elif isinstance(node, ast.For):
             # for var in range(...): ...
             if not isinstance(node.target, ast.Name):
-                raise Exception("for loop with unsupported target (not a plain variable)")
+                raise TranspilerError("for loop with unsupported target (not a plain variable)", node)
             if (not isinstance(node.iter, ast.Call) or
                 not isinstance(node.iter.func, ast.Name) or
                 node.iter.func.id != "range" or
                 len(node.iter.args) < 1 or len(node.iter.args) > 3):
-                raise Exception("for loop with unsupported iterator (not range)")
+                raise TranspilerError("for loop with unsupported iterator (not range)", node)
             range_args = node.iter.args
             target = self.decode_attr(node.target)
             target_str = context.var_str(target)
-            context.declare_var(target)
+            context.declare_var(target, ast_node=node)
             if len(range_args) == 1:
                 # for var in range(a): ...
                 # stores limit a in tmp[tmp_offset]
@@ -929,7 +945,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             return code
         elif isinstance(node, ast.Global):
             for name in node.names:
-                context.declare_global(name)
+                context.declare_global(name, node)
             return ""
         elif isinstance(node, ast.If):
             test_value, aux_statements, is_boolean = self.compile_expr(node.test, context, self.PRI_LOW)
@@ -960,13 +976,13 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             return ""
         elif isinstance(node, ast.Return):
             if context.parent_context is None:
-                raise Exception("Return outside function")
+                raise TranspilerError("return outside function", node)
             if context.is_onevent and node.value is not None:
-                raise Exception(f"Returned value in @onevent function {context.function_name}")
+                raise TranspilerError(f"returned value in @onevent function {context.function_name}", node)
             if context.has_return_val is None:
                 context.has_return_val = node.value is not None
             elif context.has_return_val != (node.value is not None):
-                raise Exception(f"Inconsistent return values in function {context.function_name}")
+                raise TranspilerError(f"inconsistent return values in function {context.function_name}", node)
             if node.value is not None:
                 tmp_offset = context.request_tmp_expr()
                 ret_value, aux_statements, _ = self.compile_expr(node.value, context, self.PRI_NUMERIC)
@@ -994,17 +1010,7 @@ return
                 code += body
             return code
         else:
-            raise Exception(f"Node {ast.dump(node)} not implemented")
-
-    @staticmethod
-    def check_var_size(var, var_new):
-        """Check that the variable size is compatible with previous occurences
-        if any.
-        """
-        for name in var_new:
-            if (name in var and var_new[name] != var[name] or
-                name in ATranspiler.PREDEFINED_VARIABLES and var_new[name] != ATranspiler.PREDEFINED_VARIABLES[name]):
-                raise Exception(f"Incompatible sizes for list assignment to {name}")
+            raise TranspilerError(f"node {ast.dump(node)} not implemented", node)
 
     def compile_node_array(self, node_array, context):
         """Compile an array of ast statement nodes.
@@ -1023,7 +1029,10 @@ return
         context_top = Context()
 
         # parse and split into top code and function definitions
-        self.ast = ast.parse(self.src)
+        try:
+            self.ast = ast.parse(self.src)
+        except SyntaxError as error:
+            raise TranspilerError(error.args[0], syntax_error=error) from None
         top_code = self.split(context_top)
 
         # compile top-level code (first pass for global variable sizes)
@@ -1049,7 +1058,7 @@ return
         # check recursivity
         for fun_name in context_top.functions:
             if context_top.functions[fun_name].is_recursive(context_top.functions):
-                raise Exception(f"Recursive function {fun_name}")
+                raise TranspilerError(f"recursive function {fun_name}", context_top.functions[fun_name].function_def)
 
         # variable declarations
         var_decl = context_top.var_declarations()
