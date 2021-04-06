@@ -741,10 +741,10 @@ end
                 value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             code += aux_statements
             if index is not None:
-                tmp_offset = context.request_tmp_expr()
                 index_value, aux_statements, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
                 code += aux_statements
                 if is_index_boolean:
+                    tmp_offset = context.request_tmp_expr()
                     code += f"""if {index_value} then
 {context.tmp_var_str(tmp_offset)} = 1
 else
