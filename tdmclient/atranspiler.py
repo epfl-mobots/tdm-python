@@ -605,9 +605,6 @@ end
                 else:
                     raise TranspilerError(f"unknown function {fun_name}", ast_node=node)
         elif isinstance(node, ast.Compare):
-            if len(node.ops) != 1:
-                raise TranspilerError("chained comparisons not implemented", ast_node=node)
-            op = node.ops[0]
             op_str = {
                 ast.Eq: "==",
                 ast.Gt: ">",
@@ -615,16 +612,50 @@ end
                 ast.Lt: "<",
                 ast.LtE: "<=",
                 ast.NotEq: "!=",
-            }[type(op)]
-            priority = self.PRI_COMPARISON
-            left, aux_st, _ = self.compile_expr(node.left, context, self.PRI_NUMERIC)
-            aux_statements += aux_st
-            right, aux_st, _ = self.compile_expr(node.comparators[0], context, self.PRI_NUMERIC)
-            aux_statements += aux_st
-            if op_str is None:
-                raise TranspilerError(f"comparison op {ast.dump(op)} not implemented", ast_node=node)
-            code = f"{left} {op_str} {right}"
-            is_boolean = True
+            }
+            # quick check of operators
+            for op in node.ops:
+                if type(op) not in op_str:
+                    raise TranspilerError(f"comparison op {ast.dump(op)} not implemented", ast_node=node)
+            if len(node.ops) == 1:
+                # one comparison: straighforward transpilation
+                op = node.ops[0]
+                priority = self.PRI_COMPARISON
+                left, aux_st, _ = self.compile_expr(node.left, context, self.PRI_NUMERIC)
+                aux_statements += aux_st
+                right, aux_st, _ = self.compile_expr(node.comparators[0], context, self.PRI_NUMERIC)
+                aux_statements += aux_st
+                code = f"{left} {op_str[type(op)]} {right}"
+                is_boolean = True
+            else:
+                # chained comparisons a op0 b0 op1 b1 ... ->
+                # tmp_b = 0; tmp_l = a;
+                # tmp_r = b0; if tmp_l op0 tmp_r then tmp_l = tmp_r
+                # tmp_r = b1; if tmp_l op1 tmp_r then tmp_l = tmp_r
+                # ...
+                # tmp_r = b1; if tmp_l opn tmp_r then tmp_b = 1
+                # end end ... end
+                tmp_offset = context.request_tmp_expr(3)
+                left, aux_st, _ = self.compile_expr(node.left, context, self.PRI_NUMERIC)
+                aux_statements += aux_st
+                aux_statements += f"""{context.tmp_var_str(tmp_offset)} = 0
+{context.tmp_var_str(tmp_offset + 1)} = {left}
+"""
+                for i in range(len(node.ops)):
+                    right, aux_st, _ = self.compile_expr(node.comparators[i], context, self.PRI_NUMERIC)
+                    aux_statements += aux_st
+                    aux_statements += f"""{context.tmp_var_str(tmp_offset + 2)} = {right}
+if {context.tmp_var_str(tmp_offset + 1)} {op_str[type(node.ops[i])]} {context.tmp_var_str(tmp_offset + 2)} then
+"""
+                    if i + 1 < len(node.ops):
+                        aux_statements += f"""{context.tmp_var_str(tmp_offset + 1)} = {context.tmp_var_str(tmp_offset + 2)}
+"""
+                aux_statements += f"""{context.tmp_var_str(tmp_offset)} = 1
+"""
+                for _ in node.ops:
+                    aux_statements += """end
+"""
+                code = context.tmp_var_str(tmp_offset)
         elif isinstance(node, ast.Constant) or isinstance(node, ast.NameConstant):
             if node.value is False:
                 code = "0"
