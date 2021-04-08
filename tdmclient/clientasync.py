@@ -157,11 +157,12 @@ class ClientAsync(Client):
 
     DEFAULT_SLEEP = 0.1
 
-    def __init__(self, **kwargs):
+    def __init__(self, node_class=None, **kwargs):
         super(ClientAsync, self).__init__(**kwargs)
+        self.node_class = node_class or ClientAsyncNode
 
     def create_node(self, node_dict):
-        return ClientAsyncNode(self, node_dict)
+        return self.node_class(self, node_dict)
 
     def first_node(self):
         return self.nodes[0] if len(self.nodes) > 0 else None

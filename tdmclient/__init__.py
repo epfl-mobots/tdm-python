@@ -15,3 +15,4 @@ from tdmclient.tcp import TDMConnection
 from tdmclient.thymio import ThymioFB, Node
 from tdmclient.client import Client, ClientNode
 from tdmclient.clientasync import ClientAsync, ClientAsyncNode
+from tdmclient.clientasynccachenode import ClientAsyncCacheNode
