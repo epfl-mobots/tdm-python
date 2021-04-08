@@ -16,6 +16,9 @@ class ClientAsyncNode(ClientNode):
 
         super(ClientAsyncNode, self).__init__(thymio, node_dict)
 
+        # current watch flags
+        self.watch_flags = 0
+
     @types.coroutine
     def lock_node(self):
         """Lock the node and return the error code (None for success).
@@ -129,11 +132,25 @@ class ClientAsyncNode(ClientNode):
     def watch(self, flags=0, variables=False, events=False):
         flags |= ((ThymioFB.WATCHABLE_INFO_VARIABLES if variables else 0) |
                   (ThymioFB.WATCHABLE_INFO_EVENTS if events else 0))
-        result = yield from self.thymio.send_msg_and_get_result(
-            lambda notify:
-                self.watch_node(flags, request_id_notify=notify)
-        )
-        return result
+        if (self.watch_flags | flags) != self.watch_flags:
+            self.watch_flags |= flags
+            result = yield from self.thymio.send_msg_and_get_result(
+                lambda notify:
+                    self.watch_node(flags, request_id_notify=notify)
+            )
+            return result
+
+    @types.coroutine
+    def unwatch(self, flags=0, variables=False, events=False):
+        flags |= ((ThymioFB.WATCHABLE_INFO_VARIABLES if variables else 0) |
+                  (ThymioFB.WATCHABLE_INFO_EVENTS if events else 0))
+        if (self.watch_flags & ~flags) != self.watch_flags:
+            self.watch_flags &= ~flags
+            result = yield from self.thymio.send_msg_and_get_result(
+                lambda notify:
+                    self.watch_node(flags, request_id_notify=notify)
+            )
+            return result
 
 
 class ClientAsync(Client):
