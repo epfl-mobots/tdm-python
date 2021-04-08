@@ -16,12 +16,15 @@ from tdmclient import FlatBuffer, Union, Table
 
 class Node:
 
-    def __init__(self, thymio, node_dict):
+    def __init__(self, thymio, properties):
         self.thymio = thymio
-        self.props = node_dict
-        self.id = node_dict["node_id"]
-        self.id_str = node_dict["node_id_str"]
-        self.status = node_dict["status"]
+        self.set_properties(properties)
+
+    def set_properties(self, properties):
+        self.props = properties
+        self.id = properties["node_id"]
+        self.id_str = properties["node_id_str"]
+        self.status = properties["status"]
 
     def __repr__(self):
         return f"Node {self.id_str}"
@@ -446,8 +449,9 @@ class ThymioFB:
             elif fb.root.union_type == self.MESSAGE_TYPE_NODES_CHANGED:
                 if fb.root.union_data[0] is not None:
                     nodes = fb.root.union_data[0].fields[0][0]
-                    self.nodes = [
-                        self.create_node({
+                    for node in nodes:
+                        node_id_str = bytes_to_hexa(node.fields[0])
+                        node_properties = {
                             "node_id":
                                 None if node.fields[0] is None
                                 else node.fields[0][0].fields[0][0] if type(node.fields[0][0].fields[0][0]) is bytes
@@ -459,9 +463,12 @@ class ThymioFB:
                             "name": field_val(node.fields[4], ""),
                             "capabilities": field_val(node.fields[5], 0),
                             "fw_version": field_val(node.fields[6], None),
-                        })
-                        for node in nodes
-                    ]
+                        }
+                        existing_node = self.find_node(node_id_str)
+                        if existing_node is not None:
+                            existing_node.set_properties(node_properties)
+                        else:
+                            self.nodes.append(self.create_node(node_properties))
                     if self.on_nodes_changed is not None:
                         self.on_nodes_changed(self.nodes)
                     if self.debug >= 1:
