@@ -14,9 +14,54 @@ Author: Yves Piguet, EPFL
 from tdmclient import FlatBuffer, Union, Table
 
 
-class Node:
+class Listener:
+    """Base functionality for objects which are notified of variable changes
+    and events.
+    """
+
+    def __init__(self):
+        # on_variables_changed(node, variable_dict)
+        self.on_variables_changed = set()
+        # on_events_received(node, event_dict)
+        self.on_events_received = set()
+        # on_event_received(node, event_name, event_data)
+        self.on_event_received = set()
+
+    def add_variables_changed_listener(self, listener):
+        self.on_variables_changed.add(listener)
+
+    def remove_variables_changed_listener(self, listener):
+        self.on_variables_changed.remove(listener)
+
+    def add_events_received_listener(self, listener):
+        self.on_events_received.add(listener)
+
+    def remove_events_received_listener(self, listener):
+        self.on_events_received.remove(listener)
+
+    def add_event_received_listener(self, listener):
+        self.on_event_received.add(listener)
+
+    def remove_event_received_listener(self, listener):
+        self.on_event_received.remove(listener)
+
+    def notify_variables_changed(self, node, variable_dict):
+        for f in self.on_variables_changed:
+            f(node, variable_dict)
+
+    def notify_events_received(self, node, event_dict):
+        for f in self.on_events_received:
+            f(node, event_dict)
+        for f in self.on_event_received:
+            for name in event_dict:
+                f(node, name, event_dict[name])
+
+
+class Node(Listener):
 
     def __init__(self, thymio, properties):
+        super(Node, self).__init__()
+
         self.thymio = thymio
         self.set_properties(properties)
 
@@ -176,7 +221,7 @@ class Node:
         ), ThymioFB.SCHEMA)
 
 
-class ThymioFB:
+class ThymioFB(Listener):
 
     MESSAGE_TYPE_CONNECTION_HANDSHAKE = 1
     MESSAGE_TYPE_DEVICE_MANAGER_SHUTDOWN_REQUEST = 2
@@ -269,6 +314,7 @@ class ThymioFB:
     VM_EXECUTION_STATE_PAUSED = 2
 
     def __init__(self, debug=0):
+        super(ThymioFB, self).__init__()
 
         self.debug = debug
 
@@ -280,12 +326,6 @@ class ThymioFB:
 
         # on_nodes_changed(node_list)
         self.on_nodes_changed = None
-        # on_variables_changed(node, variable_dict)
-        self.on_variables_changed = None
-        # on_events_received(node, event_dict)
-        self.on_events_received = None
-        # on_event_received(node, event_name, event_data)
-        self.on_event_received = None
 
     def create_node(self, node_dict):
         """Create a Node object, of class Node or a subclass.
@@ -520,12 +560,13 @@ class ThymioFB:
                     print(f"compilation ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_VARIABLES_CHANGED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
+                node = self.find_node(node_id_str)
                 variables = {
                     v.fields[0][0]: v.fields[1][0]
                     for v in fb.root.union_data[0].fields[1][0]
                 }
-                if self.on_variables_changed is not None:
-                    self.on_variables_changed(self.find_node(node_id_str), variables)
+                self.notify_variables_changed(node, variables)
+                node.notify_variables_changed(node, variables)
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:
@@ -553,16 +594,13 @@ class ThymioFB:
                         ]))
             elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_EMITTED:
                 node_id_str = bytes_to_hexa(fb.root.union_data[0].fields[0])
+                node = self.find_node(node_id_str)
                 events = {
                     e.fields[0][0]: e.fields[1][0]
                     for e in fb.root.union_data[0].fields[1][0]
                 }
-                node = self.find_node(node_id_str)
-                if self.on_events_received is not None:
-                    self.on_events_received(node, events)
-                if self.on_event_received is not None:
-                    for name in events:
-                        self.on_event_received(node, name, events[name])
+                self.notify_events_received(node, events)
+                node.notify_events_received(node, events)
                 if self.debug >= 1:
                     print(f"events emitted by node {node_id_str}")
                     if self.debug >= 2:

@@ -14,7 +14,7 @@ if __name__ == "__main__":
         def on_event_received(node, event_name, event_data):
             print(event_name, event_data)
 
-        client.on_event_received = on_event_received
+        client.add_event_received_listener(on_event_received)
 
         thymio_program = """
 var i = 0

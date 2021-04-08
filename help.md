@@ -275,7 +275,7 @@ with ClientAsync() as client:
     async def prog():
         with await client.lock() as node:
             await node.watch(variables=True)
-            client.on_variables_changed = on_variables_changed
+            node.add_variables_changed_listener(on_variables_changed)
             await client.sleep()
     client.run_async_program(prog)
 ```

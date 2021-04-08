@@ -468,7 +468,7 @@ class VariableTableWindow(tk.Tk):
 
         self.client = ClientAsync(tdm_addr=self.tdm_addr, tdm_port=self.tdm_port, debug=self.debug)
         self.client.on_nodes_changed = on_nodes_changed
-        self.client.on_variables_changed = on_variables_changed
+        self.client.add_variables_changed_listener(on_variables_changed)
         # schedule communication
         self.after(100, self.run)
 
