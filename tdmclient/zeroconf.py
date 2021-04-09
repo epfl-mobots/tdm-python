@@ -9,7 +9,7 @@ class TDMZeroconfBrowser:
 
     def __init__(self, on_change=None, **kwargs):
 
-        from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf
+        from zeroconf import ServiceBrowser, ServiceStateChange, Zeroconf, InterfaceChoice
 
         def on_service_state_change(zeroconf, service_type, name, state_change):
             if on_change and state_change in [ServiceStateChange.Added,
@@ -23,6 +23,9 @@ class TDMZeroconfBrowser:
                     for addr in info.parsed_addresses():
                         on_change(state_change is ServiceStateChange.Added,
                                   addr, info.port, ws_port)
+
+        # change default interface from All to Default
+        kwargs = {"interfaces": InterfaceChoice.Default, **kwargs}
 
         self.zeroconf = Zeroconf(**kwargs)
         self.browser = ServiceBrowser(self.zeroconf,
