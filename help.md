@@ -284,10 +284,10 @@ Compare with an equivalent Python program running directly on the Thymio:
 ```
 @onevent
 def prox():
-    prox_front = prox.horizontal[2]
+    prox_front = prox_horizontal[2]
     speed = -prox_front // 10
-    motor.left.target = speed
-    motor.right.target = speed
+    motor_left_target = speed
+    motor_right_target = speed
 ```
 
 You could save it as a .py file and run it with `tdmclient.tools.run` as explained above. If you want to do everything yourself, to understand precisely how tdmclient works or because you want to eventually combine processing on the Thymio and on your computer, here is a Python program running on the PC to convert it to Aseba, compile and load it, and run it.
@@ -300,8 +300,8 @@ thymio_program_python = r"""
 def prox():
     prox_front = prox.horizontal[2]
     speed = -prox_front // 10
-    motor.left.target = speed
-    motor.right.target = speed
+    motor_left_target = speed
+    motor_right_target = speed
 """
 
 # convert program from Python to Aseba

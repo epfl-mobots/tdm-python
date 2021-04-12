@@ -79,7 +79,10 @@ class Context:
         """Convert a variable name to its string representation in output
         source code.
         """
-        return name if self.function_name is None or self.is_global(name) else f"_{self.function_name}_{name}"
+        if self.function_name is None or self.is_global(name):
+            return name.replace("_", ".") if name in ATranspiler.PREDEFINED_VARIABLES else name
+        else:
+            return f"_{self.function_name}_{name}"
 
     def tmp_var_str(self, index):
         """Convert a temporary variable specified by index to its string
@@ -219,36 +222,36 @@ class ATranspiler:
 
     PREDEFINED_VARIABLES = {
         "acc": 3,
-        "button.backward": None,
-        "button.center": None,
-        "button.forward": None,
-        "button.left": None,
-        "button.right": None,
-        "events.arg": 32,
-        "events.source": None,
-        "leds.bottom.left": 3,
-        "leds.bottom.right": 3,
-        "leds.circle": 8,
-        "leds.top": 3,
-        "mic.intensity": None,
-        "mic.threshold": None,
-        "motor.left.pwm": None,
-        "motor.left.speed": None,
-        "motor.left.target": None,
-        "motor.right.pwm": None,
-        "motor.right.speed": None,
-        "motor.right.target": None,
-        "prox.comm.rx": None,
-        "prox.comm.tx": None,
-        "prox.ground.ambient": 2,
-        "prox.ground.delta": 2,
-        "prox.ground.reflected": 2,
-        "prox.horizontal": 7,
-        "rc5.address": None,
-        "rc5.command": None,
-        "sd.present": None,
+        "button_backward": None,
+        "button_center": None,
+        "button_forward": None,
+        "button_left": None,
+        "button_right": None,
+        "events_arg": 32,
+        "events_source": None,
+        "leds_bottom_left": 3,
+        "leds_bottom_right": 3,
+        "leds_circle": 8,
+        "leds_top": 3,
+        "mic_intensity": None,
+        "mic_threshold": None,
+        "motor_left_pwm": None,
+        "motor_left_speed": None,
+        "motor_left_target": None,
+        "motor_right_pwm": None,
+        "motor_right_speed": None,
+        "motor_right_target": None,
+        "prox_comm_rx": None,
+        "prox_comm_tx": None,
+        "prox_ground_ambient": 2,
+        "prox_ground_delta": 2,
+        "prox_ground_reflected": 2,
+        "prox_horizontal": 7,
+        "rc5_address": None,
+        "rc5_command": None,
+        "sd_present": None,
         "temperature": None,
-        "timer.period": 2,
+        "timer_period": 2,
     }
 
     def __init__(self):
@@ -264,153 +267,153 @@ class ATranspiler:
                 return fun
             return register
 
-        @predefined_function("nf.math.copy", [True, True])
+        @predefined_function("nf_math_copy", [True, True])
         def _math_copy(context, args):
             return None, f"""call math.copy({args[0]}, {args[1]})
 """
 
-        @predefined_function("nf.math.fill", [True, False])
+        @predefined_function("nf_math_fill", [True, False])
         def _math_fill(context, args):
             return None, f"""call math.fill({args[0]}, {args[1]})
 """
 
-        @predefined_function("nf.math.addscalar", [True, True, False])
+        @predefined_function("nf_math_addscalar", [True, True, False])
         def _math_addscalar(context, args):
             return None, f"""call math.addscalar({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.add", [True, True, True])
+        @predefined_function("nf_math_add", [True, True, True])
         def _math_add(context, args):
             return None, f"""call math.add({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.sub", [True, True, True])
+        @predefined_function("nf_math_sub", [True, True, True])
         def _math_sub(context, args):
             return None, f"""call math.sub({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.mul", [True, True, True])
+        @predefined_function("nf_math_mul", [True, True, True])
         def _math_mul(context, args):
             return None, f"""call math.mul({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.div", [True, True, True])
+        @predefined_function("nf_math_div", [True, True, True])
         def _math_div(context, args):
             return None, f"""call math.div({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.min", [True, True, True])
+        @predefined_function("nf_math_min", [True, True, True])
         def _math_min(context, args):
             return None, f"""call math.min({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("math.min", [False, False], 1)
+        @predefined_function("math_min", [False, False], 1)
         def _fun_math_min(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.min({var_str}, [{args[0]}], [{args[1]}])
 """
 
-        @predefined_function("nf.math.max", [True, True, True])
+        @predefined_function("nf_math_max", [True, True, True])
         def _math_max(context, args):
             return None, f"""call math.max({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("math.max", [False, False], 1)
+        @predefined_function("math_max", [False, False], 1)
         def _fun_math_max(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.max({var_str}, [{args[0]}], [{args[1]}])
 """
 
-        @predefined_function("nf.math.clamp", [True, True, True, True])
+        @predefined_function("nf_math_clamp", [True, True, True, True])
         def _math_clamp(context, args):
             return None, f"""call math.clamp({args[0]}, {args[1]}, {args[2]}, {args[3]})
 """
 
-        @predefined_function("math.clamp", [False, False, False], 1)
+        @predefined_function("math_clamp", [False, False, False], 1)
         def _fun_math_clamp(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
 """
 
-        @predefined_function("nf.math.rand", [True])
+        @predefined_function("nf_math_rand", [True])
         def _math_rand(context, args):
             return None, f"""call math.rand({args[0]})
 """
 
-        @predefined_function("math.rand", [], 1)
+        @predefined_function("math_rand", [], 1)
         def _fun_math_rand(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.rand({var_str})
 """
 
-        @predefined_function("nf.math.sort", [True])
+        @predefined_function("nf_math_sort", [True])
         def _math_sort(context, args):
             return None, f"""call math.sort({args[0]})
 """
 
-        @predefined_function("nf.math.muldiv", [True, True, True, True])
+        @predefined_function("nf_math_muldiv", [True, True, True, True])
         def _math_muldiv(context, args):
             return None, f"""call math.muldiv({args[0]}, {args[1]}, {args[2]}, {args[3]})
 """
 
-        @predefined_function("math.muldiv", [False, False, False], 1)
+        @predefined_function("math_muldiv", [False, False, False], 1)
         def _fun_math_muldiv(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
 """
 
-        @predefined_function("nf.math.atan2", [True, True, True])
+        @predefined_function("nf_math_atan2", [True, True, True])
         def _math_atan2(context, args):
             return None, f"""call math.atan2({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("math.atan2", [False, False], 1)
+        @predefined_function("math_atan2", [False, False], 1)
         def _fun_math_atan2(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.atan2({var_str}, [{args[0]}], [{args[1]}])
 """
 
-        @predefined_function("nf.math.sin", [True, True])
+        @predefined_function("nf_math_sin", [True, True])
         def _math_sin(context, args):
             return None, f"""call math.sin({args[0]}, {args[1]})
 """
 
-        @predefined_function("math.sin", [False], 1)
+        @predefined_function("math_sin", [False], 1)
         def _fun_math_sin(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.sin({var_str}, [{args[0]}])
 """
 
-        @predefined_function("nf.math.cos", [True, True])
+        @predefined_function("nf_math_cos", [True, True])
         def _math_cos(context, args):
             return None, f"""call math.cos({args[0]}, {args[1]})
 """
 
-        @predefined_function("math.cos", [False], 1)
+        @predefined_function("math_cos", [False], 1)
         def _fun_math_cos(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.cos({var_str}, [{args[0]}])
 """
 
-        @predefined_function("nf.math.rot2", [True, True, False])
+        @predefined_function("nf_math_rot2", [True, True, False])
         def _math_rot2(context, args):
             return None, f"""call math.rot2({args[0]}, {args[1]}, {args[2]})
 """
 
-        @predefined_function("nf.math.sqrt", [True, True])
+        @predefined_function("nf_math_sqrt", [True, True])
         def _math_sqrt(context, args):
             return None, f"""call math.sqrt({args[0]}, {args[1]})
 """
 
-        @predefined_function("math.sqrt", [False], 1)
+        @predefined_function("math_sqrt", [False], 1)
         def _fun_math_sqrt(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)

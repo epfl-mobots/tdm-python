@@ -29,7 +29,7 @@ Here are the implemented features:
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
 - Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
 - Programming constructs `if` `elif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
-- Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected). Variable-length arguments `*args` and `**kwargs`, default values and multiple arguments with the same name are forbidden. Variables are local unless declared as global or not assigned to. Thymio predefined variables (with names including dots or not) are global everywhere and must not be declared explicitly.
+- Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected). Variable-length arguments `*args` and `**kwargs`, default values and multiple arguments with the same name are forbidden. Variables are local unless declared as global or not assigned to. Thymio predefined variables are global everywhere and must not be declared explicitly. In Python, dots are replaced by underscores; e.g. `leds_top` in Python corresponds to `leds.top` in Aseba.
 - Function definitions for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Arguments are not supported; otherwise variables in event handlers behave like in plain function definitions.
 - Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
 - In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
@@ -43,16 +43,16 @@ The transpilation is mostly straightforward. Mixing numeric and boolean expressi
 Blinking top RGB led:
 ```
 on = False
-timer.period[0] = 500
+timer_period[0] = 500
 
 @onevent
 def timer0():
     global on
     on = not on
     if on:
-        leds.top = [32, 32, 0]
+        leds_top = [32, 32, 0]
     else:
-        leds.top = [0, 0, 0]
+        leds_top = [0, 0, 0]
 ```
 
 To transpile this program, assuming it's stored in `examples/blink.py`:
@@ -131,42 +131,42 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | | assigned variables are local by default
 | `emit name` | `emit("name")`
 | `emit name [expr1, expr2, ...]` | `emit("name", expr1, expr2, ...)`
-| `call natfun expr1, expr2, ...` | `nf.natfun(expr1, expr2, ...)` (see below)
+| `call natfun expr1, expr2, ...` | `nf_natfun(expr1, expr2, ...)` (see below)
 | | `natfun(expr1, ...)` in expressions
 
-Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf.` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays, lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result.
+In Python, the names of native functions have underscores instead of dots. Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf_` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays, lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result.
 
 | Aseba | Python
 | --- | ---
-| `call math.copy(R, A)` | `nf.math.copy(R, A)`
-| `call math.fill(R, a)` | `nf.math.fill(R, a)`
-| `call math.addscalar(R, A, b)` | `nf.math.addscalar(R, A, b)`
-| `call math.add(R, A, B)` | `nf.math.add(R, A, B)`
-| `call math.sub(R, A, B)` | `nf.math.sub(R, A, B)`
-| `call math.mul(R, A, B)` | `nf.math.mul(R, A, B)`
-| `call math.div(R, A, B)` | `nf.math.div(R, A, B)`
-| `call math.min(R, A, B)` | `nf.math.min(R, A, B)`
-| `call math.max(R, A, B)` | `nf.math.max(R, A, B)`
-| `call math.clamp(R, A, B, C)` | `nf.math.clamp(R, A, B, C)`
-| `call math.rand(R)` | `nf.math.rand(R)`
-| `call math.sort(P)` | `nf.math.sort(P)`
-| `call math.muldiv(R, A, B, C)` | `nf.math.muldiv(R, A, B, C)`
-| `call math.atan2(R, A, B)` | `nf.math.atan2(R, A, B)`
-| `call math.sin(R, A)` | `nf.math.sin(R, A)`
-| `call math.cos(R, A)` | `nf.math.cos(R, A)`
-| `call math.rot2(R, A, b)` | `nf.math.rot2(R, A, b)`
-| `call math.sqrt(R, A)` | `nf.math.sqrt(R, A)`
+| `call math.copy(R, A)` | `nf_math_copy(R, A)`
+| `call math.fill(R, a)` | `nf_math_fill(R, a)`
+| `call math.addscalar(R, A, b)` | `nf_math_addscalar(R, A, b)`
+| `call math.add(R, A, B)` | `nf_math_add(R, A, B)`
+| `call math.sub(R, A, B)` | `nf_math_sub(R, A, B)`
+| `call math.mul(R, A, B)` | `nf_math_mul(R, A, B)`
+| `call math.div(R, A, B)` | `nf_math_div(R, A, B)`
+| `call math.min(R, A, B)` | `nf_math_min(R, A, B)`
+| `call math.max(R, A, B)` | `nf_math_max(R, A, B)`
+| `call math.clamp(R, A, B, C)` | `nf_math_clamp(R, A, B, C)`
+| `call math.rand(R)` | `nf_math_rand(R)`
+| `call math.sort(P)` | `nf_math_sort(P)`
+| `call math.muldiv(R, A, B, C)` | `nf_math_muldiv(R, A, B, C)`
+| `call math.atan2(R, A, B)` | `nf_math_atan2(R, A, B)`
+| `call math.sin(R, A)` | `nf_math_sin(R, A)`
+| `call math.cos(R, A)` | `nf_math_cos(R, A)`
+| `call math.rot2(R, A, b)` | `nf_math_rot2(R, A, b)`
+| `call math.sqrt(R, A)` | `nf_math_sqrt(R, A)`
 
-A few of them have a name without the `nf.` prefix, scalar arguments and a single scalar result. They can be used in an assignment or in expressions.
+A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in an assignment or in expressions.
 
 | Aseba native function | Python function call
 | --- | ---
-| `math.min` | `math.min(a, b)`
-| `math.max` | `math.max(a, b)`
-| `math.clamp` | `math.clamp(a, b, c)`
-| `math.rand` | `math.rand()`
-| `math.muldiv` | `math.muldiv(a, b, c)`
-| `math.atan2` | `math.atan2(a, b)`
-| `math.sin` | `math.sin(a)`
-| `math.cos` | `math.cos(a)`
-| `math.sqrt` | `math.sqrt(a)`
+| `math.min` | `math_min(a, b)`
+| `math.max` | `math_max(a, b)`
+| `math.clamp` | `math_clamp(a, b, c)`
+| `math.rand` | `math_rand()`
+| `math.muldiv` | `math_muldiv(a, b, c)`
+| `math.atan2` | `math_atan2(a, b)`
+| `math.sin` | `math_sin(a)`
+| `math.cos` | `math_cos(a)`
+| `math.sqrt` | `math_sqrt(a)`
