@@ -268,10 +268,7 @@ class VariableTableWindow(tk.Tk):
             self.program_src = self.text_program.get("1.0", "end")
             if self.language == "py":
                 try:
-                    transpiler = ATranspiler()
-                    transpiler.set_source(self.program_src)
-                    transpiler.transpile()
-                    aseba_src = transpiler.get_output()
+                    aseba_src = ATranspiler.simple_transpile(self.program_src)
                 except Exception as e:
                     self.error_msg = str(e)
                     self.info_error["text"] = self.error_msg

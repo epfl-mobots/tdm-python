@@ -24,6 +24,7 @@ class Table:
     def add_field(self, value):
         self.fields.append(FlatBuffer.encode_value(value))
 
+    @staticmethod
     def create_with_schema(fields, schema):
         if schema[0] != "T":
             raise Exception("unexpected schema for table")
@@ -49,7 +50,7 @@ class Table:
 
         # encode all fields
         for i, field in enumerate(self.fields):
-            if self.default_values is not None and field[0] == selfdefault_values[i]:
+            if self.default_values is not None and field[0] == self.default_values[i]:
                 vtable += FlatBuffer.encode_16(0)
             else:
                 _, encoded_field, is_inline = field
@@ -103,6 +104,7 @@ class Union(Table):
     def __repr__(self):
         return f"Union(type={self.union_type},data={self.union_data})"
 
+    @staticmethod
     def create_with_schema(fields, schema):
         if schema[0] != "U":
             raise Exception("unexpected schema for union")
@@ -138,6 +140,7 @@ class FlatBuffer:
         encoded_root_table = self.root[1]
         return FlatBuffer.encode_32(4) + encoded_root_table
 
+    @staticmethod
     def normalize_schema(schema):
         # discard blanks and c++ comments
         re_comment = re.compile(r"//.*$")
@@ -158,6 +161,7 @@ class FlatBuffer:
             raise Exception("unexpected schema")
         self.root = FlatBuffer.parse_value(encoded_fb, 0, schema)
 
+    @staticmethod
     def schema_item_length(schema, index=0):
         """Find length of schema element at specified index.
         """
@@ -174,6 +178,7 @@ class FlatBuffer:
             return 1 + FlatBuffer.schema_item_length(schema, index + 1)
         raise Exception(f"unexpected schema {schema[index]}")
 
+    @staticmethod
     def schema_item_data_size(schema, index=0):
         """Find data size of item described by schema element at specified index.
         """
@@ -186,9 +191,11 @@ class FlatBuffer:
         else:
             raise Exception(f"unknown data size for schema {schema[index]}")
 
+    @staticmethod
     def is_data_inline(schema, index=0):
         return schema[index] in "i2ubld"
 
+    @staticmethod
     def parse_value(encoded_fb, pos, schema):
         if schema[0] == "i":
             return FlatBuffer.decode_i32(encoded_fb, pos)
@@ -295,6 +302,7 @@ class FlatBuffer:
         else:
             raise Exception(f"unknown schema char {schema[0]}")
 
+    @staticmethod
     def convert_from_native_type(value):
         """Convert native, compact format to FlatBuffer. The following type
         mappings are performed: tuple to Table
@@ -312,6 +320,7 @@ class FlatBuffer:
     def load_from_native_type(self, value):
         self.root = FlatBuffer.convert_from_native_type(value)
 
+    @staticmethod
     def convert_with_schema(value, schema):
         """Convert value with a schema (required for "2", "U", etc.).
         """
@@ -374,41 +383,56 @@ class FlatBuffer:
         schema = FlatBuffer.normalize_schema(schema)
         self.root = FlatBuffer.convert_with_schema(value, schema)
 
+    @staticmethod
     def decode_u16(b, pos):
         return b[pos] | (b[pos + 1] << 8)
 
+    @staticmethod
     def decode_i16(b, pos):
         u16 = FlatBuffer.decode_u16(b, pos)
         return u16 - 0x10000 if u16 & 0x8000 else u16
 
+    @staticmethod
     def decode_u32(b, pos):
         return (b[pos] | (b[pos + 1] << 8)
                 | (b[pos + 2] << 16) | (b[pos + 3] << 24))
 
+    @staticmethod
     def decode_i32(b, pos):
         u32 = FlatBuffer.decode_u32(b, pos)
         return u32 - 0x100000000 if u32 & 0x80000000 else u32
 
+    @staticmethod
     def decode_u64(b, pos):
         return (b[pos] | (b[pos + 1] << 8)
                 | (b[pos + 2] << 16) | (b[pos + 3] << 24)
                 | (b[pos + 4] << 32) | (b[pos + 5] << 40)
                 | (b[pos + 6] << 48) | (b[pos + 7] << 56))
 
+    @staticmethod
     def decode_i64(b, pos):
         u64 = FlatBuffer.decode_u64(b, pos)
         return u64 - 0x10000000000000000 if u64 & 0x8000000000000000 else u64
 
+    @staticmethod
     def encode_16(w16):
-        """Encode a 16-bit word
+        """Encode a 16-bit word.
         """
         return bytes([w16 & 0xff, w16 >> 8 & 0xff])
 
+    @staticmethod
     def encode_32(w32):
-        """Encode a 32-bit word
+        """Encode a 32-bit word.
         """
         return bytes([w32 >> 8 * i & 0xff for i in range(4)])
 
+    @staticmethod
+    def encode_64(w64):
+        """Encode a 64-bit word.
+        """
+        return bytes([w64 >> 8 * i & 0xff for i in range(8)])
+
+    @staticmethod
     def encode_value(value):
         """Encode any supported value to data to be placed either inline in a
         table or struct, or appended after with a reference offset. Pad to
@@ -465,6 +489,7 @@ class FlatBuffer:
                 print("unknown", value)
 
         dump_value(self.root)
+
 
 class FlexBuffer:
 

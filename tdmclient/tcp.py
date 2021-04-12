@@ -158,14 +158,14 @@ class TDMConnection:
         """
         with self.output_lock:
             if self.debug:
-                print(">", msg)
+                print(">", packet)
             try:
                 n = len(packet)
                 blen = bytes([(n >> 8 * i) & 0xff for i in range(4)])
                 self.io.write(blen + packet)
             except Exception as error:
                 self.comm_error = error
-                if self.on_comm_error:
+                if self.on_comm_error is not None:
                     self.on_comm_error("write: " + str(error))
                 raise error
 

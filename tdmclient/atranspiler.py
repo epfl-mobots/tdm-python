@@ -14,22 +14,27 @@ import ast
 
 
 class TranspilerError(Exception):
+    """Error or issue in source code passed to transpiler.
+    """
 
     def __init__(self, message, ast_node=None, syntax_error=None):
+        super().__init__()
         self.message = message
         self.ast_node = ast_node
         self.syntax_error = syntax_error
 
     def __str__(self):
-        s = self.message
+        output = self.message
         if self.ast_node is not None:
-            s += f" (line {self.ast_node.lineno})"
+            output += f" (line {self.ast_node.lineno})"
         elif self.syntax_error is not None:
-            s += f" (line {self.syntax_error.args[1][1]})"
-        return s
+            output += f" (line {self.syntax_error.args[1][1]})"
+        return output
 
 
 class Context:
+    """Global or function context.
+    """
 
     def __init__(self, parent_context=None, function_name=None, function_def=None, is_onevent=False):
         # reference to base context for functions or None for base context itself
@@ -133,11 +138,11 @@ class Context:
             self.tmp_req = total
             self.var["_tmp"] = self.tmp_req
 
-    def request_tmp_expr(self, n=1):
+    def request_tmp_expr(self, count=1):
         """Request temporary variable(s) and return its index.
         """
         tmp_offset = self.tmp_req_current_expr
-        self.tmp_req_current_expr += n
+        self.tmp_req_current_expr += count
         self.request_tmp(self.tmp_req_current_expr)
         return tmp_offset
 
@@ -165,12 +170,12 @@ class Context:
         # return True and exit early if recursive
         def connect(fun_name):
             if fun_name not in connections:
-                c = fun_dict[fun_name].called_functions.copy()
-                for f in fun_dict[fun_name].called_functions:
-                    if f == self.function_name or connect(f):
+                connections_upd = fun_dict[fun_name].called_functions.copy()
+                for fun in fun_dict[fun_name].called_functions:
+                    if fun == self.function_name or connect(f):
                         return True
-                    c |= connections[f]
-                connections[fun_name] = c
+                    connections_upd |= connections[fun]
+                connections[fun_name] = connections_upd
             return False
 
         for fun_name in self.called_functions:
@@ -195,6 +200,8 @@ class PredefinedFunction:
         self.fun = fun
 
     def get_code(self, atranspiler, context, args):
+        """Get the code for the function call.
+        """
         aux_statements = ""
         arg_code = []
         for arg in args:
@@ -258,153 +265,153 @@ class ATranspiler:
             return register
 
         @predefined_function("nf.math.copy", [True, True])
-        def math_copy(context, args):
+        def _math_copy(context, args):
             return None, f"""call math.copy({args[0]}, {args[1]})
 """
 
         @predefined_function("nf.math.fill", [True, False])
-        def math_fill(context, args):
+        def _math_fill(context, args):
             return None, f"""call math.fill({args[0]}, {args[1]})
 """
 
         @predefined_function("nf.math.addscalar", [True, True, False])
-        def math_addscalar(context, args):
+        def _math_addscalar(context, args):
             return None, f"""call math.addscalar({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.add", [True, True, True])
-        def math_add(context, args):
+        def _math_add(context, args):
             return None, f"""call math.add({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.sub", [True, True, True])
-        def math_sub(context, args):
+        def _math_sub(context, args):
             return None, f"""call math.sub({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.mul", [True, True, True])
-        def math_mul(context, args):
+        def _math_mul(context, args):
             return None, f"""call math.mul({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.div", [True, True, True])
-        def math_div(context, args):
+        def _math_div(context, args):
             return None, f"""call math.div({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.min", [True, True, True])
-        def math_min(context, args):
+        def _math_min(context, args):
             return None, f"""call math.min({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("math.min", [False, False], 1)
-        def fun_math_min(context, args):
+        def _fun_math_min(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.min({var_str}, [{args[0]}], [{args[1]}])
 """
 
         @predefined_function("nf.math.max", [True, True, True])
-        def math_max(context, args):
+        def _math_max(context, args):
             return None, f"""call math.max({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("math.max", [False, False], 1)
-        def fun_math_max(context, args):
+        def _fun_math_max(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.max({var_str}, [{args[0]}], [{args[1]}])
 """
 
         @predefined_function("nf.math.clamp", [True, True, True, True])
-        def math_clamp(context, args):
+        def _math_clamp(context, args):
             return None, f"""call math.clamp({args[0]}, {args[1]}, {args[2]}, {args[3]})
 """
 
         @predefined_function("math.clamp", [False, False, False], 1)
-        def fun_math_clamp(context, args):
+        def _fun_math_clamp(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
 """
 
         @predefined_function("nf.math.rand", [True])
-        def math_rand(context, args):
+        def _math_rand(context, args):
             return None, f"""call math.rand({args[0]})
 """
 
         @predefined_function("math.rand", [], 1)
-        def fun_math_rand(context, args):
+        def _fun_math_rand(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.rand({var_str})
 """
 
         @predefined_function("nf.math.sort", [True])
-        def math_sort(context, args):
+        def _math_sort(context, args):
             return None, f"""call math.sort({args[0]})
 """
 
         @predefined_function("nf.math.muldiv", [True, True, True, True])
-        def math_muldiv(context, args):
+        def _math_muldiv(context, args):
             return None, f"""call math.muldiv({args[0]}, {args[1]}, {args[2]}, {args[3]})
 """
 
         @predefined_function("math.muldiv", [False, False, False], 1)
-        def fun_math_muldiv(context, args):
+        def _fun_math_muldiv(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
 """
 
         @predefined_function("nf.math.atan2", [True, True, True])
-        def math_atan2(context, args):
+        def _math_atan2(context, args):
             return None, f"""call math.atan2({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("math.atan2", [False, False], 1)
-        def fun_math_atan2(context, args):
+        def _fun_math_atan2(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.atan2({var_str}, [{args[0]}], [{args[1]}])
 """
 
         @predefined_function("nf.math.sin", [True, True])
-        def math_sin(context, args):
+        def _math_sin(context, args):
             return None, f"""call math.sin({args[0]}, {args[1]})
 """
 
         @predefined_function("math.sin", [False], 1)
-        def fun_math_sin(context, args):
+        def _fun_math_sin(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.sin({var_str}, [{args[0]}])
 """
 
         @predefined_function("nf.math.cos", [True, True])
-        def math_cos(context, args):
+        def _math_cos(context, args):
             return None, f"""call math.cos({args[0]}, {args[1]})
 """
 
         @predefined_function("math.cos", [False], 1)
-        def fun_math_cos(context, args):
+        def _fun_math_cos(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.cos({var_str}, [{args[0]}])
 """
 
         @predefined_function("nf.math.rot2", [True, True, False])
-        def math_rot2(context, args):
+        def _math_rot2(context, args):
             return None, f"""call math.rot2({args[0]}, {args[1]}, {args[2]})
 """
 
         @predefined_function("nf.math.sqrt", [True, True])
-        def math_sqrt(context, args):
+        def _math_sqrt(context, args):
             return None, f"""call math.sqrt({args[0]}, {args[1]})
 """
 
         @predefined_function("math.sqrt", [False], 1)
-        def fun_math_sqrt(context, args):
+        def _fun_math_sqrt(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.sqrt({var_str}, [{args[0]}])
@@ -417,7 +424,8 @@ class ATranspiler:
         self.ast = None
         self.output_src = None
 
-    def decode_attr(self, node):
+    @staticmethod
+    def decode_attr(node):
         """Decode an attribute or name and convert it to a dotted name.
         """
         name = ""
@@ -446,7 +454,7 @@ class ATranspiler:
                     is_onevent = True
                 if node.name in parent_context.functions:
                     raise TranspilerError(f"function {node.name} defined multiple times", ast_node=node)
-                elif len(node.args.args) > 0:
+                if len(node.args.args) > 0:
                     if is_onevent:
                         raise TranspilerError(f"unexpected arguments in @onevent function {node.name}", ast_node=node)
                     if len(node.args.defaults) > 0:
@@ -498,7 +506,6 @@ class ATranspiler:
         if isinstance(node, ast.Num):
             code = f"{node.n:d}"
         elif isinstance(node, ast.BinOp):
-            op = node.op
             op_str, priority = {
                 ast.Add: ("+", self.PRI_ADD),
                 ast.BitAnd: ("&", self.PRI_BINARY_AND),
@@ -510,7 +517,7 @@ class ATranspiler:
                 ast.Mult: ("*", self.PRI_MULT),
                 ast.RShift: (">>", self.PRI_SHIFT),
                 ast.Sub: ("-", self.PRI_ADD),
-            }[type(op)]
+            }[type(node.op)]
             left, aux_st, _ = self.compile_expr(node.left, context, priority)
             aux_statements += aux_st
             right, aux_st, _ = self.compile_expr(node.right, context, priority)
@@ -519,8 +526,7 @@ class ATranspiler:
         elif isinstance(node, ast.BoolOp):
             # with shortcuts, useful e.g. to avoid out-of-bound array indexing
             # result is not pretty b/c of aseba's idea of what's acceptable
-            op = node.op
-            cmp = "!=" if isinstance(op, ast.And) else "=="
+            cmp = "!=" if isinstance(node.op, ast.And) else "=="
             tmp_offset = context.request_tmp_expr()
             for i in range(len(node.values)):
                 value, aux_st, is_value_boolean = self.compile_expr(node.values[i], context, self.PRI_ASSIGN)
@@ -553,7 +559,7 @@ end
                 # set arguments (assign values to function's local variables)
                 if len(node.args) > len(function_def.function_def.args.args):
                     raise TranspilerError(f"too many arguments in call to function {fun_name}", ast_node=node)
-                elif len(node.args) < len(function_def.function_def.args.args):
+                if len(node.args) < len(function_def.function_def.args.args):
                     raise TranspilerError(f"too few arguments in call to function {fun_name}", ast_node=node)
                 for i, arg_def in enumerate(function_def.function_def.args.args):
                     arg = node.args[i]
@@ -574,7 +580,7 @@ end
                     if priority_container != self.PRI_EXPR:
                         raise TranspilerError("function without return value called in an expression", ast_node=node)
                 return code, aux_statements, False
-            elif fun_name in self.predefined_function_dict:
+            if fun_name in self.predefined_function_dict:
                 predefined_function = self.predefined_function_dict[fun_name]
                 if len(node.args) != len(predefined_function.argin):
                     raise TranspilerError(f"wrong number of arguments for function {fun_name}", ast_node=node)
@@ -582,28 +588,26 @@ end
                     raise TranspilerError(f"wrong number of results for function {fun_name}", ast_node=node)
                 values, aux_statements = predefined_function.get_code(self, context, node.args)
                 return values[0], aux_statements, False
-            else:
-                # hard-coded functions
-                if fun_name == "abs":
-                    if len(node.args) != 1:
-                        raise TranspilerError("wrong number of arguments for abs", ast_node=node)
-                    code, aux_st, is_boolean = self.compile_expr(node.args[0], context, self.PRI_COMMA)
-                    aux_statements += aux_st
-                    code = f"abs({code})"
-                    return code, aux_statements, False
-                elif fun_name == "len":
-                    if len(node.args) != 1:
-                        raise TranspilerError("wrong number of arguments for len", ast_node=node)
-                    if isinstance(node.args[0], ast.Name):
-                        len_arg_size = context.var_array_size(node.args[0].id)
-                        code = f"{len_arg_size}" if len_arg_size is not None else "0"
-                    elif isinstance(node.args[0], ast.List):
-                        code = f"{len(node.args[0].elts)}"
-                    else:
-                        raise TranspilerError("type of argument of len is not a list", ast_node=node)
-                    return code, aux_statements, False
+            # hard-coded functions
+            if fun_name == "abs":
+                if len(node.args) != 1:
+                    raise TranspilerError("wrong number of arguments for abs", ast_node=node)
+                code, aux_st, is_boolean = self.compile_expr(node.args[0], context, self.PRI_COMMA)
+                aux_statements += aux_st
+                code = f"abs({code})"
+                return code, aux_statements, False
+            if fun_name == "len":
+                if len(node.args) != 1:
+                    raise TranspilerError("wrong number of arguments for len", ast_node=node)
+                if isinstance(node.args[0], ast.Name):
+                    len_arg_size = context.var_array_size(node.args[0].id)
+                    code = f"{len_arg_size}" if len_arg_size is not None else "0"
+                elif isinstance(node.args[0], ast.List):
+                    code = f"{len(node.args[0].elts)}"
                 else:
-                    raise TranspilerError(f"unknown function {fun_name}", ast_node=node)
+                    raise TranspilerError("type of argument of len is not a list", ast_node=node)
+                return code, aux_statements, False
+            raise TranspilerError(f"unknown function {fun_name}", ast_node=node)
         elif isinstance(node, ast.Compare):
             op_str = {
                 ast.Eq: "==",
@@ -656,7 +660,7 @@ if {context.tmp_var_str(tmp_offset + 1)} {op_str[type(node.ops[i])]} {context.tm
                     aux_statements += """end
 """
                 code = context.tmp_var_str(tmp_offset)
-        elif isinstance(node, ast.Constant) or isinstance(node, ast.NameConstant):
+        elif isinstance(node, (ast.Constant, ast.NameConstant)):
             if node.value is False:
                 code = "0"
             elif node.value is True:
@@ -697,7 +701,7 @@ end
             var_array_size = context.var_array_size(node.id)
             if var_array_size is False:
                 raise TranspilerError(f"unknown variable {node.id}", node)
-            elif type(var_array_size) is int:
+            if isinstance(var_array_size, int):
                 raise TranspilerError(f"list variable {node.id} used in expression", node)
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
@@ -705,7 +709,7 @@ end
             var_array_size = context.var_array_size(name)
             if var_array_size is False:
                 raise TranspilerError(f"unknown variable {name}", node)
-            elif var_array_size is None:
+            if var_array_size is None:
                 raise TranspilerError(f"indexing of variable {name} which is not a list", node)
             index = node.slice.value
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
@@ -760,10 +764,9 @@ else
 end
 """
             return context.tmp_var_str(tmp_offset), aux_statements, False
-        elif priority < priority_container:
+        if priority < priority_container:
             return "(" + code + ")", aux_statements, is_boolean
-        else:
-            return code, aux_statements, is_boolean
+        return code, aux_statements, is_boolean
 
     def decode_target(self, target):
         """Decode an assignment target and return variable name (possibly dotted) and
@@ -776,7 +779,7 @@ end
         name = self.decode_attr(target)
         return name, index
 
-    def compile_node(self, node, context, var0=None):
+    def compile_node(self, node, context):
         """Compile an ast statement node.
         """
         code = ""
@@ -793,7 +796,7 @@ end
                     # var = [...]
                     target_size = len(node.value.elts)
                     context.declare_var(target, target_size, ast_node=node)
-                elif isinstance(node.value, ast.Name) or isinstance(node.value, ast.Attribute):
+                elif isinstance(node.value, (ast.Name, ast.Attribute)):
                     # var1 = var2: inherit size
                     name_right = self.decode_attr(node.value)
                     target_size = context.var_array_size(name_right)
@@ -839,7 +842,7 @@ end
                 code += f"""{target_str} = {value}
 """
             return code
-        elif isinstance(node, ast.AugAssign):
+        if isinstance(node, ast.AugAssign):
             op_str = {
                 ast.Add: "+",
                 ast.BitAnd: "&",
@@ -880,7 +883,7 @@ end
             else:
                 code += f"{target_str} {op_str}= {value}\n"
             return code
-        elif isinstance(node, ast.Expr):
+        if isinstance(node, ast.Expr):
             # plain expression without assignment
             expr = node.value
             # hard-coded ... (ellipsis, alias of None, synonym of pass)
@@ -899,7 +902,7 @@ end
                         raise TranspilerError(f"wrong number of arguments for function {fun_name}", node)
                     _, aux_statements = predefined_function.get_code(self, context, expr.args)
                     return aux_statements
-                elif fun_name == "emit":
+                if fun_name == "emit":
                     # hard-coded emit(name, params...)
                     if (len(expr.args) < 1 or
                         not isinstance(expr.args[0], ast.Constant) or
@@ -921,7 +924,7 @@ end
             value, aux_statements, is_boolean = self.compile_expr(expr, context, self.PRI_EXPR)
             # ignore result
             return aux_statements
-        elif isinstance(node, ast.For):
+        if isinstance(node, ast.For):
             # for var in range(...): ...
             if not isinstance(node.target, ast.Name):
                 raise TranspilerError("for loop with unsupported target (not a plain variable)", node)
@@ -991,11 +994,11 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
                 body = self.compile_node_array(node.orelse, context)
                 code += body
             return code
-        elif isinstance(node, ast.Global):
+        if isinstance(node, ast.Global):
             for name in node.names:
                 context.declare_global(name, node)
             return ""
-        elif isinstance(node, ast.If):
+        if isinstance(node, ast.If):
             test_value, aux_statements, is_boolean = self.compile_expr(node.test, context, self.PRI_LOW)
             code += aux_statements
             code += f"""if {test_value}{"" if is_boolean else " != 0"} then
@@ -1020,9 +1023,9 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             code += """end
 """
             return code
-        elif isinstance(node, ast.Pass):
+        if isinstance(node, ast.Pass):
             return ""
-        elif isinstance(node, ast.Return):
+        if isinstance(node, ast.Return):
             if context.parent_context is None:
                 raise TranspilerError("return outside function", node)
             if context.is_onevent and node.value is not None:
@@ -1042,7 +1045,7 @@ return
                 code += """return
 """
             return code
-        elif isinstance(node, ast.While):
+        if isinstance(node, ast.While):
             test_value, aux_statements, is_boolean = self.compile_expr(node.test, context, self.PRI_LOW)
             code += aux_statements
             code += f"""while {test_value}{"" if is_boolean else " != 0"} do
@@ -1057,16 +1060,16 @@ return
                 body = self.compile_node_array(node.orelse, context)
                 code += body
             return code
-        else:
-            raise TranspilerError(f"node {ast.dump(node)} not implemented", node)
+
+        raise TranspilerError(f"node {ast.dump(node)} not implemented", node)
 
     def compile_node_array(self, node_array, context):
         """Compile an array of ast statement nodes.
         """
-        code = ""
-        for node in node_array:
-            c = self.compile_node(node, context)
-            code += c
+        code = "".join([
+            self.compile_node(node, context)
+            for node in node_array
+        ])
         return code
 
     def transpile(self):
@@ -1091,7 +1094,7 @@ return
         for fun_name in context_top.functions:
             # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
             # function return type isn't known yet (context.has_ret_value = None doesn't raise exceptions)
-            event_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
+            _ = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             # set functions without return statements to void
             context_top.functions[fun_name].freeze_return_type()
             # second pass to produce transpiled code with correct local variable names
@@ -1155,6 +1158,14 @@ return
         """
         return self.pretty_print(self.output_src)
 
+    @staticmethod
+    def simple_transpile(input_src):
+        transpiler = ATranspiler()
+        transpiler.set_source(input_src)
+        transpiler.transpile()
+        output_src = transpiler.get_output()
+        return output_src
+
 
 if __name__ == "__main__":
 
@@ -1165,8 +1176,5 @@ if __name__ == "__main__":
     else:
         src = sys.stdin.read()
 
-    transpiler = ATranspiler()
-    transpiler.set_source(src)
-    transpiler.transpile()
-    output_src = transpiler.get_output()
+    output_src = ATranspiler.simple_transpile(src)
     print(output_src)

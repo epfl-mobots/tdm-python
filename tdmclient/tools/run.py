@@ -105,10 +105,7 @@ if __name__ == "__main__":
 
     if language == "python":
         # transpile from Python to Aseba
-        transpiler = ATranspiler()
-        transpiler.set_source(program)
-        transpiler.transpile()
-        program = transpiler.get_output()
+        program = ATranspiler.simple_transpile(program)
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
 

@@ -101,7 +101,7 @@ class Client(ThymioFB):
                 # localhost by default
                 self.tdm_addr = "127.0.0.1"
             if self.debug >= 1:
-                print(f"TDM {addr}:{port}")
+                print(f"TDM {self.tdm_addr}:{self.tdm_port}")
             self.connect()
             self.send_handshake()
 
