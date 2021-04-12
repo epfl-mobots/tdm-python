@@ -322,11 +322,11 @@ with ClientAsync() as client:
 
 ### Cached variables
 
-tdmclient offers a simpler way, if slightly slower, to obtain and change Thymio variables. The constructor of `ClientAsync` accepts an optional parameter for the class of nodes it creates, and `ClientAsyncCacheNode` extends `Node` to cache the values of variables received from the TDM or set by you before they're sent to the TDM. They're accessible as `node["variable_name"]` or `node.v.variable_name`, both for getting and setting values, also when `variable_name` contains dots. Here is an alternative implementation of the remote control version of the program which makes the robot move backward when an obstacle is detected by the front proximity sensor.
+tdmclient offers a simpler way, if slightly slower, to obtain and change Thymio variables. They're accessible as `node["variable_name"]` or `node.v.variable_name`, both for getting and setting values, also when `variable_name` contains dots. Here is an alternative implementation of the remote control version of the program which makes the robot move backward when an obstacle is detected by the front proximity sensor.
 ```
-from tdmclient import ClientAsync, ClientAsyncCacheNode
+from tdmclient import ClientAsync
 
-with ClientAsync(node_class=ClientAsyncCacheNode) as client:
+with ClientAsync() as client:
     async def prog():
         with await client.lock() as node:
             await node.wait_for_variables({"prox.horizontal"})
@@ -343,10 +343,10 @@ with ClientAsync(node_class=ClientAsyncCacheNode) as client:
 Scalar variables have an `int` value. Array variables are iterable, i.e. they can be used in `for` loops, converted to lists with function `list`, and used by functions such as `max` and `sum`. They can be stored as a whole and retain their link with the robot: getting an element retieves the most current value, and setting an element caches the value so that it will be sent to the robot by the next call to `node.flush()`.
 Here is an interactive session which illustrates what can be done.
 ```
->>> from tdmclient import ClientAsync, ClientAsyncCacheNode
->>> client = ClientAsync(node_class=ClientAsyncCacheNode)
+>>> from tdmclient import ClientAsync
+>>> client = ClientAsync()
 >>> node = client.aw(client.wait_for_node())
->>> client.aw(node.wait_for_variables({"leds.top"}))  # or wait long enough
+>>> client.aw(node.wait_for_variables({"leds.top"}))
 >>> rgb = node.v.leds.top
 >>> rgb
 Node array variable leds.top[3]

@@ -13,6 +13,8 @@ from tdmclient.fb import FlatBuffer, Table, Union
 from tdmclient.zeroconf import TDMZeroconfBrowser
 from tdmclient.tcp import TDMConnection
 from tdmclient.thymio import ThymioFB, Node
-from tdmclient.client import Client, ClientNode
-from tdmclient.clientasync import ClientAsync, ClientAsyncNode
+from tdmclient.client import Client
+from tdmclient.clientasync import ClientAsync
+from tdmclient.clientnode import ClientNode
+from tdmclient.clientasyncnode import ClientAsyncNode
 from tdmclient.clientasynccachenode import ClientAsyncCacheNode

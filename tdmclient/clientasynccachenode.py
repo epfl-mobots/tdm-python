@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from tdmclient import ClientAsync, ClientAsyncNode
+from tdmclient import ClientAsyncNode
 import types
 
 

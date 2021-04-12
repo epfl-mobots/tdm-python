@@ -29,7 +29,7 @@ Here are the implemented features:
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
 - Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
 - Programming constructs `if` `elif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
-- Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected). Variable-length arguments `*args` and `**kwargs`, default values and multiple arguments with the same name are forbidden. Variables are local unless declared as global or not assigned to. Thymio predefined variables are global everywhere and must not be declared explicitly. In Python, dots are replaced by underscores; e.g. `leds_top` in Python corresponds to `leds.top` in Aseba.
+- Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected). Variable-length arguments `*args` and `**kwargs`, default values and multiple arguments with the same name are forbidden. Variables are local unless declared as global or not assigned to. Thymio predefined variables must also be declared explicitly as global when used in functions. In Python, dots are replaced by underscores; e.g. `leds_top` in Python corresponds to `leds.top` in Aseba.
 - Function definitions for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event). Arguments are not supported; otherwise variables in event handlers behave like in plain function definitions.
 - Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
 - In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
@@ -47,7 +47,7 @@ timer_period[0] = 500
 
 @onevent
 def timer0():
-    global on
+    global on, leds_top
     on = not on
     if on:
         leds_top = [32, 32, 0]
