@@ -91,5 +91,10 @@ class ClientAsyncCacheNode(ClientAsyncNode):
         self.var_to_send[var_name] = self.var[var_name]
 
     def flush(self):
+        # send new variable values
         self.send_set_variables(self.var_to_send)
+        # process waiting messages, possibly changing self.var
+        self.thymio.process_waiting_messages()
+        # overwrite variables just sent in case they've been replaced by older values
+        self.var = {**self.var, **self.var_to_send}
         self.var_to_send = {}
