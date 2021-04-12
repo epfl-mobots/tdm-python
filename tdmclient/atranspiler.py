@@ -73,7 +73,7 @@ class Context:
     def is_global(self, name):
         """Check if a variable is global or not.
         """
-        return name not in self.var or name in ATranspiler.PREDEFINED_VARIABLES
+        return name not in self.var
 
     def var_str(self, name):
         """Convert a variable name to its string representation in output
