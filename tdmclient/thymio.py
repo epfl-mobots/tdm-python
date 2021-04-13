@@ -460,6 +460,11 @@ class ThymioFB(Listener):
             )
         ), ThymioFB.SCHEMA)
 
+    def create_msg_request_list_of_nodes(self):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_REQUEST_LIST_OF_NODES,
+        ), ThymioFB.SCHEMA)
+
     def find_node(self, node_id_str):
         for node in self.nodes:
             if node.id_str == node_id_str:

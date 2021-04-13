@@ -95,6 +95,13 @@ class Client(ThymioFB):
             print("send tdm shutdown request")
         self.send_packet(self.create_msg_device_manager_shutdown_request(**kwargs))
 
+    def send_request_list_of_nodes(self):
+        """Send a list of nodes request.
+        """
+        if self.debug >= 1:
+            print("send list of nodes request")
+        self.send_packet(self.create_msg_request_list_of_nodes())
+
     def process_waiting_messages(self):
         at_least_one = False
         if self.tdm:
