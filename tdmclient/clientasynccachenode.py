@@ -46,6 +46,18 @@ class VarPrefix:
         self.node.__setitem__(name, value)
 
 
+class TDMIncompatibleVarSizeError(Exception):
+    """Assignment of value whose size is incompatible with variable.
+    """
+
+    def __init__(self, name, size, value_size):
+        super().__init__()
+        self.message = f"Incompatible size (assignment of a list of size {value_size} to {name}[{size}])"
+
+    def __str__(self):
+        return self.message
+
+
 class ClientAsyncCacheNode(ClientAsyncNode):
 
     def __init__(self, thymio, node_dict):
@@ -69,7 +81,17 @@ class ClientAsyncCacheNode(ClientAsyncNode):
             return ArrayCache(self, key)
 
     def __setitem__(self, key, value):
-        self.var[key] = [value] if isinstance(value, int) else value
+        var_len = len(self.var[key])
+        if isinstance(value, int):
+            # scalar
+            if var_len != 1:
+                raise TDMIncompatibleVarSizeError(key, var_len, 1)
+            self.var[key] = [value]
+        else:
+            # list
+            if var_len != len(value):
+                raise TDMIncompatibleVarSizeError(key, var_len, 1)
+            self.var[key] = value
         self.mark_change(key)
 
     @types.coroutine
