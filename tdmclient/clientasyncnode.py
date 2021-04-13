@@ -19,6 +19,17 @@ class ClientAsyncNode(ClientNode):
         self.watch_flags = 0
 
     @types.coroutine
+    def get_vm_description(self):
+        """Get the VM description.
+        """
+
+        result = yield from self.thymio.send_msg_and_get_result(
+            lambda notify:
+                self.send_request_vm_description(request_id_notify=notify)
+        )
+        return result
+
+    @types.coroutine
     def lock_node(self):
         """Lock the node and return the error code (None for success).
         """

@@ -64,6 +64,7 @@ class Node(Listener):
 
         self.thymio = thymio
         self.set_properties(properties)
+        self.vm_description = None
 
     def set_properties(self, properties):
         self.props = properties
@@ -73,6 +74,18 @@ class Node(Listener):
 
     def __repr__(self):
         return f"Node {self.id_str}"
+
+    def create_msg_request_vm_description(self, **kwargs):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_REQUEST_NODE_ASEBA_VM_DESCRIPTION,
+            (
+                self.thymio.next_request_id(**kwargs),
+                (
+                    self.id,
+                ),
+            ),
+
+        ), ThymioFB.SCHEMA)
 
     def create_msg_lock_node(self, **kwargs):
         return ThymioFB.create_message((
@@ -519,6 +532,43 @@ class ThymioFB(Listener):
                     if self.debug >= 1:
                         print("NodesChanged",
                               ", ".join(f"{node.id_str}: status={node.status}" for node in self.nodes))
+            elif fb.root.union_type == self.MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION:
+                request_id = field_val(fb.root.union_data[0].fields[0], 0)
+                vm_descr = fb.root.union_data[0]
+                node_id_str = bytes_to_hexa(vm_descr.fields[1])
+                node = self.find_node(node_id_str)
+                vm_description = {
+                    "node_id":
+                        None if vm_descr.fields[1] is None
+                        else vm_descr.fields[1][0].fields[0][0] if type(vm_descr.fields[1][0].fields[0][0]) is bytes
+                        else b"".join(vm_descr.fields[1][0].fields[0][0]),
+                    "node_id_str": node_id_str,
+                    "bytecode_size": field_val(vm_descr.fields[2], None),
+                    "data_size": field_val(vm_descr.fields[3], None),
+                    "stack_size": field_val(vm_descr.fields[4], None),
+                    "variables": {
+                        field_val(var_descr.fields[1], ""):
+                            (lambda s: None if s == 1 else s)(field_val(var_descr.fields[2], None))
+                        for var_descr in vm_descr.fields[5][0]
+                    },
+                    "events": [
+                        field_val(event_descr.fields[1], "")
+                        for event_descr in vm_descr.fields[6][0]
+                    ],
+                    "functions": {
+                        field_val(fun_descr.fields[1], ""): [
+                            field_val(param.fields[1], None)
+                            for param in fun_descr.fields[3][0]
+                        ]
+                        for fun_descr in vm_descr.fields[7][0]
+                    },
+                }
+                if node is not None:
+                    node.vm_description = vm_description
+                if request_id in self.request_id_notify_dict:
+                    self.request_id_notify_dict[request_id](vm_description)
+                elif self.debug >= 1:
+                    print(f"vm description request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_REQUEST_COMPLETED:
                 request_id = field_val(fb.root.union_data[0].fields[0], 0)
                 if request_id in self.request_id_notify_dict:

@@ -14,6 +14,11 @@ class ClientNode(Node):
 
         super(ClientNode, self).__init__(thymio, node_dict)
 
+    def send_request_vm_description(self, **kwargs):
+        if self.thymio.debug >= 1:
+            print(f"send request vm description {self.id_str}")
+        self.thymio.send_packet(self.create_msg_request_vm_description(**kwargs))
+
     def send_lock_node(self, **kwargs):
         if self.thymio.debug >= 1:
             print(f"send lock node {self.id_str}")
