@@ -73,13 +73,20 @@ class ClientAsyncCacheNode(ClientAsyncNode):
         self.mark_change(key)
 
     @types.coroutine
-    def wait_for_variables(self, var_set):
-        """Wait until the specified variables have been received.
+    def wait_for_variables(self, var_set=None):
+        """Wait until the specified variables, or all of them, have been received.
         """
 
         # make sure variables are watched
         if not (self.watch_flags & self.thymio.WATCHABLE_INFO_VARIABLES):
             yield from self.watch(variables=True)
+
+        if var_set is None:
+            # variables in vm description
+            if self.vm_description is None:
+                # not retrieved yet
+                yield from self.get_vm_description()
+            var_set = set(self.vm_description["variables"].keys())
 
         while not set(self.var).issuperset(var_set):
             if not self.thymio.process_waiting_messages():
