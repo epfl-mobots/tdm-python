@@ -52,7 +52,11 @@ class TDMConsole(code.InteractiveConsole):
 
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    do_target(target)
+                    if isinstance(target, ast.Tuple):
+                        for elt in target.elts:
+                            do_target(elt)
+                    else:
+                        do_target(target)
                 do_node(node.value)
             elif isinstance(node, ast.AugAssign):
                 do_target(node.target)
@@ -74,9 +78,17 @@ class TDMConsole(code.InteractiveConsole):
             elif isinstance(node, ast.Compare):
                 do_node(node.left)
                 do_nodes(node.comparators)
+            elif isinstance(node, ast.comprehension):
+                do_target(node.target)
+                do_nodes(node.iter)
+                do_nodes(node.ifs)
             elif isinstance(node, ast.Dict):
                 do_nodes(node.keys)
                 do_nodes(node.values)
+            elif isinstance(node, ast.DictComp):
+                do_node(node.key)
+                do_node(node.value)
+                do_nodes(node.generators)
             elif isinstance(node, ast.ExceptHandler):
                 do_nodes(node.body)
             elif isinstance(node, ast.Expr):
@@ -88,6 +100,9 @@ class TDMConsole(code.InteractiveConsole):
                 do_nodes(node.orelse)
             elif isinstance(node, ast.FormattedValue):
                 do_node(node.value)
+            elif isinstance(node, ast.GeneratorExp):
+                do_node(node.elt)
+                do_nodes(node.generators)
             elif isinstance(node, ast.Global):
                 globals |= {
                     name
@@ -107,6 +122,9 @@ class TDMConsole(code.InteractiveConsole):
                 do_nodes(node.values)
             elif isinstance(node, ast.List):
                 do_nodes(node.elts)
+            elif isinstance(node, ast.ListComp):
+                do_node(node.elt)
+                do_nodes(node.generators)
             elif isinstance(node, ast.Name):
                 if node.id in globals:
                     var_got.add(node.id)
@@ -114,6 +132,9 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.value)
             elif isinstance(node, ast.Set):
                 do_nodes(node.elts)
+            elif isinstance(node, ast.SetComp):
+                do_node(node.elt)
+                do_nodes(node.generators)
             elif isinstance(node, ast.Slice):
                 do_node(node.lower)
                 do_node(node.upper)
@@ -138,7 +159,7 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.value)
             elif isinstance(node, ast.YieldFrom):
                 do_node(node.value)
-            elif isinstance(node, (ast.AsyncFunctionDef, ast.ClassDef, ast.Constant, ast.FunctionDef, ast.Import, ast.Pass)):
+            elif isinstance(node, (ast.AsyncFunctionDef, ast.Attribute, ast.ClassDef, ast.Constant, ast.FunctionDef, ast.Import, ast.Pass)):
                 pass
             elif node is not None:
                 print("Unchecked", ast.dump(node))
@@ -310,7 +331,7 @@ Robot ID: {node.props["node_id_str"]}
                     send_variable=send_variable,
                     flush_variables=flush_variables,
                     functions={
-                        "sleep": sleep
+                        "sleep": sleep,
                     }
                 )
 
