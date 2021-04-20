@@ -37,6 +37,10 @@ class TDMConsole(code.InteractiveConsole):
         self.functions = {}
         self.sync_var = sync_var
 
+        # for generating source code for robot
+        self.robot_var_set = set()
+        self.onevent_functions = set()
+
         # for current command
         self.var_got = set()
         self.var_set = set()
@@ -46,6 +50,7 @@ class TDMConsole(code.InteractiveConsole):
             globals = self.sync_var.copy()
         var_got = set()
         var_set = set()
+        fun_called = set()
 
         def do_node(node):
             nonlocal globals, var_got, var_set
@@ -71,6 +76,7 @@ class TDMConsole(code.InteractiveConsole):
                 ast.dump(node)
                 if isinstance(node.func, ast.Name):
                     fun_name = node.func.id
+                    fun_called.add(fun_name)
                     if fun_name in self.functions:
                         # call to a user-defined function
                         var_got |= self.functions[fun_name]["in"]
@@ -159,7 +165,7 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.value)
             elif isinstance(node, ast.YieldFrom):
                 do_node(node.value)
-            elif isinstance(node, (ast.AsyncFunctionDef, ast.Attribute, ast.ClassDef, ast.Constant, ast.FunctionDef, ast.Import, ast.Pass)):
+            elif isinstance(node, (ast.AsyncFunctionDef, ast.Attribute, ast.ClassDef, ast.Constant, ast.Delete, ast.FunctionDef, ast.Import, ast.Pass)):
                 pass
             elif node is not None:
                 print("Unchecked", ast.dump(node))
@@ -180,7 +186,7 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(target.slice)
 
         do_nodes(nodes)
-        return var_got, var_set
+        return var_got, var_set, fun_called
 
     def push(self, line):
         src = "\n".join([*self.buffer, line])
@@ -189,7 +195,7 @@ class TDMConsole(code.InteractiveConsole):
         self.var_set = set()
         try:
             tree = ast.parse(src)
-            self.var_got, self.var_set = self.find_global_var(tree.body)
+            self.var_got, self.var_set, _ = self.find_global_var(tree.body)
             self.var_got &= self.sync_var
             self.var_set &= self.sync_var
             if self.fetch_variable is not None:
@@ -225,15 +231,24 @@ class TDMConsole(code.InteractiveConsole):
             try:
                 if (tree is not None and
                     tree.body is not None and
-                    len(tree.body) > 0 and
-                    isinstance(tree.body[0], ast.FunctionDef)):
-                    var_got, var_set = self.find_global_var(tree.body[0].body,
-                                                            globals=set())
-                    self.functions[tree.body[0].name] = {
-                        "src": src,
-                        "in": var_got,
-                        "out": var_set,
-                    }
+                    len(tree.body) > 0):
+                    if isinstance(tree.body[0], ast.FunctionDef):
+                        # keep function source code
+                        var_got, var_set, fun_called = self.find_global_var(tree.body[0].body,
+                                                                            globals=set())
+                        self.functions[tree.body[0].name] = {
+                            "src": src,
+                            "in": var_got,
+                            "out": var_set,
+                            "calls": fun_called,
+                        }
+                    elif isinstance(tree.body[0], ast.Delete):
+                        # discard function source code
+                        for target in tree.body[0].targets:
+                            if isinstance(target, ast.Name) and target.id in self.functions:
+                                del self.functions[target.id]
+                            if target.id in self.onevent_functions:
+                                self.onevent_functions.remove(target.id)
             except Exception as e:
                 print(e)
                 pass
@@ -307,10 +322,17 @@ Robot ID: {node.props["node_id_str"]}
                     return value
 
                 def send_variable(name, value):
-                    node[from_python_name(name)] = value
+                    a_name = from_python_name(name)
+                    interactive_console.robot_var_set.add(a_name)
+                    node[a_name] = value
 
                 def flush_variables():
                     node.flush()
+
+                def onevent(fun):
+                    # function decorator @onevent
+                    interactive_console.onevent_functions.add(fun.__name__)
+                    return fun
 
                 def sleep(t):
                     # send and flush all variables which might have been changed
@@ -326,12 +348,62 @@ Robot ID: {node.props["node_id_str"]}
                     for name in interactive_console.var_got:
                         interactive_console.local_var[name] = fetch_variable(name)
 
+                def robot_code():
+                    # gather source code for Thymio
+                    src = ""
+
+                    # robot variables
+                    for name in interactive_console.robot_var_set:
+                        src += f"""{to_python_name(name)} = {fetch_variable(name)}
+"""
+
+                    # onevent
+                    functions_called = set()
+                    for name in interactive_console.onevent_functions:
+                        src += interactive_console.functions[name]["src"]
+                        functions_called |= interactive_console.functions[name]["calls"]
+
+                    # functions called from onevent
+                    functions_added = interactive_console.onevent_functions
+                    while True:
+                        functions_remaining = functions_called.difference(functions_added)
+                        if len(functions_remaining) == 0:
+                            break
+                        name = list(functions_remaining)[0]
+                        src += interactive_console.functions[name]["src"]
+                        functions_added.add(name)
+                        functions_called |= interactive_console.functions[name]["calls"]
+
+                    return src
+
+                def run():
+                    # gather Python source code for Thymio
+                    src_py = robot_code()
+                    # transpile from Python to Aseba
+                    src_a = ATranspiler.simple_transpile(src_py)
+                    # compile, load and run
+                    error = ClientAsync.aw(node.compile(src_a))
+                    if error is not None:
+                        raise Exception(error["error_msg"])
+                    error = ClientAsync.aw(node.run())
+                    if error is not None:
+                        raise Exception(f"Error {error['error_code']}")
+
+                def stop():
+                    error = ClientAsync.aw(node.stop())
+                    if error is not None:
+                        raise Exception(f"Error {error['error_code']}")
+
                 interactive_console = TDMConsole(
                     fetch_variable=fetch_variable,
                     send_variable=send_variable,
                     flush_variables=flush_variables,
                     functions={
+                        "onevent": onevent,
                         "sleep": sleep,
+                        "robot_code": robot_code,
+                        "run": run,
+                        "stop": stop,
                     }
                 )
 
