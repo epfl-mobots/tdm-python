@@ -64,7 +64,7 @@ class ClientAsyncNode(ClientNode):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.send_unlock_node()
+        self.send_unlock_node(ignore_disconnected_error=True)
 
     @types.coroutine
     def rename(self, name):

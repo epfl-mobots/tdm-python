@@ -24,10 +24,11 @@ class ClientNode(Node):
             print(f"send lock node {self.id_str}")
         self.thymio.send_packet(self.create_msg_lock_node(**kwargs))
 
-    def send_unlock_node(self, **kwargs):
+    def send_unlock_node(self, ignore_disconnected_error=False, **kwargs):
         if self.thymio.debug >= 1:
             print(f"send unlock node {self.id_str}")
-        self.thymio.send_packet(self.create_msg_unlock_node(**kwargs))
+        self.thymio.send_packet(self.create_msg_unlock_node(**kwargs),
+                                ignore_disconnected_error=ignore_disconnected_error)
 
     def send_rename_node(self, name, **kwargs):
         if self.thymio.debug >= 1:

@@ -8,6 +8,12 @@
 from tdmclient import TDMZeroconfBrowser, TDMConnection, FlatBuffer, ThymioFB
 
 
+class DisconnectedError(Exception):
+
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
 class Client(ThymioFB):
 
     def __init__(self, tdm_addr=None, tdm_port=None, **kwargs):
@@ -69,14 +75,24 @@ class Client(ThymioFB):
     def create_node(self, node_dict):
         return ClientNode(self, node_dict)
 
-    def send_packet(self, b):
+    def send_packet(self, b, ignore_disconnected_error=False):
         if self.debug >= 2:
             # check decoding
             fb2 = FlatBuffer()
             fb2.parse(b, self.SCHEMA)
             fb2.dump()
 
-        self.tdm.send_packet(b)
+        if self.tdm is None:
+            if ignore_disconnected_error:
+                return
+            else:
+                raise DisconnectedError("TDM disconnected")
+
+        try:
+            self.tdm.send_packet(b)
+        except SyntaxError as error:
+            if not ignore_disconnected_error:
+                raise error
 
     def send_message(self, msg, schema=None):
         encoded_fb = self.create_message(msg, schema)
