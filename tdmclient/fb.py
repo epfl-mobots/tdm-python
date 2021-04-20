@@ -141,6 +141,10 @@ class FlatBuffer:
         return FlatBuffer.encode_32(4) + encoded_root_table
 
     @staticmethod
+    def field_val(f, default):
+        return f[0] if f is not None else default
+
+    @staticmethod
     def normalize_schema(schema):
         # discard blanks and c++ comments
         re_comment = re.compile(r"//.*$")

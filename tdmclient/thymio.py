@@ -485,9 +485,6 @@ class ThymioFB(Listener):
 
     def process_message(self, msg):
 
-        def field_val(f, default):
-            return f[0] if f is not None else default
-
         def bytes_to_id_str(f):
             if f is None:
                 return None
@@ -504,8 +501,8 @@ class ThymioFB(Listener):
             if fb.root.union_type == self.MESSAGE_TYPE_PING:
                 pass
             elif fb.root.union_type == self.MESSAGE_TYPE_CONNECTION_HANDSHAKE:
-                self.protocol_version = field_val(fb.root.union_data[0].fields[1], 1)
-                self.localhost_peer = field_val(fb.root.union_data[0].fields[4], False)
+                self.protocol_version = FlatBuffer.field_val(fb.root.union_data[0].fields[1], 1)
+                self.localhost_peer = FlatBuffer.field_val(fb.root.union_data[0].fields[4], False)
             elif fb.root.union_type == self.MESSAGE_TYPE_NODES_CHANGED:
                 if fb.root.union_data[0] is not None:
                     nodes = fb.root.union_data[0].fields[0][0]
@@ -517,12 +514,12 @@ class ThymioFB(Listener):
                                 else node.fields[0][0].fields[0][0] if type(node.fields[0][0].fields[0][0]) is bytes
                                 else b"".join(node.fields[0][0].fields[0][0]),
                             "node_id_str": bytes_to_id_str(node.fields[0]),
-                            "group_id": field_val(node.fields[1], None),
-                            "status": field_val(node.fields[2], -1),
-                            "type": field_val(node.fields[3], -1),
-                            "name": field_val(node.fields[4], ""),
-                            "capabilities": field_val(node.fields[5], 0),
-                            "fw_version": field_val(node.fields[6], None),
+                            "group_id": FlatBuffer.field_val(node.fields[1], None),
+                            "status": FlatBuffer.field_val(node.fields[2], -1),
+                            "type": FlatBuffer.field_val(node.fields[3], -1),
+                            "name": FlatBuffer.field_val(node.fields[4], ""),
+                            "capabilities": FlatBuffer.field_val(node.fields[5], 0),
+                            "fw_version": FlatBuffer.field_val(node.fields[6], None),
                         }
                         existing_node = self.find_node(node_id_str)
                         if existing_node is not None:
@@ -535,7 +532,7 @@ class ThymioFB(Listener):
                         print("NodesChanged",
                               ", ".join(f"{node.id_str}: status={node.status}" for node in self.nodes))
             elif fb.root.union_type == self.MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 vm_descr = fb.root.union_data[0]
                 node_id_str = bytes_to_id_str(vm_descr.fields[1])
                 node = self.find_node(node_id_str)
@@ -545,21 +542,21 @@ class ThymioFB(Listener):
                         else vm_descr.fields[1][0].fields[0][0] if type(vm_descr.fields[1][0].fields[0][0]) is bytes
                         else b"".join(vm_descr.fields[1][0].fields[0][0]),
                     "node_id_str": node_id_str,
-                    "bytecode_size": field_val(vm_descr.fields[2], None),
-                    "data_size": field_val(vm_descr.fields[3], None),
-                    "stack_size": field_val(vm_descr.fields[4], None),
+                    "bytecode_size": FlatBuffer.field_val(vm_descr.fields[2], None),
+                    "data_size": FlatBuffer.field_val(vm_descr.fields[3], None),
+                    "stack_size": FlatBuffer.field_val(vm_descr.fields[4], None),
                     "variables": {
-                        field_val(var_descr.fields[1], ""):
-                            (lambda s: None if s == 1 else s)(field_val(var_descr.fields[2], None))
+                        FlatBuffer.field_val(var_descr.fields[1], ""):
+                            (lambda s: None if s == 1 else s)(FlatBuffer.field_val(var_descr.fields[2], None))
                         for var_descr in vm_descr.fields[5][0]
                     },
                     "events": [
-                        field_val(event_descr.fields[1], "")
+                        FlatBuffer.field_val(event_descr.fields[1], "")
                         for event_descr in vm_descr.fields[6][0]
                     ],
                     "functions": {
-                        field_val(fun_descr.fields[1], ""): [
-                            field_val(param.fields[1], None)
+                        FlatBuffer.field_val(fun_descr.fields[1], ""): [
+                            FlatBuffer.field_val(param.fields[1], None)
                             for param in fun_descr.fields[3][0]
                         ]
                         for fun_descr in vm_descr.fields[7][0]
@@ -572,7 +569,7 @@ class ThymioFB(Listener):
                 elif self.debug >= 1:
                     print(f"vm description request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_REQUEST_COMPLETED:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
@@ -581,8 +578,8 @@ class ThymioFB(Listener):
                 elif self.debug >= 1:
                     print(f"ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_ERROR:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
-                error_code = field_val(fb.root.union_data[0].fields[1], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
+                error_code = FlatBuffer.field_val(fb.root.union_data[0].fields[1], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id]({"error_code": error_code})
                     del self.request_id_notify_dict[request_id]
@@ -591,10 +588,10 @@ class ThymioFB(Listener):
                 elif self.debug >= 1:
                     print(f"error {error_code} request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_FAILURE:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
-                error_msg = field_val(fb.root.union_data[0].fields[1], "")
-                error_line = field_val(fb.root.union_data[0].fields[3], 0)
-                error_col = field_val(fb.root.union_data[0].fields[4], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
+                error_msg = FlatBuffer.field_val(fb.root.union_data[0].fields[1], "")
+                error_line = FlatBuffer.field_val(fb.root.union_data[0].fields[3], 0)
+                error_col = FlatBuffer.field_val(fb.root.union_data[0].fields[4], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id]({
                         "error_msg": error_msg,
@@ -607,7 +604,7 @@ class ThymioFB(Listener):
                 elif self.debug >= 1:
                     print(f"compilation error: {error_msg} request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_COMPILATION_RESULT_SUCCESS:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 if request_id in self.request_id_notify_dict:
                     self.request_id_notify_dict[request_id](None)
                     del self.request_id_notify_dict[request_id]
@@ -633,11 +630,11 @@ class ThymioFB(Listener):
                 node_or_group_id = bytes_to_id_str(fb.root.union_data[0].fields[0])
                 if fb.root.union_data[0].fields[1] is not None:
                     event_size = {
-                        e.fields[0][0]: field_val(e.fields[1], 0)
+                        e.fields[0][0]: FlatBuffer.field_val(e.fields[1], 0)
                         for e in fb.root.union_data[0].fields[1][0]
                     }
                     event_index = {
-                        e.fields[0][0]: field_val(e.fields[2], 0)
+                        e.fields[0][0]: FlatBuffer.field_val(e.fields[2], 0)
                         for e in fb.root.union_data[0].fields[1][0]
                     }
                 else:
@@ -666,21 +663,21 @@ class ThymioFB(Listener):
                                   events[name] if events[name] is not None else "")
             elif fb.root.union_type == self.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED:
                 node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[0])
-                state = field_val(fb.root.union_data[0].fields[1], 0)
-                line = field_val(fb.root.union_data[0].fields[2], 0)
-                error = field_val(fb.root.union_data[0].fields[3], 0)
-                error_msg = field_val(fb.root.union_data[0].fields[4], "")
+                state = FlatBuffer.field_val(fb.root.union_data[0].fields[1], 0)
+                line = FlatBuffer.field_val(fb.root.union_data[0].fields[2], 0)
+                error = FlatBuffer.field_val(fb.root.union_data[0].fields[3], 0)
+                error_msg = FlatBuffer.field_val(fb.root.union_data[0].fields[4], "")
                 if self.debug >= 1:
                     print(f"execution state of node {node_id_str} changed to {state}, line={line}, error={error} {error_msg}")
             elif fb.root.union_type == self.MESSAGE_TYPE_SCRATCHPAD_UPDATE:
-                request_id = field_val(fb.root.union_data[0].fields[0], 0)
+                request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 scratchpad_id_str = bytes_to_id_str(fb.root.union_data[0].fields[1])
                 group_id_str = bytes_to_id_str(fb.root.union_data[0].fields[2])
                 node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[3])
-                language = field_val(fb.root.union_data[0].fields[4], self.PROGRAMMING_LANGUAGE_ASEBA)
-                text = field_val(fb.root.union_data[0].fields[5], "")
-                name = field_val(fb.root.union_data[0].fields[6], "")
-                deleted = field_val(fb.root.union_data[0].fields[7], False)
+                language = FlatBuffer.field_val(fb.root.union_data[0].fields[4], self.PROGRAMMING_LANGUAGE_ASEBA)
+                text = FlatBuffer.field_val(fb.root.union_data[0].fields[5], "")
+                name = FlatBuffer.field_val(fb.root.union_data[0].fields[6], "")
+                deleted = FlatBuffer.field_val(fb.root.union_data[0].fields[7], False)
                 if self.debug >= 1:
                     print(f"scratchpad {scratchpad_id_str} of node {node_id_str} / group {group_id_str} updated")
                     print(text)
