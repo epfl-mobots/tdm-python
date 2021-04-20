@@ -67,9 +67,9 @@ This section will describe only the use of `ClientAsync`, the highest-level way 
 
 First we'll type commands interactively by starting Python&nbsp;3 without argument. To start Python&nbsp;3, open a terminal window (Windows Terminal or Command Prompt in Windows, Terminal in macOS or Linux) and type `python3`. TDM replies should arrive quicker than typing at the keyboard. Next section shows how to interact with the TDM from a program where you wait for replies and use them immediately to run as fast as possible.
 
-Start Python&nbsp;3, then import the required class:
+Start Python&nbsp;3, then import the required class. We also import the helper function `aw`, an alias of the static method `ClientAsync.aw` which is useful when typing commands interactively.
 ```
-from tdmclient import ClientAsync
+from tdmclient import ClientAsync, aw
 ```
 
 Create a client object:
@@ -94,9 +94,9 @@ The client will connect to the TDM which will send messages to us, such as one t
     ```
     node = client.nodes[0]
     ```
-- Call an asynchronous function in such a way that its result is waited for. This can be done in a coroutine, a special function which is executed at the same time as other tasks your program must perform, with the `await` Python keyword; or handled by the helper function `ClientAsync.aw`. Keyword `await` is valid only in a function, hence we cannot call it directly from the Python prompt. In this section, we'll use `ClientAsync.aw`. Robots are associated to nodes. To get the first node once it's available (i.e. an object which refers to the first or only robot after having received and processed enough messages from the TDM to have this information), type
+- Call an asynchronous function in such a way that its result is waited for. This can be done in a coroutine, a special function which is executed at the same time as other tasks your program must perform, with the `await` Python keyword; or handled by the helper function `aw`. Keyword `await` is valid only in a function, hence we cannot call it directly from the Python prompt. In this section, we'll use `aw`. Robots are associated to nodes. To get the first node once it's available (i.e. an object which refers to the first or only robot after having received and processed enough messages from the TDM to have this information), type
     ```
-    node = ClientAsync.aw(client.wait_for_node())
+    node = aw(client.wait_for_node())
     ```
     Avoiding calling yourself `process_waiting_messages()` is safer, because other methods like `wait_for_node()` make sure to wait until the expected reply has been received from the TDM.
 
@@ -116,12 +116,12 @@ node_id_str = node.id_str
 
 The node properties are stored as a dict in `node.props`. For example `node.props["name"]` is the robot's name, which you can change:
 ```
-ClientAsync.aw(node.rename("my white Thymio"))
+aw(node.rename("my white Thymio"))
 ```
 
 Lock the robot to change variables or run programs (make sure it isn't already used in Thymio Suite):
 ```
-ClientAsync.aw(node.lock())
+aw(node.lock())
 ```
 
 Compile and load an Aseba program:
@@ -134,24 +134,24 @@ onevent timer0
     on = 1 - on  # "on = not on" with a syntax Aseba accepts
     leds.top = [32 * on, 32 * on, 0]
 """
-r = ClientAsync.aw(node.compile(program))
+r = aw(node.compile(program))
 ```
 
 The result `r` is None if the call is successful, or an error number if it has failed. In interactive mode, we won't store anymore the result code if we don't expect and check errors anyway. But it's usually a good thing to be more careful in programs.
 
 No need to store the actual source code for other clients, or anything at all.
 ```
-ClientAsync.aw(node.set_scratchpad("Hello, Studio!"))
+aw(node.set_scratchpad("Hello, Studio!"))
 ```
 
 Run the program compiled by `compile`:
 ```
-ClientAsync.aw(node.run())
+aw(node.run())
 ```
 
 Stop it:
 ```
-ClientAsync.aw(node.stop())
+aw(node.stop())
 ```
 
 Make the robot move forward by setting both variables `motor.left.target` and `motor.right.target`:
@@ -160,7 +160,7 @@ v = {
     "motor.left.target": [50],
     "motor.right.target": [50],
 }
-ClientAsync.aw(node.set_variables(v))
+aw(node.set_variables(v))
 ```
 
 Make the robot stop:
@@ -169,20 +169,20 @@ v = {
     "motor.left.target": [0],
     "motor.right.target": [0],
 }
-ClientAsync.aw(node.set_variables(v))
+aw(node.set_variables(v))
 ```
 
 Unlock the robot:
 ```
-ClientAsync.aw(node.unlock())
+aw(node.unlock())
 ```
 
 Getting variable values is done by observing changes, which requires a function; likewise to receive events. This is easier to do in a Python program file. We'll do it in the next section.
 
 Here is how to send custom events from Python to the robot. The robot must run a program which defines an `onevent` event handler; but in order to accept a custom event name, we have to declare it first to the TDM, outside the program. We'll define an event to send two values for the speed of the wheels, `"speed"`. Method `node.register_events` has one argument, an array of tuples where each tuple contains the event name and the size of its data between 0 for none and a maximum of 32. The robot must be locked if it isn't already to accept `register_events`, `compile`, `run`, and `send_events`.
 ```
-ClientAsync.aw(node.lock())
-ClientAsync.aw(node.register_events([("speed", 2)]))
+aw(node.lock())
+aw(node.register_events([("speed", 2)]))
 ```
 
 Then we can send and run the program. The event data are obtained from variable `event.args`; in our case only the first two elements are used.
@@ -192,23 +192,23 @@ onevent speed
     motor.left.target = event.args[0]
     motor.right.target = event.args[1]
 """
-ClientAsync.aw(node.compile(program))
-ClientAsync.aw(node.run())
+aw(node.compile(program))
+aw(node.run())
 ```
 
 Finally, the Python program can send events. Method `node.send_events` has one argument, a dict where keys correspond to event names and values to event data.
 ```
 # turn right
-ClientAsync.aw(node.send_events({"speed": [40, 20]}))
+aw(node.send_events({"speed": [40, 20]}))
 # wait 1 second, or wait yourself before typing the next command
-ClientAsync.aw(client.sleep(1))
+aw(client.sleep(1))
 # stop the robot
-ClientAsync.aw(node.send_events({"speed": [0, 0]}))
+aw(node.send_events({"speed": [0, 0]}))
 ```
 
 ### Python program
 
-In a program, instead of executing asynchronous methods synchronously with `ClientAsync.aw`, we put them in an `async` function and we `await` for their result. The whole async function is executed with method `run_async_program`.
+In a program, instead of executing asynchronous methods synchronously with `aw` or `ClientAsync.aw`, we put them in an `async` function and we `await` for their result. The whole async function is executed with method `run_async_program`.
 
 Moving forward, waiting for 2 seconds and stopping could be done with the following code. You can store it in a .py file or paste it directly into an interactive Python&nbsp;3 session, as you prefer; but make sure you don't keep the robot locked, you wouldn't be able to lock it a second time. Quitting and restarting Python is a sure way to start from a clean state.
 ```
