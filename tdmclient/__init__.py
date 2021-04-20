@@ -18,3 +18,4 @@ from tdmclient.clientasync import ClientAsync
 from tdmclient.clientnode import ClientNode
 from tdmclient.clientasyncnode import ClientAsyncNode
 from tdmclient.clientasynccachenode import ClientAsyncCacheNode, ArrayCache
+from tdmclient.server import Server
