@@ -621,7 +621,8 @@ class ThymioFB(Listener):
                     for v in fb.root.union_data[0].fields[1][0]
                 }
                 self.notify_variables_changed(node, variables)
-                node.notify_variables_changed(node, variables)
+                if node is not None:
+                    node.notify_variables_changed(node, variables)
                 if self.debug >= 1:
                     print(f"variables of node {node_id_str} changed")
                     if self.debug >= 2:
