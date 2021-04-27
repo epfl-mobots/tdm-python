@@ -85,7 +85,7 @@ client.tdm_addr
 client.tdm_port
 ```
 
-The client will connect to the TDM which will send messages to us, such as one to announce the existence of a robot. There are two ways to accept and process them:
+The client will connect to the TDM which will send messages to us, such as one to announce the existence of a robot. There are two ways to receive and process them:
 - Call explicitly
     ```
     client.process_waiting_messages()
@@ -300,17 +300,14 @@ thymio_program_python = r"""
 @onevent
 def prox():
     global prox_horizontal, motor_left_target, motor_right_target
-    prox_front = prox.horizontal[2]
+    prox_front = prox_horizontal[2]
     speed = -prox_front // 10
     motor_left_target = speed
     motor_right_target = speed
 """
 
 # convert program from Python to Aseba
-transpiler = ATranspiler()
-transpiler.set_source(thymio_program_python)
-transpiler.transpile()
-thymio_program_aseba = transpiler.get_output()
+thymio_program_aseba = ATranspiler.simple_transpile(thymio_program_python)
 
 with ClientAsync() as client:
     async def prog():
