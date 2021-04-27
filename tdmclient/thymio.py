@@ -478,6 +478,61 @@ class ThymioFB(Listener):
             ThymioFB.MESSAGE_TYPE_REQUEST_LIST_OF_NODES,
         ), ThymioFB.SCHEMA)
 
+    def create_msg_request_completed(self, request_id):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_REQUEST_COMPLETED,
+            (
+                request_id,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_error(self, request_id, error):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_ERROR,
+            (
+                request_id,
+                error,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_compilation_result_failure(self, request_id, message, character, line, column):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_COMPILATION_RESULT_FAILURE,
+            (
+                request_id,
+                message,
+                character,
+                line,
+                column,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_compilation_result_success(self, request_id, bc_size, total_bc_size, var_size, total_var_size):
+        return self.create_message((
+            ThymioFB.MESSAGE_TYPE_COMPILATION_RESULT_SUCCESS,
+            (
+                request_id,
+                bc_size,
+                total_bc_size,
+                var_size,
+                total_var_size,
+            )
+        ), ThymioFB.SCHEMA)
+
+    def create_msg_vm_execution_state_changed(self, node_id_str, state, line, error, error_msg):
+        return ThymioFB.create_message((
+            ThymioFB.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED,
+            (
+                (
+                    ThymioFB.id_str_to_bytes(node_id_str),
+                ),
+                state,
+                line,
+                error,
+                error_msg,
+            )
+        ), ThymioFB.SCHEMA)
+
     def find_node(self, node_id_str):
         for node in self.nodes:
             if node.id_str == node_id_str:
@@ -491,6 +546,14 @@ class ThymioFB(Listener):
             str = "".join([f"{b if type(b) is int else ord(b):02x}" for b in f[0].fields[0][0]])
             str = str[:8] + "-" + str[8:12] + "-" + str[12:16] + "-" + str[16:20] + "-" + str[20:]
             return str
+
+    @staticmethod
+    def id_str_to_bytes(id_str):
+        id_str = id_str.replace("-", "")
+        b = []
+        for i in range(0, len(id_str), 2):
+            b.append(int(id_str[i : i + 2], 16))
+        return bytes(b)
 
     def process_message(self, msg):
 
