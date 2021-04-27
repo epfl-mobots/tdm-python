@@ -13,14 +13,14 @@ with open("transpiler.md", "r") as f:
     long_description += f.read()
 
 setup(
-    name='tdmclient',
-    version='0.1.1',
-    author='Yves Piguet',
-    packages=['tdmclient'],
-    description='Communication with Thymio II robot via the Thymio Device Manager',
+    name="tdmclient",
+    version="0.1.2",
+    author="Yves Piguet",
+    packages=["tdmclient", "tdmclient.tools",],
+    description="Communication with Thymio II robot via the Thymio Device Manager",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/epfl-mobots/tdm-python',
+    url="https://github.com/epfl-mobots/tdm-python",
     install_requires=[
         "zeroconf",
     ],
@@ -29,5 +29,5 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Intended Audience :: Education",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )

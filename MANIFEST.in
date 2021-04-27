@@ -1,0 +1,4 @@
+include help.md
+include transpiler.md
+include LICENSE
+include CHANGELOG.md
