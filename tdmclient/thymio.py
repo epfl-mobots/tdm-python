@@ -483,15 +483,16 @@ class ThymioFB(Listener):
             if node.id_str == node_id_str:
                 return node
 
-    def process_message(self, msg):
+    @staticmethod
+    def bytes_to_id_str(f):
+        if f is None:
+            return None
+        else:
+            str = "".join([f"{b if type(b) is int else ord(b):02x}" for b in f[0].fields[0][0]])
+            str = str[:8] + "-" + str[8:12] + "-" + str[12:16] + "-" + str[16:20] + "-" + str[20:]
+            return str
 
-        def bytes_to_id_str(f):
-            if f is None:
-                return None
-            else:
-                str = "".join([f"{b if type(b) is int else ord(b):02x}" for b in f[0].fields[0][0]])
-                str = str[:8] + "-" + str[8:12] + "-" + str[12:16] + "-" + str[16:20] + "-" + str[20:]
-                return str
+    def process_message(self, msg):
 
         fb = FlatBuffer()
         fb.parse(msg, ThymioFB.SCHEMA)
@@ -507,13 +508,13 @@ class ThymioFB(Listener):
                 if fb.root.union_data[0] is not None:
                     nodes = fb.root.union_data[0].fields[0][0]
                     for node in nodes:
-                        node_id_str = bytes_to_id_str(node.fields[0])
+                        node_id_str = ThymioFB.bytes_to_id_str(node.fields[0])
                         node_properties = {
                             "node_id":
                                 None if node.fields[0] is None
                                 else node.fields[0][0].fields[0][0] if type(node.fields[0][0].fields[0][0]) is bytes
                                 else b"".join(node.fields[0][0].fields[0][0]),
-                            "node_id_str": bytes_to_id_str(node.fields[0]),
+                            "node_id_str": ThymioFB.bytes_to_id_str(node.fields[0]),
                             "group_id": FlatBuffer.field_val(node.fields[1], None),
                             "status": FlatBuffer.field_val(node.fields[2], -1),
                             "type": FlatBuffer.field_val(node.fields[3], -1),
@@ -534,7 +535,7 @@ class ThymioFB(Listener):
             elif fb.root.union_type == self.MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 vm_descr = fb.root.union_data[0]
-                node_id_str = bytes_to_id_str(vm_descr.fields[1])
+                node_id_str = ThymioFB.bytes_to_id_str(vm_descr.fields[1])
                 node = self.find_node(node_id_str)
                 vm_description = {
                     "node_id":
@@ -613,7 +614,7 @@ class ThymioFB(Listener):
                 elif self.debug >= 1:
                     print(f"compilation ok request_id={request_id} (ignored)")
             elif fb.root.union_type == self.MESSAGE_TYPE_VARIABLES_CHANGED:
-                node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[0])
+                node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[0])
                 node = self.find_node(node_id_str)
                 variables = {
                     v.fields[0][0]: v.fields[1][0]
@@ -627,7 +628,7 @@ class ThymioFB(Listener):
                         for name in variables:
                             print(name, variables[name])
             elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_DESCRIPTIONS_CHANGED:
-                node_or_group_id = bytes_to_id_str(fb.root.union_data[0].fields[0])
+                node_or_group_id = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[0])
                 if fb.root.union_data[0].fields[1] is not None:
                     event_size = {
                         e.fields[0][0]: FlatBuffer.field_val(e.fields[1], 0)
@@ -647,7 +648,7 @@ class ThymioFB(Listener):
                             f"{name}[{event_size[name]}]" for name in event_size
                         ]))
             elif fb.root.union_type == self.MESSAGE_TYPE_EVENTS_EMITTED:
-                node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[0])
+                node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[0])
                 node = self.find_node(node_id_str)
                 events = {
                     e.fields[0][0]: e.fields[1][0]
@@ -662,7 +663,7 @@ class ThymioFB(Listener):
                             print(name,
                                   events[name] if events[name] is not None else "")
             elif fb.root.union_type == self.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED:
-                node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[0])
+                node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[0])
                 state = FlatBuffer.field_val(fb.root.union_data[0].fields[1], 0)
                 line = FlatBuffer.field_val(fb.root.union_data[0].fields[2], 0)
                 error = FlatBuffer.field_val(fb.root.union_data[0].fields[3], 0)
@@ -671,9 +672,9 @@ class ThymioFB(Listener):
                     print(f"execution state of node {node_id_str} changed to {state}, line={line}, error={error} {error_msg}")
             elif fb.root.union_type == self.MESSAGE_TYPE_SCRATCHPAD_UPDATE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
-                scratchpad_id_str = bytes_to_id_str(fb.root.union_data[0].fields[1])
-                group_id_str = bytes_to_id_str(fb.root.union_data[0].fields[2])
-                node_id_str = bytes_to_id_str(fb.root.union_data[0].fields[3])
+                scratchpad_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
+                group_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[2])
+                node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[3])
                 language = FlatBuffer.field_val(fb.root.union_data[0].fields[4], self.PROGRAMMING_LANGUAGE_ASEBA)
                 text = FlatBuffer.field_val(fb.root.union_data[0].fields[5], "")
                 name = FlatBuffer.field_val(fb.root.union_data[0].fields[6], "")
