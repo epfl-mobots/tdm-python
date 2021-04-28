@@ -714,7 +714,7 @@ end
                 raise TranspilerError(f"unknown variable {name}", node)
             if var_array_size is None:
                 raise TranspilerError(f"indexing of variable {name} which is not a list", node)
-            index = node.slice.value
+            index = node.slice
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
             if is_index_boolean:
                 tmp_offset = context.request_tmp_expr()
@@ -777,7 +777,7 @@ end
         """
         index = None
         if isinstance(target, ast.Subscript):
-            index = target.slice.value
+            index = target.slice
             target = target.value
         name = self.decode_attr(target)
         return name, index
