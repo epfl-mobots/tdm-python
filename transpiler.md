@@ -57,7 +57,7 @@ def timer0():
 
 To transpile this program, assuming it's stored in `examples/blink.py`:
 ```
-python3 -m tdmclient.atranspiler examples/blink.py
+python3 -m tdmclient.tools.transpile examples/blink.py
 ```
 
 The result is

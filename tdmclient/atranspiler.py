@@ -1172,16 +1172,3 @@ return
         transpiler.transpile()
         output_src = transpiler.get_output()
         return output_src
-
-
-if __name__ == "__main__":
-
-    src = None
-    if len(sys.argv) >= 2:
-        with open(sys.argv[1]) as f:
-            src = f.read()
-    else:
-        src = sys.stdin.read()
-
-    output_src = ATranspiler.simple_transpile(src)
-    print(output_src)
