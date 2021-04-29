@@ -688,6 +688,10 @@ end
 """
             code = context.tmp_var_str(tmp_offset)
             is_boolean = False
+        elif isinstance(node, ast.Index):
+            code, aux_st, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
+            aux_statements += aux_st
+            return code, aux_statements, False
         elif isinstance(node, ast.List):
             if priority_container > self.PRI_ASSIGN:
                 raise TranspilerError("list not supported in expression", node)
