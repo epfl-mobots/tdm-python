@@ -31,7 +31,7 @@ class TDMConsole(code.InteractiveConsole):
             if len(self.var_set) > 0:
                 for name in self.var_set:
                     send_variable(name, self.local_var[name])
-                flush_variables()
+                self.flush_variables()
 
             # wait
             ClientAsync.aw(self.client.sleep(t))
@@ -56,7 +56,7 @@ class TDMConsole(code.InteractiveConsole):
                 functions_called |= self.fun_defs[name]["calls"]
 
             # functions called from onevent
-            functions_added = self.onevent_functions
+            functions_added = self.onevent_functions.copy()
             while True:
                 functions_remaining = functions_called.difference(functions_added)
                 if len(functions_remaining) == 0:
@@ -298,27 +298,100 @@ class TDMConsole(code.InteractiveConsole):
         do_nodes(nodes)
         return var_got, var_set, fun_called
 
-    def push(self, line):
-        src = "\n".join([*self.buffer, line])
-        tree = None
+    def pre_run(self, src):
+        """Should be called before attempting to execute a partial or complete
+        command.
+        """
         self.var_got = set()
         self.var_set = set()
+        self.cmd_src = src
+        self.cmd_tree = None
         try:
-            tree = ast.parse(src)
-            self.var_got, self.var_set, _ = self.find_global_var(tree.body)
+            self.cmd_tree = ast.parse(src)
+            self.var_got, self.var_set, _ = self.find_global_var(self.cmd_tree.body)
             self.var_got &= self.sync_var
             self.var_set &= self.sync_var
             if self.fetch_variable is not None:
                 for name in self.var_got:
                     self.local_var[name] = self.fetch_variable(name)
         except Exception as e:
-            # print("ast.parse error", e)
+            # print("pre_run error", e)
             pass
+
+    def get_function_def_src(self, node):
+        # use bytes b/c col_offset is in bytes
+        src_b = bytes(self.cmd_src, "utf-8")
+
+        def index(lineno, col_offset):
+            i = 0
+            for _ in range(1, lineno):
+                # start of next line
+                i = src_b.index(b"\n", i) + 1
+            return i + col_offset
+
+        index_from = index(node.lineno, node.col_offset)
+        if isinstance(node, ast.FunctionDef) and len(node.decorator_list) > 0:
+            # special case for function decorators: include them
+            for decorator in node.decorator_list:
+                index_from = min(index_from,
+                                 index(decorator.lineno, decorator.col_offset))
+            # as well as first "@"
+            while index_from > 0 and src_b[index_from - 1] in b" \t":
+                index_from -= 1
+            if src_b[index_from - 1] == ord("@"):
+                index_from -= 1
+            else:
+                raise SyntaxError("Internal error",
+                                  ("<stdin>",
+                                   node.decorator_list[0].lineno,
+                                   node.decorator_list[0].col_offset,
+                                   self.cmd_src))
+
+        index_to = index(node.end_lineno, node.end_col_offset)
+
+        return str(src_b[index_from : index_to], "utf-8") + "\n"
+
+    def post_run(self):
+        """Analyze a complete command after it has been executed,
+        with or without error.
+        """
+        if len(self.var_set) > 0:
+            if self.send_variable is not None:
+                for name in self.var_set:
+                    self.send_variable(name, self.local_var[name])
+            self.flush_variables()
+        try:
+            if (self.cmd_tree is not None and
+                self.cmd_tree.body is not None):
+                for statement in self.cmd_tree.body:
+                    if isinstance(statement, ast.FunctionDef):
+                        # keep function source code
+                        var_got, var_set, fun_called = self.find_global_var(statement.body,
+                                                                            globals=set())
+                        self.fun_defs[statement.name] = {
+                            "src": self.get_function_def_src(statement),
+                            "in": var_got,
+                            "out": var_set,
+                            "calls": fun_called,
+                        }
+                    elif isinstance(statement, ast.Delete):
+                        # discard function source code
+                        for target in statement.targets:
+                            if isinstance(target, ast.Name) and target.id in self.fun_defs:
+                                del self.fun_defs[target.id]
+                            if target.id in self.onevent_functions:
+                                self.onevent_functions.remove(target.id)
+        except Exception as e:
+            pass
+
+    def push(self, line):
+        src = "\n".join([*self.buffer, line])
+        self.pre_run(src)
         if len(line) > 0:
-            r = super().push(line)
+            r = super().push(line)  # True if incomplete
         else:
             # empty line
-            # like InteractiveInterpreter.runsource, forcing src is complete
+            # like InteractiveInterpreter.runsource, assuming src is complete
             try:
                 self.resetbuffer()
                 code = self.compile(src, "<stdin>", "single")
@@ -329,39 +402,10 @@ class TDMConsole(code.InteractiveConsole):
                 code = None
             if code is not None:
                 self.runcode(code)
-            r = False
+            r = False  # executed or error
         if not r:
             # executed
-            if len(self.var_set) > 0:
-                if self.send_variable is not None:
-                    for name in self.var_set:
-                        self.send_variable(name, self.local_var[name])
-                if self.flush_variables is not None:
-                    self.flush_variables()
-            try:
-                if (tree is not None and
-                    tree.body is not None and
-                    len(tree.body) > 0):
-                    if isinstance(tree.body[0], ast.FunctionDef):
-                        # keep function source code
-                        var_got, var_set, fun_called = self.find_global_var(tree.body[0].body,
-                                                                            globals=set())
-                        self.fun_defs[tree.body[0].name] = {
-                            "src": src,
-                            "in": var_got,
-                            "out": var_set,
-                            "calls": fun_called,
-                        }
-                    elif isinstance(tree.body[0], ast.Delete):
-                        # discard function source code
-                        for target in tree.body[0].targets:
-                            if isinstance(target, ast.Name) and target.id in self.fun_defs:
-                                del self.fun_defs[target.id]
-                            if target.id in self.onevent_functions:
-                                self.onevent_functions.remove(target.id)
-            except Exception as e:
-                print(e)
-                pass
+            self.post_run()
         return r
 
     def interact(self):
