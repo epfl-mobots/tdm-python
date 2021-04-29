@@ -40,8 +40,8 @@ class TDMConsole(code.InteractiveConsole):
             for name in self.var_got:
                 self.local_var[name] = self.fetch_variable(name)
 
-        def robot_code():
-            # gather source code for Thymio
+        def robot_code(language="python"):
+            # gather Python or Aseba source code for Thymio
             src = ""
 
             # robot variables
@@ -66,13 +66,17 @@ class TDMConsole(code.InteractiveConsole):
                 functions_added.add(name)
                 functions_called |= self.functions[name]["calls"]
 
+            if language == "aseba":
+                # transpile from Python to Aseba
+                src = ATranspiler.simple_transpile(src)
+            elif language != "python":
+                raise Exception(f"Unsupported language {language}")
+
             return src
 
         def run():
-            # gather Python source code for Thymio
-            src_py = robot_code()
-            # transpile from Python to Aseba
-            src_a = ATranspiler.simple_transpile(src_py)
+            # gather Aseba source code for Thymio
+            src_a = robot_code(language="aseba")
             # compile, load and run
             error = ClientAsync.aw(self.node.compile(src_a))
             if error is not None:
