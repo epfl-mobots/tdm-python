@@ -52,8 +52,8 @@ class TDMConsole(code.InteractiveConsole):
             # onevent
             functions_called = set()
             for name in self.onevent_functions:
-                src += self.functions[name]["src"]
-                functions_called |= self.functions[name]["calls"]
+                src += self.fun_defs[name]["src"]
+                functions_called |= self.fun_defs[name]["calls"]
 
             # functions called from onevent
             functions_added = self.onevent_functions
@@ -62,9 +62,9 @@ class TDMConsole(code.InteractiveConsole):
                 if len(functions_remaining) == 0:
                     break
                 name = list(functions_remaining)[0]
-                src += self.functions[name]["src"]
+                src += self.fun_defs[name]["src"]
                 functions_added.add(name)
-                functions_called |= self.functions[name]["calls"]
+                functions_called |= self.fun_defs[name]["calls"]
 
             if language == "aseba":
                 # transpile from Python to Aseba
@@ -105,6 +105,7 @@ class TDMConsole(code.InteractiveConsole):
 
         # for generating source code for robot
         self.robot_var_set = set()
+        self.fun_defs = {}
         self.onevent_functions = set()
 
         # for current command
@@ -186,10 +187,10 @@ class TDMConsole(code.InteractiveConsole):
                 if isinstance(node.func, ast.Name):
                     fun_name = node.func.id
                     fun_called.add(fun_name)
-                    if fun_name in self.functions:
+                    if fun_name in self.fun_defs:
                         # call to a user-defined function
-                        var_got |= self.functions[fun_name]["in"]
-                        var_set |= self.functions[fun_name]["out"]
+                        var_got |= self.fun_defs[fun_name]["in"]
+                        var_set |= self.fun_defs[fun_name]["out"]
             elif isinstance(node, ast.Compare):
                 do_node(node.left)
                 do_nodes(node.comparators)
@@ -345,7 +346,7 @@ class TDMConsole(code.InteractiveConsole):
                         # keep function source code
                         var_got, var_set, fun_called = self.find_global_var(tree.body[0].body,
                                                                             globals=set())
-                        self.functions[tree.body[0].name] = {
+                        self.fun_defs[tree.body[0].name] = {
                             "src": src,
                             "in": var_got,
                             "out": var_set,
@@ -354,8 +355,8 @@ class TDMConsole(code.InteractiveConsole):
                     elif isinstance(tree.body[0], ast.Delete):
                         # discard function source code
                         for target in tree.body[0].targets:
-                            if isinstance(target, ast.Name) and target.id in self.functions:
-                                del self.functions[target.id]
+                            if isinstance(target, ast.Name) and target.id in self.fun_defs:
+                                del self.fun_defs[target.id]
                             if target.id in self.onevent_functions:
                                 self.onevent_functions.remove(target.id)
             except Exception as e:
