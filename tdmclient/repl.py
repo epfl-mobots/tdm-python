@@ -60,14 +60,17 @@ class TDMConsole(code.InteractiveConsole):
 
             # robot variables
             for name in self.robot_var_set:
-                src += f"""{self.to_python_name(name)} = {self.fetch_variable(name)}
+                name_py = self.to_python_name(name)
+                src += f"""{name_py} = {self.local_var[name_py]}
 """
 
             # onevent
             functions_called = set()
+            var_global = set()
             for name in self.onevent_functions:
                 src += self.fun_defs[name]["src"]
                 functions_called |= self.fun_defs[name]["calls"]
+                var_global |= self.fun_defs[name]["global"].difference(self.sync_var)
 
             # functions called from onevent
             functions_added = self.onevent_functions.copy()
@@ -79,6 +82,12 @@ class TDMConsole(code.InteractiveConsole):
                 src += self.fun_defs[name]["src"]
                 functions_added.add(name)
                 functions_called |= self.fun_defs[name]["calls"]
+                var_global |= self.fun_defs[name]["global"].difference(self.sync_var)
+
+            # global variables used by functions
+            for name in var_global:
+                src += f"""{name} = {self.local_var[name]}
+"""
 
             if language == "aseba":
                 # transpile from Python to Aseba
@@ -180,14 +189,19 @@ class TDMConsole(code.InteractiveConsole):
         self.node.flush()
 
     def find_global_var(self, nodes, globals=None):
+        """Return variable referenced in expressions, variables assigned to,
+        variables declared as global, and function called (tuple of 4 sets).
+        """
+
         if globals is None:
             globals = self.sync_var.copy()
         var_got = set()
         var_set = set()
+        var_global = set()
         fun_called = set()
 
         def do_node(node):
-            nonlocal globals, var_got, var_set
+            nonlocal globals, var_got, var_set, var_global
 
             if isinstance(node, ast.Assign):
                 for target in node.targets:
@@ -244,10 +258,12 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.elt)
                 do_nodes(node.generators)
             elif isinstance(node, ast.Global):
-                globals |= {
+                global_names = {
                     name
                     for name in node.names
                 }
+                globals |= global_names
+                var_global |= global_names
             elif isinstance(node, ast.If):
                 do_node(node.test)
                 do_nodes(node.body)
@@ -320,7 +336,7 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(target.slice)
 
         do_nodes(nodes)
-        return var_got, var_set, fun_called
+        return var_got, var_set, var_global, fun_called
 
     def pre_run(self, src):
         """Should be called before attempting to execute a partial or complete
@@ -332,7 +348,7 @@ class TDMConsole(code.InteractiveConsole):
         self.cmd_tree = None
         try:
             self.cmd_tree = ast.parse(src)
-            self.var_got, self.var_set, _ = self.find_global_var(self.cmd_tree.body)
+            self.var_got, self.var_set, _, _ = self.find_global_var(self.cmd_tree.body)
             self.var_got &= self.sync_var
             self.var_set &= self.sync_var
             if self.fetch_variable is not None:
@@ -390,12 +406,13 @@ class TDMConsole(code.InteractiveConsole):
                 for statement in self.cmd_tree.body:
                     if isinstance(statement, ast.FunctionDef):
                         # keep function source code
-                        var_got, var_set, fun_called = self.find_global_var(statement.body,
-                                                                            globals=set())
+                        var_got, var_set, var_gl, fun_called = self.find_global_var(statement.body,
+                                                                                    globals=set())
                         self.fun_defs[statement.name] = {
                             "src": self.get_function_def_src(statement),
                             "in": var_got,
                             "out": var_set,
+                            "global": var_gl,
                             "calls": fun_called,
                         }
                     elif isinstance(statement, ast.Delete):
