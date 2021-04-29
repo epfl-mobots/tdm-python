@@ -107,13 +107,14 @@ class TDMConsole(code.InteractiveConsole):
             """Run program obtained by robot_code on the robot.
             """
             src_a = robot_code(language="aseba")
-            # compile, load and run
+            # compile, load, run, and set scratchpad without checking the result
             error = ClientAsync.aw(self.node.compile(src_a))
             if error is not None:
                 raise Exception(error["error_msg"])
             error = ClientAsync.aw(self.node.run())
             if error is not None:
                 raise Exception(f"Error {error['error_code']}")
+            self.node.send_set_scratchpad(src_a)
 
         def stop():
             """Stop the program running on the robot.
