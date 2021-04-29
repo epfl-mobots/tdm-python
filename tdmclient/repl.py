@@ -74,6 +74,11 @@ class TDMConsole(code.InteractiveConsole):
 
             return src
 
+        def robot_code_new():
+            # forget assignments and definitions used to generate robot code
+            self.robot_var_set.clear()
+            self.onevent_functions.clear()
+
         def run():
             # gather Aseba source code for Thymio
             src_a = robot_code(language="aseba")
@@ -94,6 +99,7 @@ class TDMConsole(code.InteractiveConsole):
             "onevent": onevent,
             "sleep": sleep,
             "robot_code": robot_code,
+            "robot_code_new": robot_code_new,
             "run": run,
             "stop": stop,
         }
