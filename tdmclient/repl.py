@@ -22,11 +22,20 @@ class TDMConsole(code.InteractiveConsole):
         self.node = None
 
         def onevent(fun):
-            # function decorator @onevent
+            """Function decorator @onevent for event handlers. The event name
+            is given by the function name.
+            """
+
             self.onevent_functions.add(fun.__name__)
             return fun
 
         def sleep(t):
+            """Wait for some time.
+
+            Argument:
+                t -- time to wait in seconds
+            """
+
             # send and flush all variables which might have been changed
             if len(self.var_set) > 0:
                 for name in self.var_set:
@@ -41,7 +50,12 @@ class TDMConsole(code.InteractiveConsole):
                 self.local_var[name] = self.fetch_variable(name)
 
         def robot_code(language="python"):
-            # gather Python or Aseba source code for Thymio
+            """Gather Python or Aseba source code for the robot.
+
+            Argument:
+                language -- "python" (default) or "aseba"
+            """
+
             src = ""
 
             # robot variables
@@ -75,12 +89,14 @@ class TDMConsole(code.InteractiveConsole):
             return src
 
         def robot_code_new():
-            # forget assignments and definitions used to generate robot code
+            """Forget assignments and definitions used to generate robot code.
+            """
             self.robot_var_set.clear()
             self.onevent_functions.clear()
 
         def run():
-            # gather Aseba source code for Thymio
+            """Run program obtained by robot_code on the robot.
+            """
             src_a = robot_code(language="aseba")
             # compile, load and run
             error = ClientAsync.aw(self.node.compile(src_a))
@@ -91,6 +107,8 @@ class TDMConsole(code.InteractiveConsole):
                 raise Exception(f"Error {error['error_code']}")
 
         def stop():
+            """Stop the program running on the robot.
+            """
             error = ClientAsync.aw(self.node.stop())
             if error is not None:
                 raise Exception(f"Error {error['error_code']}")
