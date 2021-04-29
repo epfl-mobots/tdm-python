@@ -11,6 +11,8 @@ with open("help.md", "r") as f:
     long_description = f.read()
 with open("transpiler.md", "r") as f:
     long_description += f.read()
+with open("repl.md", "r") as f:
+    long_description += f.read()
 
 setup(
     name="tdmclient",
