@@ -18,7 +18,7 @@ setup(
     name="tdmclient",
     version="0.1.2",
     author="Yves Piguet",
-    packages=["tdmclient", "tdmclient.tools",],
+    packages=["tdmclient", "tdmclient.tools", "tdmclient.notebook", ],
     description="Communication with Thymio II robot via the Thymio Device Manager",
     long_description=long_description,
     long_description_content_type="text/markdown",
