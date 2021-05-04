@@ -16,7 +16,16 @@ from tdmclient.atranspiler import ATranspiler
 
 class TDMConsole(code.InteractiveConsole):
 
-    def __init__(self):
+    def __init__(self, local_var=None):
+        """New interactive console with synchronization with TDM node.
+
+        Argument:
+            local_var -- if not None (dict), synchronized variables are stored in
+            local_var; if False (default), they're stored in the TDMConsole's
+            globals (should be None for plain cpython repl, get_ipython().user_ns
+            for ipython)
+        """
+
         # client and node set in async init
         self.client = None
         self.node = None
@@ -39,7 +48,7 @@ class TDMConsole(code.InteractiveConsole):
             # send and flush all variables which might have been changed
             if len(self.var_set) > 0:
                 for name in self.var_set:
-                    send_variable(name, self.local_var[name])
+                    self.send_variable(name, self.local_var[name])
                 self.flush_variables()
 
             # wait
@@ -131,9 +140,17 @@ class TDMConsole(code.InteractiveConsole):
             "run": run,
             "stop": stop,
         }
-        self.local_var = self.functions.copy()
 
-        super().__init__(locals=self.local_var)
+        if local_var is None:
+            # create our own locals
+            self.local_var = self.functions.copy()
+            super().__init__(locals=self.local_var)
+        else:
+            # put our variables in provided locals
+            super().__init__()
+
+            self.local_var = local_var
+            self.local_var.update(self.functions)
 
         self.sync_var = None
 
@@ -352,9 +369,8 @@ class TDMConsole(code.InteractiveConsole):
             self.var_got, self.var_set, _, _ = self.find_global_var(self.cmd_tree.body)
             self.var_got &= self.sync_var
             self.var_set &= self.sync_var
-            if self.fetch_variable is not None:
-                for name in self.var_got:
-                    self.local_var[name] = self.fetch_variable(name)
+            for name in self.var_got:
+                self.local_var[name] = self.fetch_variable(name)
         except Exception as e:
             # print("pre_run error", e)
             pass
@@ -397,9 +413,8 @@ class TDMConsole(code.InteractiveConsole):
         with or without error.
         """
         if len(self.var_set) > 0:
-            if self.send_variable is not None:
-                for name in self.var_set:
-                    self.send_variable(name, self.local_var[name])
+            for name in self.var_set:
+                self.send_variable(name, self.local_var[name])
             self.flush_variables()
         try:
             if (self.cmd_tree is not None and
