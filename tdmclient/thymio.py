@@ -578,7 +578,11 @@ class ThymioFB(Listener):
                                 else node.fields[0][0].fields[0][0] if type(node.fields[0][0].fields[0][0]) is bytes
                                 else b"".join(node.fields[0][0].fields[0][0]),
                             "node_id_str": ThymioFB.bytes_to_id_str(node.fields[0]),
-                            "group_id": FlatBuffer.field_val(node.fields[1], None),
+                            "group_id":
+                                None if node.fields[1] is None
+                                else node.fields[1][0].fields[0][0] if type(node.fields[1][0].fields[0][0]) is bytes
+                                else b"".join(node.fields[1][0].fields[0][0]),
+                            "group_id_str": ThymioFB.bytes_to_id_str(node.fields[1]),
                             "status": FlatBuffer.field_val(node.fields[2], -1),
                             "type": FlatBuffer.field_val(node.fields[3], -1),
                             "name": FlatBuffer.field_val(node.fields[4], ""),
