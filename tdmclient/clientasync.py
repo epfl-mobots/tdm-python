@@ -21,8 +21,19 @@ class ClientAsync(tdmclient.Client):
     def create_node(self, node_dict):
         return self.node_class(self, node_dict)
 
-    def first_node(self):
-        return self.nodes[0] if len(self.nodes) > 0 else None
+    @staticmethod
+    def filter_nodes(nodes, node_id=None, node_name=None):
+        for node in nodes:
+            if ((node_id is None or node_id == node.id_str) and
+                (node_name is None or
+                 "name" in node.props and node_name == node.props["name"])):
+                yield node
+
+    def first_node(self, **kwargs):
+        """First matching node if there is one.
+        """
+        for node in self.filter_nodes(self.nodes, **kwargs):
+            return node
 
     @types.coroutine
     def sleep(self, duration=-1):
@@ -36,10 +47,10 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def wait_for_node(self):
+    def wait_for_node(self, **kwargs):
         while True:
             if self.process_waiting_messages():
-                node = self.first_node()
+                node = self.first_node(**kwargs)
                 if node is not None:
                     return node
             else:
@@ -47,12 +58,12 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def wait_for_status(self, expected_status):
+    def wait_for_status(self, expected_status, **kwargs):
         """Wait until the first node has the specified status.
         """
         while True:
             if self.process_waiting_messages():
-                node = self.first_node()
+                node = self.first_node(**kwargs)
                 if node is not None and node.status == expected_status:
                     return
             else:
@@ -60,12 +71,12 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def wait_for_status_set(self, expected_status_set):
+    def wait_for_status_set(self, expected_status_set, **kwargs):
         """Wait until the first node has one of the specified statuses.
         """
         while True:
             if self.process_waiting_messages():
-                node = self.first_node()
+                node = self.first_node(**kwargs)
                 if node is not None and node.status in expected_status_set:
                     return
             else:
@@ -73,14 +84,19 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def lock(self):
-        """Lock the first available node and return it.
+    def lock(self, **kwargs):
+        """Lock the first available node matching the selection criteria and
+        return it.
+
+        Keyword arguments:
+            node_id: node id (string or None)
+            node_name: robot name (string or None)
 
         Should be used in a "with" construct which will manage the unlocking.
         """
 
         yield from self.wait_for_status(self.NODE_STATUS_AVAILABLE)
-        node = self.first_node()
+        node = self.first_node(**kwargs)
         result = yield from node.lock_node()
         if result is not None:
             raise Exception("Node lock error")

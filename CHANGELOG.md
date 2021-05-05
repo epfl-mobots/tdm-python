@@ -11,6 +11,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - access to Aseba code
     - function to forget definitions for the Thymio
     - help and documentation
+- In tools `gui`, `repl` and `run`, new options `--robotid` and `--robotid`
 
 ### Fixed
 

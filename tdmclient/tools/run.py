@@ -21,6 +21,8 @@ Options:
   --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help       display this help message and exit
   --language=L programming language (aseba or python); default=automatic
+  --robotid=I    robot id; default=any
+  --robotname=N  robot name; default=any
   --scratchpad also store program into the TDM scratchpad
   --sponly     store program into the TDM without running it
   --stop       stop program (no filename or stdin expected)
@@ -37,6 +39,8 @@ if __name__ == "__main__":
     scratchpad = 0  # 1=--scratchpad, 2=--sponly
     tdm_addr = None
     tdm_port = None
+    robot_id = None
+    robot_name = None
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -45,6 +49,8 @@ if __name__ == "__main__":
                                               "debug=",
                                               "help",
                                               "language=",
+                                              "robotid=",
+                                              "robotname=",
                                               "scratchpad",
                                               "sponly",
                                               "stop",
@@ -62,6 +68,10 @@ if __name__ == "__main__":
             debug = int(val)
         elif arg == "--language":
             language = val
+        elif arg == "--robotid":
+            robot_id = val
+        elif arg == "--robotname":
+            robot_name = val
         elif arg == "--scratchpad":
             scratchpad = 1
         elif arg == "--sponly":
@@ -111,7 +121,7 @@ if __name__ == "__main__":
 
         async def prog():
             global status
-            with await client.lock() as node:
+            with await client.lock(node_id=robot_id, node_name=robot_name) as node:
                 if stop:
                     error = await node.stop()
                     if error is not None:

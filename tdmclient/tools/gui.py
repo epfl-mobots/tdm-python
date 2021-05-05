@@ -17,7 +17,10 @@ from tdmclient.atranspiler import ATranspiler
 
 class VariableTableWindow(tk.Tk):
 
-    def __init__(self, tdm_addr=None, tdm_port=None, language=None, debug=0):
+    def __init__(self,
+                 tdm_addr=None, tdm_port=None,
+                 node_id=None, node_name=None,
+                 language=None, debug=0):
         super(VariableTableWindow, self).__init__()
         self.geometry("800x600")
 
@@ -26,6 +29,8 @@ class VariableTableWindow(tk.Tk):
         self.language = language or "aseba"
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
+        self.node_id = node_id
+        self.node_name = node_name
         self.debug = debug
 
         # menus
@@ -291,8 +296,11 @@ class VariableTableWindow(tk.Tk):
     async def init_prog(self):
         await self.client.wait_for_status_set({self.client.NODE_STATUS_AVAILABLE,
                                                self.client.NODE_STATUS_BUSY,
-                                               self.client.NODE_STATUS_READY})
-        self.node = self.client.first_node()
+                                               self.client.NODE_STATUS_READY},
+                                              node_id=self.node_id,
+                                              node_name=self.node_name)
+        self.node = self.client.first_node(node_id=self.node_id,
+                                           node_name=self.node_name)
         self.set_title()
         await self.node.watch(variables=True)
 
@@ -432,9 +440,14 @@ class VariableTableWindow(tk.Tk):
     def connect(self):
 
         def on_nodes_changed(nodes):
-            self.node = (nodes[0]
-                         if len(nodes) > 0 and nodes[0].status != self.client.NODE_STATUS_DISCONNECTED
-                         else None)
+            nodes = [
+                node
+                for node in ClientAsync.filter_nodes(nodes,
+                                                     node_id=self.node_id,
+                                                     node_name=self.node_name)
+                if node.status != self.client.NODE_STATUS_DISCONNECTED
+            ]
+            self.node = nodes[0] if len(nodes) > 0 else None
             if self.node is None:
                 self.clear_variables()
                 self.set_title()
@@ -484,11 +497,13 @@ def help():
 Variable browser and code editor
 
 Options:
-  --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
-  --help       display this help message and exit
-  --language=L programming language (aseba or python); default=automatic
-  --tdmaddr=H  tdm address (default: localhost or from zeroconf)
-  --tdmport=P  tdm port (default: from zeroconf)
+  --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
+  --help         display this help message and exit
+  --language=L   programming language (aseba or python); default=automatic
+  --robotid=I    robot id; default=any
+  --robotname=N  robot name; default=any
+  --tdmaddr=H    tdm address (default: localhost or from zeroconf)
+  --tdmport=P    tdm port (default: from zeroconf)
 """)
 
 
@@ -498,6 +513,8 @@ if __name__ == "__main__":
     language = None  # auto
     tdm_addr = None
     tdm_port = None
+    robot_id = None
+    robot_name = None
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -506,6 +523,8 @@ if __name__ == "__main__":
                                               "debug=",
                                               "help",
                                               "language=",
+                                              "robotid=",
+                                              "robotname=",
                                               "tdmaddr=",
                                               "tdmport=",
                                           ])
@@ -520,11 +539,17 @@ if __name__ == "__main__":
             debug = int(val)
         elif arg == "--language":
             language = val
+        elif arg == "--robotid":
+            robot_id = val
+        elif arg == "--robotname":
+            robot_name = val
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
             tdm_port = int(val)
 
-    win = VariableTableWindow(tdm_addr=tdm_addr, tdm_port=tdm_port, language=language, debug=debug)
+    win = VariableTableWindow(tdm_addr=tdm_addr, tdm_port=tdm_port,
+                              node_id=robot_id, node_name=robot_name,
+                              language=language, debug=debug)
     win.connect()
     win.mainloop()

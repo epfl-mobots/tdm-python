@@ -26,6 +26,8 @@ Read-eval-print loop with link and synchronization with Thymio
 
 Options:
   --help       display this help message and exit
+  --robotid=I    robot id; default=any
+  --robotname=N  robot name; default=any
   --tdmaddr=H  tdm address (default: localhost or from zeroconf)
   --tdmport=P  tdm port (default: from zeroconf)
 """)
@@ -35,12 +37,16 @@ if __name__ == "__main__":
 
     tdm_addr = None
     tdm_port = None
+    robot_id = None
+    robot_name = None
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
                                           "",
                                           [
                                               "help",
+                                              "robotid=",
+                                              "robotname=",
                                               "tdmaddr=",
                                               "tdmport=",
                                           ])
@@ -51,6 +57,10 @@ if __name__ == "__main__":
         if arg == "--help":
             help()
             sys.exit(0)
+        elif arg == "--robotid":
+            robot_id = val
+        elif arg == "--robotname":
+            robot_name = val
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
@@ -61,7 +71,7 @@ if __name__ == "__main__":
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
 
         async def co_init():
-            with await client.lock() as node:
+            with await client.lock(node_id=robot_id, node_name=robot_name) as node:
                 await interactive_console.init(client, node)
                 interactive_console.interact()
 
