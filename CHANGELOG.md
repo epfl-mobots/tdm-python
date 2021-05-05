@@ -4,6 +4,23 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Support for Jupyter notebooks
+- In repl:
+    - access to Aseba code
+    - function to forget definitions for the Thymio
+    - help and documentation
+
+### Fixed
+
+- In transpiler:
+    - decoding of indices
+    - compatibility with older versions
+- In repl:
+    - user-defined functions
+    - initialization of global variables in robot code
+
 ## [0.1.2] - 2021-04-27
 
 ### Added

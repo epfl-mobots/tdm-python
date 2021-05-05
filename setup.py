@@ -7,11 +7,13 @@
 
 from setuptools import setup
 
-with open("help.md", "r") as f:
+with open("doc/help.md", "r") as f:
     long_description = f.read()
-with open("transpiler.md", "r") as f:
+with open("doc/transpiler.md", "r") as f:
     long_description += f.read()
-with open("repl.md", "r") as f:
+with open("doc/repl.md", "r") as f:
+    long_description += f.read()
+with open("doc/notebooks.md", "r") as f:
     long_description += f.read()
 
 setup(
