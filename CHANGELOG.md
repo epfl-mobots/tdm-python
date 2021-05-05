@@ -20,6 +20,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In repl:
     - user-defined functions
     - initialization of global variables in robot code
+- Tool `tdmclient.tools.variables` renamed `tdmclient.tools.gui`
 
 ## [0.1.2] - 2021-04-27
 

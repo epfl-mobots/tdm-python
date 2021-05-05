@@ -52,11 +52,11 @@ Display all node changes (variables, events and program in the scratchpad) until
 python3 -m tdmclient.tools.watch
 ```
 
-### tdmclient.tools.variables
+### tdmclient.tools.gui
 
 Run the variable browser in a window. The GUI is implemented with TK.
 ```
-python3 -m tdmclient.tools.variables
+python3 -m tdmclient.tools.gui
 ```
 
 At launch, the robot is unlocked, i.e. the variables are just fetched and displayed: _Observe_ is displayed in the status area at the bottom of the window. To be able to change them, activate menu Robot>Control. Then you can click any variable, change its value and type Return to confirm or Esc to cancel.
