@@ -16,7 +16,7 @@ from tdmclient.atranspiler import ATranspiler
 
 class TDMConsole(code.InteractiveConsole):
 
-    def __init__(self, local_var=None):
+    def __init__(self, local_var=None, define_functions=True):
         """New interactive console with synchronization with TDM node.
 
         Argument:
@@ -135,14 +135,15 @@ class TDMConsole(code.InteractiveConsole):
 
         if local_var is None:
             # create our own locals
-            self.local_var = self.functions.copy()
+            self.local_var = self.functions.copy() if define_functions else {}
             super().__init__(locals=self.local_var)
         else:
             # put our variables in provided locals
             super().__init__()
 
             self.local_var = local_var
-            self.local_var.update(self.functions)
+            if define_functions:
+                self.local_var.update(self.functions)
 
         self.sync_var = None
 
