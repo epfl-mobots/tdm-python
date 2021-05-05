@@ -73,3 +73,20 @@ def timer0():
 ```
 
 Run and stop them with `run()` and `stop()`, respectively.
+
+`run()` collects all the event handlers, the functions they call, the Thymio variables which have been set, and other global variables they use to make a Python program to be converted from Python to Aseba, compiled, and run on the Thymio. But you can also provide program code as a whole in a cell and perform these steps separately:
+```
+%%run_python
+v = [32, 0, 32, 0, 32, 0, 32, 0]
+leds_circle = v
+```
+```
+%%run_aseba
+var v[] = [32, 32, 32, 0, 0, 0, 32, 32]
+leds.circle = v
+```
+```
+%%transpile_to_aseba
+v = [32, 0, 32, 0, 32, 0, 32, 0]
+leds_circle = v
+```

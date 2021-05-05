@@ -117,20 +117,12 @@ class TDMConsole(code.InteractiveConsole):
             """
             src_a = robot_code(language="aseba")
             # compile, load, run, and set scratchpad without checking the result
-            error = ClientAsync.aw(self.node.compile(src_a))
-            if error is not None:
-                raise Exception(error["error_msg"])
-            error = ClientAsync.aw(self.node.run())
-            if error is not None:
-                raise Exception(f"Error {error['error_code']}")
-            self.node.send_set_scratchpad(src_a)
+            self.run_program(src_a)
 
         def stop():
             """Stop the program running on the robot.
             """
-            error = ClientAsync.aw(self.node.stop())
-            if error is not None:
-                raise Exception(f"Error {error['error_code']}")
+            self.stop_program()
 
         self.functions = {
             "onevent": onevent,
@@ -180,6 +172,26 @@ class TDMConsole(code.InteractiveConsole):
             self.local_var[name_py] = value
             sync_var.add(name_py)
         self.sync_var = sync_var
+
+    def run_program(self, src, language="aseba"):
+        if language == "python":
+            # transpile from Python to Aseba
+            src = ATranspiler.simple_transpile(src)
+        elif language != "aseba":
+            raise Exception(f"Unsupported language {language}")
+        # compile, load, run, and set scratchpad without checking the result
+        error = ClientAsync.aw(self.node.compile(src))
+        if error is not None:
+            raise Exception(error["error_msg"])
+        error = ClientAsync.aw(self.node.run())
+        if error is not None:
+            raise Exception(f"Error {error['error_code']}")
+        self.node.send_set_scratchpad(src)
+
+    def stop_program(self):
+        error = ClientAsync.aw(self.node.stop())
+        if error is not None:
+            raise Exception(f"Error {error['error_code']}")
 
     @staticmethod
     def from_python_name(p_name):
