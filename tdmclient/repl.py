@@ -232,6 +232,8 @@ class TDMConsole(code.InteractiveConsole):
             elif isinstance(node, ast.AugAssign):
                 do_target(node.target)
                 do_node(node.value)
+            elif isinstance(node, ast.Await):
+                do_node(node.value)
             elif isinstance(node, ast.BinOp):
                 do_node(node.left)
                 do_node(node.right)
@@ -265,7 +267,7 @@ class TDMConsole(code.InteractiveConsole):
                 do_nodes(node.body)
             elif isinstance(node, ast.Expr):
                 do_node(node.value)
-            elif isinstance(node, ast.For):
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
                 do_target(node.target)
                 do_node(node.iter)
                 do_nodes(node.body)
@@ -329,11 +331,23 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.test)
                 do_nodes(node.body)
                 do_nodes(node.orelse)
+            elif isinstance(node, (ast.With, ast.AsyncWith)):
+                for item in node.items:
+                    do_node(item.context_expr)
+                do_nodes(node.body)
             elif isinstance(node, ast.Yield):
                 do_node(node.value)
             elif isinstance(node, ast.YieldFrom):
                 do_node(node.value)
-            elif isinstance(node, (ast.AsyncFunctionDef, ast.Attribute, ast.ClassDef, ast.Constant, ast.Delete, ast.FunctionDef, ast.Import, ast.Pass)):
+            elif isinstance(node,
+                            (ast.AsyncFunctionDef, ast.Attribute,
+                             ast.Break,
+                             ast.ClassDef, ast.Constant, ast.Continue,
+                             ast.Delete, ast.FunctionDef,
+                             ast.Import, ast.ImportFrom,
+                             ast.Lambda,
+                             ast.Nonlocal,
+                             ast.Pass)):
                 pass
             elif node is not None:
                 print("Unchecked", ast.dump(node))
