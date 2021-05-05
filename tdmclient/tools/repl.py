@@ -25,11 +25,11 @@ def help():
 Read-eval-print loop with link and synchronization with Thymio
 
 Options:
-  --help       display this help message and exit
+  --help         display this help message and exit
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
-  --tdmaddr=H  tdm address (default: localhost or from zeroconf)
-  --tdmport=P  tdm port (default: from zeroconf)
+  --tdmaddr=H    tdm address (default: localhost or from zeroconf)
+  --tdmport=P    tdm port (default: from zeroconf)
 """)
 
 

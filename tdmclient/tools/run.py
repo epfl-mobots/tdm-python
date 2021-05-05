@@ -18,16 +18,16 @@ def help():
 Run program on robot, from file or stdin
 
 Options:
-  --debug n    display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
-  --help       display this help message and exit
-  --language=L programming language (aseba or python); default=automatic
+  --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
+  --help         display this help message and exit
+  --language=L   programming language (aseba or python); default=automatic
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
-  --scratchpad also store program into the TDM scratchpad
-  --sponly     store program into the TDM without running it
-  --stop       stop program (no filename or stdin expected)
-  --tdmaddr=H  tdm address (default: localhost or from zeroconf)
-  --tdmport=P  tdm port (default: from zeroconf)
+  --scratchpad   also store program into the TDM scratchpad
+  --sponly       store program into the TDM without running it
+  --stop         stop program (no filename or stdin expected)
+  --tdmaddr=H    tdm address (default: localhost or from zeroconf)
+  --tdmport=P    tdm port (default: from zeroconf)
 """)
 
 

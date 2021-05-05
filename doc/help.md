@@ -28,6 +28,18 @@ Display the address and port of TDM advertised by zeroconf until control-C is ty
 python3 -m tdmclient.tools.tdmdiscovery
 ```
 
+### tdmclient.tools.list
+
+Display the list of nodes with their id, group id, name, status, capability, and firmware version:
+```
+python3 -m tdmclient.tools.list
+```
+
+Display options:
+```
+python3 -m tdmclient.tools.list --help
+```
+
 ### tdmclient.tools.run
 
 Run an Aseba program on the first Thymio II robot and store it into the scratchpad so that it's seen in Aseba Studio:
