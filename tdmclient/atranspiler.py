@@ -105,7 +105,7 @@ class Context:
         var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
         if name in var:
             if (size != var[name] or
-                name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
+                name in self.global_var and name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
                 raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
         else:
             var[name] = size
@@ -125,7 +125,7 @@ class Context:
         return "".join([
             f"var {self.var_str(name)}{f'[{self.var[name]}]' if self.var[name] is not None else ''}\n"
             for name in self.var
-            if name not in ATranspiler.PREDEFINED_VARIABLES
+            if self.parent_context is not None or name not in ATranspiler.PREDEFINED_VARIABLES
         ])
 
     def reset_tmp_req_current_expr(self):
@@ -1106,9 +1106,15 @@ return
             context_top.functions[fun_name].freeze_return_type()
             # second pass to produce transpiled code with correct local variable names
             fun_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
-            function_src += f"""
-{"onevent" if context_top.functions[fun_name].is_onevent else "sub"} {fun_name}
-""" + fun_output_src
+            if context_top.functions[fun_name].is_onevent:
+                function_src += f"""
+onevent {fun_name.replace("_", ".")}
+"""
+            else:
+                function_src += f"""
+sub {fun_name}
+"""
+            function_src += fun_output_src
 
         # compile top-level code again, now that function return types are known
         self.output_src = self.compile_node_array(top_code, context_top) + function_src
