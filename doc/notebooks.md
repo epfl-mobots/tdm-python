@@ -49,7 +49,7 @@ This section parallels the TDM repl where the Thymio variables are shared with y
 First, import what's needed from the tdmclient package and start the session:
 ```
 import tdmclient.notebook
-await tdmclient.notebook.thymio_sync()
+await tdmclient.notebook.start()
 ```
 
 Then the variables which match the robot's are synchronized in both directions. Dots are replaced by underscores: `leds.top` on Thymio becomes `leds_top` in Python.
