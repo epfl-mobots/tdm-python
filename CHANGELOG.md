@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.3] - 2021-05-06
+
 ### Added
 
 - Support for Jupyter notebooks

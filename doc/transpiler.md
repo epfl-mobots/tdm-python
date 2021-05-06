@@ -63,18 +63,18 @@ python3 -m tdmclient.tools.transpile examples/blink.py
 The result is
 ```
 var on
-var tmp[1]
+var _timer0__tmp[1]
 
 on = 0
 timer.period[0] = 500
 
 onevent timer0
     if on == 0 then
-        tmp[0] = 1
+        _timer0__tmp[0] = 1
     else
-        tmp[0] = 0
+        _timer0__tmp[0] = 0
     end
-    on = tmp[0]
+    on = _timer0__tmp[0]
     if on != 0 then
         leds.top = [32, 32, 0]
     else
