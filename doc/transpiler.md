@@ -34,7 +34,7 @@ Here are the implemented features:
 - Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
 - In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
 
-Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`. High on our to-do list: functions with arguments and return value.
+Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`.
 
 The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the official Python parser used for the first phase ignores them. Since functions are transpiled to subroutines, recursive functions are forbidden.
 
@@ -97,7 +97,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | infix `%` (remainder) | infix `%` (modulo)
 | infix `<<` `>>` `|` `&` `^` | infix `<<` `>>` `|` `&` `^`
 | prefix `-` `~` `not` | prefix `-` `~` `not`
-| | prefix +
+| | prefix `+`
 | `==` `!=` `<` `<=` `>` `>=` | `==` `!=` `<` `<=` `>` `>=`
 | | `a < b < c` (chained comparisons)
 | `and` `or` (without shortcut) | `and` `or` (with shortcut)
@@ -106,15 +106,15 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | `var a[size]` |
 | `var a[] = [...]` | `a = [...]`
 | `v = numeric_expr` | `v = any_expr`
-| `v[index_expr]` | `v[index_expr]`
-| `v[constant_range]` |
+| `a[index_expr]` | `a[index_expr]`
+| `a[constant_range]` |
 | `if bool_expr then` | `if any_expr:`
 | `elseif bool_expr then` | `elif any_expr:`
 | `else` | `else:`
 | `end` | indenting
 | `when bool_expr do` |
 | `while bool_expr do` | `while any_expr:`
-| `for v in 0 : const_b - 1 do` | `for v in range(expr_a, expr_b):`
+| `for v in 0 : const_b - 1 do` | `for v in range(expr_b):`
 | `for v in const_a : const_b - 1 do` | `for v in range(expr_a, expr_b):`
 | `for v in const_a : const_b -/+ 1 step const_s do` | `for v in range(expr_a, expr_b, expr_s):`
 | `sub fun` | `def fun():`
@@ -131,7 +131,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | | assigned variables are local by default
 | `emit name` | `emit("name")`
 | `emit name [expr1, expr2, ...]` | `emit("name", expr1, expr2, ...)`
-| `call natfun expr1, expr2, ...` | `nf_natfun(expr1, expr2, ...)` (see below)
+| `call natfun(expr1, expr2, ...)` | `nf_natfun(expr1, expr2, ...)` (see below)
 | | `natfun(expr1, ...)` in expressions
 
 In Python, the names of native functions have underscores instead of dots. Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf_` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays, lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result.
