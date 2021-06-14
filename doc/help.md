@@ -8,10 +8,6 @@ Make sure that Thymio&nbsp;Suite, Python&nbsp;3, and pip, the package installer 
 
 Then in a terminal window, install tdmclient by typing
 ```
-sudo python3 -m pip install tdmclient
-```
-on macOS or Linux. On Windows, in Windows PowerShell or Windows Terminal, just type
-```
 python3 -m pip install tdmclient
 ```
 

@@ -19,8 +19,7 @@ python3 setup.py bdist_wheel
 ```
 Then in your notebook, replace the `%pip` cell above with
 ```
-import sys
-!{sys.executable} -m pip install --force-reinstall /.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl
+%pip install --force-reinstall /.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl
 ```
 replacing `/.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl` with the actual location of the `.whl` file.
 

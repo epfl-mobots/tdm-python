@@ -93,7 +93,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 
 | Aseba | Python
 | --- | ---
-| infix `+` `-` `*` `/` | infix `+` `-` `*` `//` `%`
+| infix `+` `-` `*` `/` | infix `+` `-` `*` `//`
 | infix `%` (remainder) | infix `%` (modulo)
 | infix `<<` `>>` `|` `&` `^` | infix `<<` `>>` `|` `&` `^`
 | prefix `-` `~` `not` | prefix `-` `~` `not`
