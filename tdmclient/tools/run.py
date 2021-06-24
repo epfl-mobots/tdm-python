@@ -48,8 +48,17 @@ if __name__ == "__main__":
     event_re = re.compile(r"^([^[]*)(\[([0-9]]*)\])?")
     sleep = None  # True to sleep forever, False to exit immediately
 
+    print_statements = []
+
     def on_event_received(node, event_name, event_data):
-        print("event", event_name, event_data)
+        if event_name == "_print":
+            print_id = event_data[0]
+            print_format, print_num_args = print_statements[print_id]
+            print_args = tuple(event_data[1 : 1 + print_num_args])
+            print_str = print_format % print_args
+            print(print_str)
+        else:
+            print("event", event_name, event_data)
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -140,7 +149,10 @@ if __name__ == "__main__":
 
     if language == "python":
         # transpile from Python to Aseba
-        program = ATranspiler.simple_transpile(program)
+        program, _, print_max_num_args, transpiler = ATranspiler.simple_transpile(program)
+        print_statements = transpiler.print_format_strings
+        if len(print_statements) > 0:
+            events.append(("_print", 1 + print_max_num_args))
 
     if sleep is None:
         sleep = len(events) > 0
