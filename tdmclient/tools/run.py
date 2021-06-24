@@ -8,6 +8,7 @@
 import sys
 import os
 import getopt
+import re
 
 from tdmclient import ClientAsync
 from tdmclient.atranspiler import ATranspiler
@@ -21,9 +22,11 @@ Options:
   --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help         display this help message and exit
   --language=L   programming language (aseba or python); default=automatic
+  --nosleep      exit immediately (default with neither events nor print statement)
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --scratchpad   also store program into the TDM scratchpad
+  --sleep        sleep forever (default with events or print statement)
   --sponly       store program into the TDM without running it
   --stop         stop program (no filename or stdin expected)
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
@@ -41,17 +44,26 @@ if __name__ == "__main__":
     tdm_port = None
     robot_id = None
     robot_name = None
+    events = []
+    event_re = re.compile(r"^([^[]*)(\[([0-9]]*)\])?")
+    sleep = None  # True to sleep forever, False to exit immediately
+
+    def on_event_received(node, event_name, event_data):
+        print("event", event_name, event_data)
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
                                           "",
                                           [
                                               "debug=",
+                                              "event=",
                                               "help",
                                               "language=",
+                                              "nosleep",
                                               "robotid=",
                                               "robotname=",
                                               "scratchpad",
+                                              "sleep",
                                               "sponly",
                                               "stop",
                                               "tdmaddr=",
@@ -66,14 +78,27 @@ if __name__ == "__main__":
             sys.exit(0)
         elif arg == "--debug":
             debug = int(val)
+        elif arg == "--event":
+            r = event_re.match(val)
+            if r is None:
+                help()
+                sys.exit(1)
+            events.append((
+                r.group(1),
+                0 if r.group(3) is None else int(r.group(3)),
+            ))
         elif arg == "--language":
             language = val
+        elif arg == "--nosleep":
+            sleep = False
         elif arg == "--robotid":
             robot_id = val
         elif arg == "--robotname":
             robot_name = val
         elif arg == "--scratchpad":
             scratchpad = 1
+        elif arg == "--sleep":
+            sleep = True
         elif arg == "--sponly":
             scratchpad = 2
         elif arg == "--stop":
@@ -117,6 +142,9 @@ if __name__ == "__main__":
         # transpile from Python to Aseba
         program = ATranspiler.simple_transpile(program)
 
+    if sleep is None:
+        sleep = len(events) > 0
+
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
 
         async def prog():
@@ -129,11 +157,16 @@ if __name__ == "__main__":
                         status = 2
                 else:
                     if scratchpad < 2:
+                        if len(events) > 0:
+                            await node.register_events(events)
                         error = await node.compile(program)
                         if error is not None:
                             print(f"Compilation error: {error['error_msg']}")
                             status = 2
                         else:
+                            if len(events) > 0 and sleep:
+                                client.add_event_received_listener(on_event_received)
+                                await node.watch(events=True)
                             error = await node.run()
                             if error is not None:
                                 print(f"Run error {error['error_code']}")
@@ -143,6 +176,9 @@ if __name__ == "__main__":
                         if error is not None:
                             print(f"Scratchpad error {error['error_code']}")
                             status = 2
+                    if scratchpad < 2 and sleep:
+                        # expect events: wait forever
+                        await client.sleep(-1)
 
         client.run_async_program(prog)
 
