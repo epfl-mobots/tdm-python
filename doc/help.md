@@ -48,6 +48,16 @@ Stop the program:
 python3 -m tdmclient.tools.run --stop
 ```
 
+To avoid having to learn the Aseba language, a small subset of Python can also be used:
+```
+python3 -m tdmclient.tools.run --scratchpad examples/blink.py
+```
+
+The `print` statement, with scalar numbers and constant strings, is supported. Work is shared between the robot and the PC.
+```
+python3 -m tdmclient.tools.run --scratchpad examples/print.py
+```
+
 Display other options:
 ```
 python3 -m tdmclient.tools.run --help
