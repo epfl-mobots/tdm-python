@@ -426,6 +426,9 @@ class ATranspiler:
         self.src = source
         self.ast = None
         self.output_src = None
+        self.print_format_strings = {}
+        self.print_format_string_next_id = 0
+        self.print_max_num_args = 0
 
     @staticmethod
     def decode_attr(node):
@@ -495,6 +498,10 @@ class ATranspiler:
     PRI_BINARY_NOT = 17
     PRI_UNARY_MINUS = 18
     PRI_HIGH = 100
+
+    def reset_transpile_phase(self, next_id=0):
+        self.print_format_strings = {}
+        self.print_format_string_next_id = next_id
 
     def compile_expr(self, node, context, priority_container=PRI_LOW):
         """Compile an expression or subexpression.
@@ -910,7 +917,7 @@ end
                     _, aux_statements = predefined_function.get_code(self, context, expr.args)
                     return aux_statements
                 if fun_name == "emit":
-                    # hard-coded emit(name, params...)
+                    # hard-coded emit(name, params...) -> "emit name [params]"
                     if (len(expr.args) < 1 or
                         not isinstance(expr.args[0], ast.Constant) or
                         not isinstance(expr.args[0].value, str)):
@@ -925,6 +932,28 @@ end
                             code += " [" if i == 0 else ", "
                             code += value
                         code += "]"
+                    code = aux_statements + code + "\n"
+                    return code
+                elif fun_name == "print":
+                    # hard-coded print(args...) -> "emit _print [print_id, non_string_args...]"
+                    print_format_string = ""
+                    code = f"emit _print [{self.print_format_string_next_id}"
+                    arg_count = 0
+                    aux_statements = ""
+                    for i, arg in enumerate(expr.args):
+                        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                            print_format_string += (" " if i > 0 else "") + arg.value
+                        else:
+                            value, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_NUMERIC)
+                            aux_statements += aux_st
+                            code += ", " + value
+                            arg_count += 1
+                            print_format_string += " %d" if i > 0 else "%d"
+                    code += ", 0" * (self.print_max_num_args - arg_count)
+                    code += "]\n"
+                    self.print_format_strings[self.print_format_string_next_id] = (print_format_string, arg_count)
+                    self.print_format_string_next_id += 1
+                    self.print_max_num_args = max(self.print_max_num_args, arg_count)
                     code = aux_statements + code
                     return code
             # parse expression
@@ -1094,17 +1123,24 @@ return
         top_code = self.split(context_top)
 
         # compile top-level code (first pass for global variable sizes)
+        self.reset_transpile_phase()
         self.output_src = self.compile_node_array(top_code, context_top)
+
+        # reset for next phase
+        self.reset_transpile_phase()
 
         # functions
         function_src = ""
+        # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
+        # function return type isn't known yet (context.has_ret_value = None doesn't raise exceptions)
         for fun_name in context_top.functions:
-            # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
-            # function return type isn't known yet (context.has_ret_value = None doesn't raise exceptions)
+            fun_print_format_string_next_id = self.print_format_string_next_id
             _ = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             # set functions without return statements to void
             context_top.functions[fun_name].freeze_return_type()
-            # second pass to produce transpiled code with correct local variable names
+            self.reset_transpile_phase(fun_print_format_string_next_id)
+        # second pass to produce transpiled code with correct local variable names
+        for fun_name in context_top.functions:
             fun_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             if context_top.functions[fun_name].is_onevent:
                 function_src += f"""
@@ -1132,6 +1168,12 @@ sub {fun_name}
         ])
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
+
+    def get_print_statements(self):
+        return "[\n" + "\n".join([
+            f"({repr(self.print_format_strings[id][0])}, {self.print_format_strings[id][1]}),"
+            for id in sorted(self.print_format_strings)
+        ]) + "\n]" if len(self.print_format_strings) > 0 else None
 
     @staticmethod
     def pretty_print(src):
@@ -1169,12 +1211,12 @@ sub {fun_name}
     def get_output(self):
         """Get transpiled output.
         """
-        return self.pretty_print(self.output_src)
+        return self.pretty_print(self.output_src), self.get_print_statements()
 
     @staticmethod
     def simple_transpile(input_src):
         transpiler = ATranspiler()
         transpiler.set_source(input_src)
         transpiler.transpile()
-        output_src = transpiler.get_output()
-        return output_src
+        output_src, print_statements = transpiler.get_output()
+        return output_src, print_statements, transpiler.print_max_num_args, transpiler
