@@ -59,16 +59,19 @@ def list_robots(**kwargs):
     return list(_interactive_console.client.filter_nodes(_interactive_console.client.nodes, **kwargs))
 
 from IPython.core.magic import register_line_magic, register_cell_magic
+
 @register_cell_magic
 def run_python(line, cell):
     _interactive_console.run_program(cell, "python")
 
-from IPython.core.magic import register_line_magic, register_cell_magic
+@register_cell_magic
+def run_python_wait(line, cell):
+    _interactive_console.run_program(cell, "python", wait=True)
+
 @register_cell_magic
 def run_aseba(line, cell):
     _interactive_console.run_program(cell, "aseba")
 
-from IPython.core.magic import register_line_magic, register_cell_magic
 @register_cell_magic
 def transpile_to_aseba(line, cell):
     from tdmclient.atranspiler import ATranspiler

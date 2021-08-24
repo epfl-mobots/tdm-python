@@ -174,20 +174,38 @@ class TDMConsole(code.InteractiveConsole):
             sync_var.add(name_py)
         self.sync_var = sync_var
 
-    def run_program(self, src, language="aseba"):
+    def run_program(self, src, language="aseba", wait=False):
+        print_statements = None
         if language == "python":
             # transpile from Python to Aseba
-            src = ATranspiler.simple_transpile(src)
+            src, _, print_max_num_args, transpiler = ATranspiler.simple_transpile(src)
+            print_statements = transpiler.print_format_strings
+            if len(print_statements) > 0:
+                ClientAsync.aw(self.node.register_events([("_print", 1 + print_max_num_args)]))
         elif language != "aseba":
             raise Exception(f"Unsupported language {language}")
         # compile, load, run, and set scratchpad without checking the result
         error = ClientAsync.aw(self.node.compile(src))
         if error is not None:
             raise Exception(error["error_msg"])
+        if len(print_statements) > 0 and wait:
+            def on_event_received(node, event_name, event_data):
+                if event_name == "_print":
+                    print_id = event_data[0]
+                    print_format, print_num_args = print_statements[print_id]
+                    print_args = tuple(event_data[1 : 1 + print_num_args])
+                    print_str = print_format % print_args
+                    print(print_str)
+                else:
+                    print("event", event_name, event_data)
+            self.client.add_event_received_listener(on_event_received)
+            ClientAsync.aw(self.node.watch(events=True))
         error = ClientAsync.aw(self.node.run())
         if error is not None:
             raise Exception(f"Error {error['error_code']}")
         self.node.send_set_scratchpad(src)
+        if wait:
+            ClientAsync.aw(self.client.sleep())
 
     def stop_program(self):
         error = ClientAsync.aw(self.node.stop())
