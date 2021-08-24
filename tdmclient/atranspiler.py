@@ -70,15 +70,23 @@ class Context:
         # set of called functions, used for dependencies and recursivity check
         self.called_functions = set()
 
+        # dict module_name: module (import module_name)
+        self.modules = {}
+        # dict symbol_asname: (module, symbol_name) (from module_name import symbol_name as symbol_asname)
+        self.module_symbols = {}
+
     def is_global(self, name):
         """Check if a variable is global or not.
         """
         return name not in self.var
 
-    def var_str(self, name):
+    def var_str(self, name, is_target=False):
         """Convert a variable name to its string representation in output
         source code.
         """
+        module_value = self.get_module_value(name, not is_target)
+        if module_value:
+            return module_value
         if self.function_name is None or self.is_global(name):
             return name.replace("_", ".") if name in ATranspiler.PREDEFINED_VARIABLES else name
         else:
@@ -92,6 +100,13 @@ class Context:
         name = "_tmp" if self.function_name is None else f"_{self.function_name}__tmp"
         return f"{name}[{index}]"
 
+    def add_module(self, module_name, module, symbols=None):
+        if symbols is None:
+            self.modules[module_name] = module
+        else:
+            for symbol in symbols:
+                self.module_symbols[symbol] = module, symbols[symbol]
+
     def declare_global(self, name, ast_node=None):
         """Declare a global variable.
         """
@@ -102,28 +117,71 @@ class Context:
     def declare_var(self, name, size=None, ast_node=None):
         """Declare a variable with its size (array size, or None if scalar).
         """
-        var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
-        if name in var:
-            if (size != var[name] or
-                name in self.global_var and name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
-                raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
+        if "." not in name and self.get_module_for_symbol(name) is None:
+            var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
+            if name in var:
+                if (size != var[name] or
+                    name in self.global_var and name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
+                    raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
+            else:
+                var[name] = size
+
+    def get_module_value(self, name, ancestors=False):
+        if "." in name:
+            module_name, name = name.split(".", 1)
+            module = self.get_module(module_name)
         else:
-            var[name] = size
+            module_and_name = self.get_module_for_symbol(name, ancestors)
+            if module_and_name is None:
+                return None
+            module, name = module_and_name
+        return module.constants[name][0] if name in module.constants else module.variables[name][0] if name in module.variables else None
+
+    def get_module(self, module_name):
+        """Return module in current context or ancestor.
+        """
+        if module_name in self.modules:
+            return self.modules[module_name]
+        elif self.parent_context is not None:
+            return self.parent_context.get_module(module_name)
+        else:
+            raise NameError(f"name '{module_name}' is not defined")
+
+    def get_module_for_symbol(self, symbol, ancestors=False):
+        """Return module and name where symbol is defined in current context, and
+        optionally also in ancestors.
+        """
+        return (self.module_symbols[symbol] if symbol in self.module_symbols
+                else self.parent_context.get_module_for_symbol(symbol, True) if ancestors and self.parent_context is not None
+                else None)
 
     def var_array_size(self, name):
         """Return size if name is a local or global array variable,
         None if it is a local or global scalar, or False if unknown.
         """
-        var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
-               else self.parent_context.var if name in self.global_var and self.parent_context is not None
-               else self.var)
-        return False if name not in var else var[name]
+        if "." in name:
+            module_name, name = name.split(".", 1)
+            module = self.get_module(module_name)
+            return (module.constants[name][1] if name in module.constants
+                    else module.variables[name][1] if name in module.variables
+                    else False)
+        else:
+            module_and_name = self.get_module_for_symbol(name, True)
+            if module_and_name is not None:
+                module, name = module_and_name
+                return (module.constants[name][1] if name in module.constants
+                    else module.variables[name][1] if name in module.variables
+                    else False)
+            var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
+                else self.parent_context.var if name in self.global_var and self.parent_context is not None
+                else self.var)
+            return False if name not in var else var[name]
 
     def var_declarations(self):
         """Output source code for local variable declarations.
         """
         return "".join([
-            f"var {self.var_str(name)}{f'[{self.var[name]}]' if self.var[name] is not None else ''}\n"
+            f"var {self.var_str(name, True)}{f'[{self.var[name]}]' if self.var[name] is not None else ''}\n"
             for name in self.var
             if self.parent_context is not None or name not in ATranspiler.PREDEFINED_VARIABLES
         ])
@@ -216,6 +274,17 @@ class PredefinedFunction:
         return values, aux_statements
 
 
+class Module:
+    """Module known to transpiler.
+    """
+
+    def __init__(self, name, constants=None, variables=None, functions=None):
+        self.name = name
+        self.constants = constants or {}
+        self.variables = variables or {}
+        self.functions = functions or {}
+
+
 class ATranspiler:
     """Transpiler from a subset of Python3 to Aseba.
     """
@@ -260,6 +329,9 @@ class ATranspiler:
         self.output_src = None
 
         self.predefined_function_dict = {}
+
+        # dict module_name: module (modules which can be imported)
+        self.modules = {}
 
         def predefined_function(name, argin, nargout=0):
             def register(fun):
@@ -803,7 +875,7 @@ end
             if len(node.targets) != 1:
                 raise TranspilerError("unsupported assignment to multiple targets", node)
             target, index = self.decode_target(node.targets[0])
-            target_str = context.var_str(target)
+            target_str = context.var_str(target, True)
             if index is None:
                 # declare target
                 if isinstance(node.value, ast.List):
@@ -818,7 +890,12 @@ end
                         raise TranspilerError(f"unknown variable {name_right}", node)
                     context.declare_var(target, target_size, ast_node=node)
                     # code special case (parsing of var2 as an expression would fail)
-                    return f"""{target_str} = {context.var_str(name_right)}
+                    module_value = context.get_module_value(name_right, True)
+                    if module_value:
+                        return f"""{target_str} = {module_value}
+"""
+                    else:
+                        return f"""{target_str} = {context.var_str(name_right)}
 """
                 else:
                     context.declare_var(target, ast_node=node)
@@ -1059,6 +1136,34 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             code += """end
 """
             return code
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module_name = alias.name
+                if module_name not in self.modules:
+                    raise TranspilerError(f"unknown module {module_name}", node)
+                context.add_module(alias.asname or module_name, self.modules[module_name])
+            return ""
+        if isinstance(node, ast.ImportFrom):
+            module_name = node.module
+            if module_name not in self.modules:
+                raise TranspilerError(f"unknown module {module_name}", node)
+            if len(node.names) == 1 and node.names[0].name == "*":
+                # import all symbols
+                context.add_module(module_name, self.modules[module_name],
+                                   {
+                                       name: name
+                                       for name in {
+                                           **self.modules[module_name].constants,
+                                           **self.modules[module_name].variables
+                                       }
+                                   })
+            else:
+                context.add_module(module_name, self.modules[module_name],
+                                {
+                                    alias.asname or alias.name: alias.name
+                                    for alias in node.names
+                                })
+            return ""
         if isinstance(node, ast.Pass):
             return ""
         if isinstance(node, ast.Return):
@@ -1214,8 +1319,10 @@ sub {fun_name}
         return self.pretty_print(self.output_src), self.get_print_statements()
 
     @staticmethod
-    def simple_transpile(input_src):
+    def simple_transpile(input_src, modules=None):
         transpiler = ATranspiler()
+        if modules is not None:
+            transpiler.modules = {**transpiler.modules, **modules}
         transpiler.set_source(input_src)
         transpiler.transpile()
         output_src, print_statements = transpiler.get_output()

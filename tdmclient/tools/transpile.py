@@ -9,6 +9,7 @@
 import sys
 import getopt
 from tdmclient.atranspiler import ATranspiler
+import tdmclient.module_thymio
 
 def help():
     print("""Usage: python3 -m tdmclient.tools.transpile [options] [filename]
@@ -48,7 +49,10 @@ if __name__ == "__main__":
     else:
         src = sys.stdin.read()
 
-    output_src, print_statements, _, _ = ATranspiler.simple_transpile(src)
+    modules = {
+        "thymio": tdmclient.module_thymio.ModuleThymio()
+    }
+    output_src, print_statements, _, _ = ATranspiler.simple_transpile(src, modules=modules)
     if show_print:
         if print_statements is not None:
             print(print_statements)
