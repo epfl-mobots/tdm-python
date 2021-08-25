@@ -36,7 +36,7 @@ Change the color of the RGB led on the top of the Thymio:
 >>>
 ```
 
-Get the Thymio temperature and converted it from degree Celsius to Kelvin. Notice we've waited a little too long between the two commands, the temperature has changed, or maybe the sensor measurement is corrupted by noise.
+Get the Thymio temperature and converted it from degree Celsius to Kelvin. Notice we've waited a little too long between the two commands: the temperature has changed, or maybe the sensor measurement is corrupted by noise.
 ```
 >>> temperature
 281

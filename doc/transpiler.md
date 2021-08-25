@@ -39,7 +39,9 @@ Perhaps the most noticeable missing features are the non-integer division operat
 
 The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the official Python parser used for the first phase ignores them. Since functions are transpiled to subroutines, recursive functions are forbidden.
 
-### Example
+### Examples
+
+#### Blinking
 
 Blinking top RGB led:
 ```
@@ -88,6 +90,77 @@ To run this program:
 python3 -m tdmclient.tools.run examples/blink.py
 ```
 
+#### Print
+
+Constant strings and numeric values can be displayed on the computer with the `print` function. Here is an example which increments a counter every second and prints its value and whether it's odd or even:
+```
+i = 0
+
+timer_period[0] = 1000
+
+@onevent
+def timer0():
+    global i, leds_top
+    i += 1
+    is_odd = i % 2 == 1
+    if is_odd:
+        print(i, "odd")
+        leds_top = [0, 32, 32]
+    else:
+        print(i, "even")
+        leds_top = [0, 0, 0]
+```
+
+Running this program can also be done with `tdmclient.tools.run`. Assuming it's stored in `examples/print.py`:
+```
+python3 -m tdmclient.tools.run examples/print.py
+```
+`tdmclient.tools.run` continues running forever to receive and display the outcome of `print`. To interrupt it, type control-C.
+
+To understand what happens behind the scenes, display the transpiled program:
+```
+python3 -m tdmclient.tools.transpile examples/print.py
+```
+
+The result is
+```
+var i
+var _timer0_is_odd
+var _timer0__tmp[1]
+
+i = 0
+timer.period[0] = 1000
+
+onevent timer0
+    i += 1
+    if i % 2 == 1 then
+        _timer0__tmp[0] = 1
+    else
+        _timer0__tmp[0] = 0
+    end
+    _timer0_is_odd = _timer0__tmp[0]
+    if _timer0_is_odd != 0 then
+        emit _print [0, i]
+        leds.top = [0, 32, 32]
+    else
+        emit _print [1, i]
+        leds.top = [0, 0, 0]
+    end
+```
+
+Each `print` statement in Python is converted to `emit _print`. The event data contains the `print` statement index (numbers 0, 1, 2, ...) and the numeric values. The string values aren't sent, because the Aseba programming language doesn't support strings. It's the responsibility of the receiver of the event, i.e. `tdmclient.tools.run` on the computer, to use the `print` statement index and assemble the text to be displayed from the constant strings and the numeric values received from the robot.
+
+With the option `--print`, `tdmclient.tools.transpile` shows the Python dictionary which contains the format string for each `print` statement and the number of numeric arguments:
+```
+python3 -m tdmclient.tools.transpile --print examples/print.py
+```
+
+The result is
+```
+{0: ('%d odd', 1), 1: ('%d even', 1)}
+```
+
+
 ### Feature comparison
 
 The table below shows a mapping between Aseba and Python features. Empty cells stand for lack of a direct equivalent. Prefixes `const_`, `numeric_` or `bool_` indicate restrictions on what's permitted. Standard Python features which are missing are not transpiled; they cause an error.
@@ -103,6 +176,8 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | | `a < b < c` (chained comparisons)
 | `and` `or` (without shortcut) | `and` `or` (with shortcut)
 | | `val1 if test else val2`
+| prefix `abs` | function `abs(expr)`
+| | `len(variable)`
 | `var v` | no declarations
 | `var a[size]` |
 | `var a[] = [...]` | `a = [...]`
@@ -132,6 +207,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | | assigned variables are local by default
 | `emit name` | `emit("name")`
 | `emit name [expr1, expr2, ...]` | `emit("name", expr1, expr2, ...)`
+| | `print(...)`
 | `call natfun(expr1, expr2, ...)` | `nf_natfun(expr1, expr2, ...)` (see below)
 | | `natfun(expr1, ...)` in expressions
 
@@ -158,7 +234,7 @@ In Python, the names of native functions have underscores instead of dots. Many 
 | `call math.rot2(R, A, b)` | `nf_math_rot2(R, A, b)`
 | `call math.sqrt(R, A)` | `nf_math_sqrt(R, A)`
 
-A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in an assignment or in expressions.
+A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in assignments or other expressions.
 
 | Aseba native function | Python function call
 | --- | ---
