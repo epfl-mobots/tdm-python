@@ -1275,6 +1275,10 @@ sub {fun_name}
             self.output_src = var_decl + "\n" + self.output_src
 
     def get_print_statements(self):
+        """Get the python source code of a list of print statements
+        where each element is a tuple with a format string and the number of numeric
+        arguments, or None for no print statement.
+        """
         return "[\n" + "\n".join([
             f"({repr(self.print_format_strings[id][0])}, {self.print_format_strings[id][1]}),"
             for id in sorted(self.print_format_strings)
@@ -1316,14 +1320,16 @@ sub {fun_name}
     def get_output(self):
         """Get transpiled output.
         """
-        return self.pretty_print(self.output_src), self.get_print_statements()
+        return self.pretty_print(self.output_src)
 
     @staticmethod
     def simple_transpile(input_src, modules=None):
+        """Transpile program from python to aseba, returning the aseba source code.
+        """
         transpiler = ATranspiler()
         if modules is not None:
             transpiler.modules = {**transpiler.modules, **modules}
         transpiler.set_source(input_src)
         transpiler.transpile()
-        output_src, print_statements = transpiler.get_output()
-        return output_src, print_statements, transpiler.print_max_num_args, transpiler
+        output_src = transpiler.get_output()
+        return output_src

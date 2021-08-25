@@ -175,13 +175,16 @@ class TDMConsole(code.InteractiveConsole):
         self.sync_var = sync_var
 
     def run_program(self, src, language="aseba", wait=False):
-        print_statements = None
+        print_statements = []
         if language == "python":
             # transpile from Python to Aseba
-            src, _, print_max_num_args, transpiler = ATranspiler.simple_transpile(src)
+            transpiler = ATranspiler()
+            transpiler.set_source(src)
+            transpiler.transpile()
+            src = transpiler.get_output()
             print_statements = transpiler.print_format_strings
             if len(print_statements) > 0:
-                ClientAsync.aw(self.node.register_events([("_print", 1 + print_max_num_args)]))
+                ClientAsync.aw(self.node.register_events([("_print", 1 + transpiler.print_max_num_args)]))
         elif language != "aseba":
             raise Exception(f"Unsupported language {language}")
         # compile, load, run, and set scratchpad without checking the result

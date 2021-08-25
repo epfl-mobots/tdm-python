@@ -52,9 +52,12 @@ if __name__ == "__main__":
     modules = {
         "thymio": tdmclient.module_thymio.ModuleThymio()
     }
-    output_src, print_statements, _, _ = ATranspiler.simple_transpile(src, modules=modules)
+    transpiler = ATranspiler()
+    transpiler.modules = {**transpiler.modules, **modules}
+    transpiler.set_source(src)
+    transpiler.transpile()
     if show_print:
-        if print_statements is not None:
-            print(print_statements)
+        if transpiler.print_format_strings is not None:
+            print(transpiler.print_format_strings)
     else:
-        print(output_src)
+        print(transpiler.get_output())

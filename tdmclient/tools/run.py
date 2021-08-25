@@ -149,10 +149,13 @@ if __name__ == "__main__":
 
     if language == "python":
         # transpile from Python to Aseba
-        program, _, print_max_num_args, transpiler = ATranspiler.simple_transpile(program)
+        transpiler = ATranspiler()
+        transpiler.set_source(program)
+        transpiler.transpile()
+        program = transpiler.get_output()
         print_statements = transpiler.print_format_strings
         if len(print_statements) > 0:
-            events.append(("_print", 1 + print_max_num_args))
+            events.append(("_print", 1 + transpiler.print_max_num_args))
 
     if sleep is None:
         sleep = len(events) > 0
