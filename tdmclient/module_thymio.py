@@ -211,3 +211,30 @@ class ModuleThymio(Module):
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call math.sqrt({var_str}, [{args[0]}])
 """
+
+        @AFunction.define(self.functions, "nf__leds_set", [False, False])
+        def _fun__leds_set(context, args):
+            return None, f"""call _leds.set({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "nf__system_reboot", [])
+        def _fun__poweroff(context, args):
+            return None, """call _system.reboot()
+"""
+
+        @AFunction.define(self.functions, "nf__system_settings_read", [False], 1)
+        def _fun___system_settings_read(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call _system.settings.read({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "nf__system_settings_write", [False, False])
+        def _fun___system_settings_write(context, args):
+            return None, f"""call _system.settings.write({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "nf__poweroff", [])
+        def _fun__poweroff(context, args):
+            return None, """call _poweroff()
+"""
