@@ -124,7 +124,7 @@ class TDMConsole(code.InteractiveConsole):
         def stop():
             """Stop the program running on the robot.
             """
-            self.stop_program()
+            self.stop_program(discard_output=True)
 
         self.functions = {
             "onevent": onevent,
@@ -157,6 +157,9 @@ class TDMConsole(code.InteractiveConsole):
         # for current command
         self.var_got = set()
         self.var_set = set()
+
+        # enable output upon receiving events
+        self.output_enabled = True
 
     async def init(self, client, node):
         self.client = client
@@ -213,14 +216,15 @@ class TDMConsole(code.InteractiveConsole):
             raise Exception(error["error_msg"])
         if len(print_statements) > 0 and wait:
             def on_event_received(node, event_name, event_data):
-                if event_name == "_print":
-                    print_id = event_data[0]
-                    print_format, print_num_args = print_statements[print_id]
-                    print_args = tuple(event_data[1 : 1 + print_num_args])
-                    print_str = print_format % print_args
-                    print(print_str)
-                else:
-                    print("event", event_name, event_data)
+                if self.output_enabled:
+                    if event_name == "_print":
+                        print_id = event_data[0]
+                        print_format, print_num_args = print_statements[print_id]
+                        print_args = tuple(event_data[1 : 1 + print_num_args])
+                        print_str = print_format % print_args
+                        print(print_str)
+                    else:
+                        print("event", event_name, event_data)
             self.client.add_event_received_listener(on_event_received)
             ClientAsync.aw(self.node.watch(events=True))
         error = ClientAsync.aw(self.node.run())
@@ -230,10 +234,15 @@ class TDMConsole(code.InteractiveConsole):
         if wait:
             ClientAsync.aw(self.client.sleep())
 
-    def stop_program(self):
-        error = ClientAsync.aw(self.node.stop())
-        if error is not None:
-            raise Exception(f"Error {error['error_code']}")
+    def stop_program(self, discard_output=False):
+        output_enabled_orig = self.output_enabled
+        self.output_enabled = not discard_output
+        try:
+            error = ClientAsync.aw(self.node.stop())
+            if error is not None:
+                raise Exception(f"Error {error['error_code']}")
+        finally:
+            self.output_enabled = output_enabled_orig
 
     @staticmethod
     def from_python_name(p_name):
