@@ -62,11 +62,10 @@ from IPython.core.magic import register_line_magic, register_cell_magic
 
 @register_cell_magic
 def run_python(line, cell):
-    _interactive_console.run_program(cell, "python")
-
-@register_cell_magic
-def run_python_wait(line, cell):
-    _interactive_console.run_program(cell, "python", wait=True)
+    args = line.split()
+    wait = "--wait" in args
+    import_thymio = "--nothymio" not in args
+    _interactive_console.run_program(cell, "python", wait=wait, import_thymio=import_thymio)
 
 @register_cell_magic
 def run_aseba(line, cell):
@@ -74,6 +73,8 @@ def run_aseba(line, cell):
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
-    transpiler = _interactive_console.transpile(cell)
+    args = line.split()
+    import_thymio = "--nothymio" not in args
+    transpiler = _interactive_console.transpile(cell, import_thymio=import_thymio)
     src_a = transpiler.get_output()
     print(src_a)
