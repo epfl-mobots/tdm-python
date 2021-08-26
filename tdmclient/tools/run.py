@@ -12,6 +12,7 @@ import re
 
 from tdmclient import ClientAsync
 from tdmclient.atranspiler import ATranspiler
+from tdmclient.module_thymio import ModuleThymio
 
 
 def help():
@@ -23,6 +24,7 @@ Options:
   --help         display this help message and exit
   --language=L   programming language (aseba or python); default=automatic
   --nosleep      exit immediately (default with neither events nor print statement)
+  --nothymio     don't import the symbols of thymio library
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --scratchpad   also store program into the TDM scratchpad
@@ -47,6 +49,7 @@ if __name__ == "__main__":
     events = []
     event_re = re.compile(r"^([^[]*)(\[([0-9]]*)\])?")
     sleep = None  # True to sleep forever, False to exit immediately
+    import_thymio = True
 
     print_statements = []
 
@@ -69,6 +72,7 @@ if __name__ == "__main__":
                                               "help",
                                               "language=",
                                               "nosleep",
+                                              "nothymio",
                                               "robotid=",
                                               "robotname=",
                                               "scratchpad",
@@ -100,6 +104,8 @@ if __name__ == "__main__":
             language = val
         elif arg == "--nosleep":
             sleep = False
+        elif arg == "--nothymio":
+            import_thymio = False
         elif arg == "--robotid":
             robot_id = val
         elif arg == "--robotname":
@@ -128,6 +134,9 @@ if __name__ == "__main__":
                 # try to transpile code from Python
                 try:
                     transpiler = ATranspiler()
+                    if import_thymio:
+                        transpiler.set_preamble("""from thymio import *
+""")
                     transpiler.set_source(program)
                     transpiler.transpile()
                     # successful, must be Python
@@ -149,7 +158,14 @@ if __name__ == "__main__":
 
     if language == "python":
         # transpile from Python to Aseba
+        modules = {
+            "thymio": ModuleThymio()
+        }
         transpiler = ATranspiler()
+        transpiler.modules = {**transpiler.modules, **modules}
+        if import_thymio:
+            transpiler.set_preamble("""from thymio import *
+""")
         transpiler.set_source(program)
         transpiler.transpile()
         program = transpiler.get_output()

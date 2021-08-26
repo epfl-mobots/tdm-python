@@ -84,10 +84,12 @@ class Context:
         """Convert a variable name to its string representation in output
         source code.
         """
-        module_value = self.get_module_value(name, not is_target)
+        is_global = self.is_global(name)
+        context = self.parent_context if is_global and self.parent_context is not None else self
+        module_value = context.get_module_value(name, not is_target)
         if module_value:
             return module_value
-        if self.function_name is None or self.is_global(name):
+        if self.function_name is None or is_global:
             return name.replace("_", ".") if name in ATranspiler.PREDEFINED_VARIABLES else name
         else:
             return f"_{self.function_name}_{name}"
@@ -117,14 +119,14 @@ class Context:
     def declare_var(self, name, size=None, ast_node=None):
         """Declare a variable with its size (array size, or None if scalar).
         """
-        if "." not in name and self.get_module_for_symbol(name) is None:
-            var = self.parent_context.var if name in self.global_var and self.parent_context is not None else self.var
-            if name in var:
-                if (size != var[name] or
+        context = self.parent_context if name in self.global_var and self.parent_context is not None else self
+        if "." not in name and context.get_module_for_symbol(name) is None:
+            if name in context.var:
+                if (size != context.var[name] or
                     name in self.global_var and name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
                     raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
             else:
-                var[name] = size
+                context.var[name] = size
 
     def get_module_value(self, name, ancestors=False):
         """Get the value of a variable or constant defined in an imported module.
@@ -315,202 +317,29 @@ class ATranspiler:
     """Transpiler from a subset of Python3 to Aseba.
     """
 
+    # dict of Aseba variables mapped to python (empty, moved to thymio module)
+    # var_name: var_array_size (number or None for scalar)
     PREDEFINED_VARIABLES = {
-        "acc": 3,
-        "button_backward": None,
-        "button_center": None,
-        "button_forward": None,
-        "button_left": None,
-        "button_right": None,
-        "events_arg": 32,
-        "events_source": None,
-        "leds_bottom_left": 3,
-        "leds_bottom_right": 3,
-        "leds_circle": 8,
-        "leds_top": 3,
-        "mic_intensity": None,
-        "mic_threshold": None,
-        "motor_left_pwm": None,
-        "motor_left_speed": None,
-        "motor_left_target": None,
-        "motor_right_pwm": None,
-        "motor_right_speed": None,
-        "motor_right_target": None,
-        "prox_comm_rx": None,
-        "prox_comm_tx": None,
-        "prox_ground_ambient": 2,
-        "prox_ground_delta": 2,
-        "prox_ground_reflected": 2,
-        "prox_horizontal": 7,
-        "rc5_address": None,
-        "rc5_command": None,
-        "sd_present": None,
-        "temperature": None,
-        "timer_period": 2,
     }
 
     def __init__(self):
+        self.preamble = None
         self.src = None
+        self.ast_preamble = None
         self.ast = None
         self.output_src = None
 
+        # fun_name: AFunction (empty, moved to thymio module)
         self.predefined_function_dict = {}
 
         # dict module_name: module (modules which can be imported)
         self.modules = {}
 
-        @AFunction.define(self.predefined_function_dict, "nf_math_copy", [True, True])
-        def _math_copy(context, args):
-            return None, f"""call math.copy({args[0]}, {args[1]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_fill", [True, False])
-        def _math_fill(context, args):
-            return None, f"""call math.fill({args[0]}, {args[1]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_addscalar", [True, True, False])
-        def _math_addscalar(context, args):
-            return None, f"""call math.addscalar({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_add", [True, True, True])
-        def _math_add(context, args):
-            return None, f"""call math.add({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_sub", [True, True, True])
-        def _math_sub(context, args):
-            return None, f"""call math.sub({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_mul", [True, True, True])
-        def _math_mul(context, args):
-            return None, f"""call math.mul({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_div", [True, True, True])
-        def _math_div(context, args):
-            return None, f"""call math.div({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_min", [True, True, True])
-        def _math_min(context, args):
-            return None, f"""call math.min({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_min", [False, False], 1)
-        def _fun_math_min(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.min({var_str}, [{args[0]}], [{args[1]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_max", [True, True, True])
-        def _math_max(context, args):
-            return None, f"""call math.max({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_max", [False, False], 1)
-        def _fun_math_max(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.max({var_str}, [{args[0]}], [{args[1]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_clamp", [True, True, True, True])
-        def _math_clamp(context, args):
-            return None, f"""call math.clamp({args[0]}, {args[1]}, {args[2]}, {args[3]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_clamp", [False, False, False], 1)
-        def _fun_math_clamp(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_rand", [True])
-        def _math_rand(context, args):
-            return None, f"""call math.rand({args[0]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_rand", [], 1)
-        def _fun_math_rand(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.rand({var_str})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_sort", [True])
-        def _math_sort(context, args):
-            return None, f"""call math.sort({args[0]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_muldiv", [True, True, True, True])
-        def _math_muldiv(context, args):
-            return None, f"""call math.muldiv({args[0]}, {args[1]}, {args[2]}, {args[3]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_muldiv", [False, False, False], 1)
-        def _fun_math_muldiv(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_atan2", [True, True, True])
-        def _math_atan2(context, args):
-            return None, f"""call math.atan2({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_atan2", [False, False], 1)
-        def _fun_math_atan2(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.atan2({var_str}, [{args[0]}], [{args[1]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_sin", [True, True])
-        def _math_sin(context, args):
-            return None, f"""call math.sin({args[0]}, {args[1]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_sin", [False], 1)
-        def _fun_math_sin(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.sin({var_str}, [{args[0]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_cos", [True, True])
-        def _math_cos(context, args):
-            return None, f"""call math.cos({args[0]}, {args[1]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_cos", [False], 1)
-        def _fun_math_cos(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.cos({var_str}, [{args[0]}])
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_rot2", [True, True, False])
-        def _math_rot2(context, args):
-            return None, f"""call math.rot2({args[0]}, {args[1]}, {args[2]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "nf_math_sqrt", [True, True])
-        def _math_sqrt(context, args):
-            return None, f"""call math.sqrt({args[0]}, {args[1]})
-"""
-
-        @AFunction.define(self.predefined_function_dict, "math_sqrt", [False], 1)
-        def _fun_math_sqrt(context, args):
-            tmp_offset = context.request_tmp_expr()
-            var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.sqrt({var_str}, [{args[0]}])
-"""
+    def set_preamble(self, preamble):
+        """Set the Python source code compiled just before source
+        (typically import statements).
+        """
+        self.preamble = preamble
 
     def set_source(self, source):
         """Set the Python source code and reset transpilation.
@@ -541,7 +370,8 @@ class ATranspiler:
         returned, and function definitions, which are stored into parent_context.
         """
         top_code = []
-        for node in self.ast.body:
+        nodes = self.ast_preamble.body + self.ast.body if self.ast_preamble is not None else self.ast.body
+        for node in nodes:
             if isinstance(node, ast.FunctionDef):
                 is_onevent = False
                 for decorator in node.decorator_list:
@@ -1245,6 +1075,7 @@ return
 
         # parse and split into top code and function definitions
         try:
+            self.ast_preamble = ast.parse(self.preamble) if self.preamble is not None else None
             self.ast = ast.parse(self.src)
         except SyntaxError as error:
             raise TranspilerError(error.args[0], syntax_error=error) from None
@@ -1346,12 +1177,14 @@ sub {fun_name}
         return self.pretty_print(self.output_src)
 
     @staticmethod
-    def simple_transpile(input_src, modules=None):
+    def simple_transpile(input_src, modules=None, preamble=None):
         """Transpile program from python to aseba, returning the aseba source code.
         """
         transpiler = ATranspiler()
         if modules is not None:
             transpiler.modules = {**transpiler.modules, **modules}
+        if preamble is not None:
+            transpiler.set_preamble(preamble)
         transpiler.set_source(input_src)
         transpiler.transpile()
         output_src = transpiler.get_output()

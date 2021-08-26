@@ -17,6 +17,7 @@ Run program on robot, from file or stdin
 
 Options:
   --help         display this help message and exit
+  --nothymio     don't import the symbols of thymio library
   --print        display the client-side print statements
 """)
 
@@ -24,12 +25,14 @@ Options:
 if __name__ == "__main__":
 
     show_print = False
+    import_thymio = True
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
                                           "",
                                           [
                                               "help",
+                                              "nothymio",
                                               "print",
                                           ])
     except getopt.error as err:
@@ -39,6 +42,8 @@ if __name__ == "__main__":
         if arg == "--help":
             help()
             sys.exit(0)
+        elif arg == "--nothymio":
+            import_thymio = False
         elif arg == "--print":
             show_print = True
 
@@ -54,6 +59,9 @@ if __name__ == "__main__":
     }
     transpiler = ATranspiler()
     transpiler.modules = {**transpiler.modules, **modules}
+    if import_thymio:
+        transpiler.set_preamble("""from thymio import *
+""")
     transpiler.set_source(src)
     transpiler.transpile()
     if show_print:

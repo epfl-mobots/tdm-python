@@ -12,6 +12,7 @@ import re
 
 from tdmclient import ClientAsync, ArrayCache
 from tdmclient.atranspiler import ATranspiler
+from tdmclient.module_thymio import ModuleThymio
 
 
 class TDMConsole(code.InteractiveConsole):
@@ -100,7 +101,8 @@ class TDMConsole(code.InteractiveConsole):
 
             if language == "aseba":
                 # transpile from Python to Aseba
-                src = ATranspiler.simple_transpile(src)
+                transpiler = self.transpile(src, True)
+                src = transpiler.get_output()
             elif language != "python":
                 raise Exception(f"Unsupported language {language}")
 
@@ -174,13 +176,31 @@ class TDMConsole(code.InteractiveConsole):
             sync_var.add(name_py)
         self.sync_var = sync_var
 
-    def run_program(self, src, language="aseba", wait=False):
+    @staticmethod
+    def transpile(src, import_thymio=True):
+        """Transpile Python source code to Aseba and returns transpiler.
+
+        Argument:
+            src -- Python source code
+            import_thymio -- if True (default), predefine all Thymio symbols
+        """
+        modules = {
+            "thymio": ModuleThymio()
+        }
+        transpiler = ATranspiler()
+        transpiler.modules = {**transpiler.modules, **modules}
+        if import_thymio:
+            transpiler.set_preamble("""from thymio import *
+""")
+        transpiler.set_source(src)
+        transpiler.transpile()
+        return transpiler
+
+    def run_program(self, src, language="aseba", wait=False, import_thymio=True):
         print_statements = []
         if language == "python":
             # transpile from Python to Aseba
-            transpiler = ATranspiler()
-            transpiler.set_source(src)
-            transpiler.transpile()
+            transpiler = self.transpile(src, import_thymio)
             src = transpiler.get_output()
             print_statements = transpiler.print_format_strings
             if len(print_statements) > 0:

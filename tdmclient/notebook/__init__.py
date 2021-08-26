@@ -74,6 +74,6 @@ def run_aseba(line, cell):
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
-    from tdmclient.atranspiler import ATranspiler
-    src_a = ATranspiler.simple_transpile(cell)
+    transpiler = _interactive_console.transpile(cell)
+    src_a = transpiler.get_output()
     print(src_a)
