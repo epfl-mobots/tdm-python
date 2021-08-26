@@ -518,10 +518,14 @@ end
             if a_function is not None:
                 if len(node.args) != len(a_function.argin):
                     raise TranspilerError(f"wrong number of arguments for function {fun_name}", ast_node=node)
-                if a_function.nargout != 1:
-                    raise TranspilerError(f"wrong number of results for function {fun_name}", ast_node=node)
                 values, aux_statements = a_function.get_code(self, context, node.args)
-                return values[0], aux_statements, False
+                if a_function.nargout == 1:
+                    code = values[0]
+                else:
+                    # no return value: must not be called in a subexpression
+                    if priority_container != self.PRI_EXPR:
+                        raise TranspilerError(f"wrong number of results for function {fun_name}", ast_node=node)
+                return code, aux_statements, False
             # hard-coded functions
             if fun_name == "abs":
                 if len(node.args) != 1:
