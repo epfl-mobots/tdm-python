@@ -4,6 +4,20 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.4] - 2021-08-30
+
+### Added
+
+- In transpiler:
+    - support for `print`
+    - support for module `thymio` which can replace predefined Thymio variables and native functions
+- In tdmclient.tools.run, support for events
+
+# Fixed
+
+- In transpiler:
+    - native functions without return value
+
 ## [0.1.3] - 2021-05-06
 
 ### Added
