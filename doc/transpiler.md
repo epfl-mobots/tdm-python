@@ -35,7 +35,7 @@ Here are the implemented features:
 - Function call `print` with arguments which can be any number of constant strings and scalar values. An event `_print` is emitted where the first value is the print statement index, following values are scalar values (int or boolean sent as signed 16-bit integer), with possibly additional 0 to have the same number of values for all the print statements. Format strings, built by concatenating the string arguments of `print` and `'%d'` to stand for numbers, can be retrieved separately. E.g. `print("left",motor_left_target)` could be transpiled to `emit _print [0, motor.left.target]` and the corresponding format string is `'left %d'`. It's up to the program on the PC side to accept events, recognize those named `_print`, extract the format string index and the arguments, and produce an output string with the `%` operator. The tool `tdmclient.tools.run` handles that.
 - In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
 
-Perhaps the most noticeable missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`.
+Perhaps the most noticeable yet basic missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`. More generally, everything related to object-oriented programming, dynamic types, strings, and nested functions is not supported.
 
 The transpilation is mostly straightforward. Mixing numeric and boolean expressions often requires splitting them into multiple statements and using temporary variables. The `for` loop is transpiled to an Aseba `while` loop because in Aseba, `for` is limited to constant ranges. Comments are lost because the official Python parser used for the first phase ignores them. Since functions are transpiled to subroutines, recursive functions are forbidden.
 
@@ -160,7 +160,6 @@ The result is
 {0: ('%d odd', 1), 1: ('%d even', 1)}
 ```
 
-
 ### Feature comparison
 
 The table below shows a mapping between Aseba and Python features. Empty cells stand for lack of a direct equivalent. Prefixes `const_`, `numeric_` or `bool_` indicate restrictions on what's permitted. Standard Python features which are missing are not transpiled; they cause an error.
@@ -169,7 +168,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | --- | ---
 | infix `+` `-` `*` `/` | infix `+` `-` `*` `//`
 | infix `%` (remainder) | infix `%` (modulo)
-| infix `<<` `>>` `|` `&` `^` | infix `<<` `>>` `|` `&` `^`
+| infix `<<` `>>` <code>&#124;</code> `&` `^` | infix `<<` `>>` <code>&#124;</code> `&` `^`
 | prefix `-` `~` `not` | prefix `-` `~` `not`
 | | prefix `+`
 | `==` `!=` `<` `<=` `>` `>=` | `==` `!=` `<` `<=` `>` `>=`
@@ -182,6 +181,9 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | `var a[size]` |
 | `var a[] = [...]` | `a = [...]`
 | `v = numeric_expr` | `v = any_expr`
+| `+=` `-=` `*=` `/=` `%=` `<<=` `>>=` `&=` <code>&#124;=</code> | `+=` `-=` `*=` `//=` `%=` `<<=` `>>=` `&=` <code>&#124;=</code>
+| `v++` `v--` | `v += 1` `v -= 1`
+| `a = b` (array assignment) | `a = b`
 | `a[index_expr]` | `a[index_expr]`
 | `a[constant_range]` |
 | `if bool_expr then` | `if any_expr:`
@@ -241,7 +243,6 @@ Arguments are the same in the same order, except for `_system.settings.read` whi
 | `call _system.settings.read(a, r)` | `r = nf__system_settings_read(a)`
 | `call _system.settings.write(a, b)` | `nf__system_settings_write(a, b)`
 
-
 A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in assignments or other expressions.
 
 | Aseba native function | Python function call
@@ -255,3 +256,59 @@ A few of them have a name without the `nf_` prefix, scalar arguments and a singl
 | `math.sin` | `math_sin(a)`
 | `math.cos` | `math_cos(a)`
 | `math.sqrt` | `math_sqrt(a)`
+
+## Thymio variables and native functions
+
+Thymio variables and native functions are mapped to Thymio's. Their names contain underscores `_` instead of dots '.'; e.g. `leds_top` in Python instead of `leds.top` in Aseba. By default, they're predefined in the global scope. Alternatively, with option `--nothymio` in  `tdmclient.tools.transpile` or `tdmclient.tools.run`, they aren't, but can be imported from module `thymio` as follows:
+- `import thymio` in the global scope: variables can be accessed everywhere in expressions or assignments as e.g. `thymio.leds_top`.
+- `import thymio as A` in global scope: variables can be accessed everywhere in expressions or assignments as e.g. `A.leds_top` (`A` can be any valid symbol).
+- `import thymio` or `import thymio as A` in function definition scope: variables can be accessed in expressions or assignments in the function.
+- `from thymio import s1, s2, ...` in the global scope: variables can be accessed in expressions everywhere (except in functions where a local variables with the same name is assigned to), in assignments in the global scope, and in functions where `s1`, `s2` etc. are declared global.
+- `from thymio import *` in the global scope: all Thymio symbols are imported and can be accessed directly by their name.
+- `from thymio import s1 as a1, s2 as a2, ...` in the global scope: same as above, but variables (or only some of them) are aliased to a different name.
+- `from thymio import ...` in function definition scope: variables can be accessed in expressions or assignments in the function.
+
+In other words, the expected Python rules apply. No other module is available.
+
+In addition to variables and native functions, the following constants are defined:
+
+| Name | Value
+| --- | ---
+| `BLACK` | `[0, 0, 0]`
+| `BLUE` | `[0, 0, 32]`
+| `CYAN` | `[0, 32, 32]`
+| `GREEN` | `[0, 32, 0]`
+| `MAGENTA` | `[32, 0, 32]`
+| `RED` | `[32, 0, 0]`
+| `WHITE` | `[32, 32, 32]`
+| `YELLOW` | `[32, 32, 0]`
+
+Function `emit` and decorator `@onevent` are always predefined. This is also the case for `abs`, `len` and `print`, like in plain Python.
+
+Here are examples which all transpile to the same Aseba program `leds.top = [32, 0, 0]`:
+```
+import thymio
+thymio.leds_top = thymio.RED
+```
+```
+from thymio import leds_top, RED
+leds_top = RED
+```
+```
+from thymio import leds_top
+from thymio import RED
+leds_top = RED
+```
+```
+import thymio
+from thymio import leds_top
+leds_top = thymio.RED
+```
+```
+from thymio import *
+leds_top = RED
+```
+```
+from thymio import leds_top as led, RED as color
+led = color
+```
