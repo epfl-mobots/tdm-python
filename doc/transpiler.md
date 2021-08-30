@@ -213,6 +213,8 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 
 In Python, the names of native functions have underscores instead of dots. Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf_` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays, lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result.
 
+Arguments are the same in the same order, except for `_system.settings.read` which returns a single scalar value. In Python, scalar numbers are passed by value and not by reference, contrary to Aseba; therefore the result is passed as a return value and can be used directly in any expression. Note also that in Python, lists (arrays) of length 1 are _not_ interchangeable with scalars, contrary to Aseba.
+
 | Aseba | Python
 | --- | ---
 | `call math.copy(R, A)` | `nf_math_copy(R, A)`
@@ -233,6 +235,12 @@ In Python, the names of native functions have underscores instead of dots. Many 
 | `call math.cos(R, A)` | `nf_math_cos(R, A)`
 | `call math.rot2(R, A, b)` | `nf_math_rot2(R, A, b)`
 | `call math.sqrt(R, A)` | `nf_math_sqrt(R, A)`
+| `call _leds.set(a, b)` | `nf__leds_set(a, b)`
+| `call _poweroff()` | `nf__poweroff()`
+| `call _system.reboot()` | `nf__system_reboot()`
+| `call _system.settings.read(a, r)` | `r = nf__system_settings_read(a)`
+| `call _system.settings.write(a, b)` | `nf__system_settings_write(a, b)`
+
 
 A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in assignments or other expressions.
 
