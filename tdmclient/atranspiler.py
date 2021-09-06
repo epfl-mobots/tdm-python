@@ -818,7 +818,7 @@ else
 end
 """
                     index_value = context.tmp_var_str(tmp_offset)
-                target += "[" + index_value + "]"
+                target_str += "[" + index_value + "]"
             if is_boolean:
                 # convert boolean to number
                 code += f"""if {value} then
