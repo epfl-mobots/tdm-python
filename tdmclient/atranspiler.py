@@ -462,13 +462,13 @@ class ATranspiler:
             tmp_offset = context.request_tmp_expr()
             for i in range(len(node.values)):
                 value, aux_st, is_value_boolean = self.compile_expr(node.values[i], context, self.PRI_ASSIGN)
-                # store value into tmp[tmp_offset]
+                # store value into _tmp[tmp_offset]
                 aux_statements += aux_st
                 if is_value_boolean:
                     aux_statements += f"""if {value} then
-tmp[{tmp_offset}] = 1
+{context.tmp_var_str(tmp_offset)} = 1
 else
-tmp[{tmp_offset}] = 0
+{context.tmp_var_str(tmp_offset)} = 0
 end
 """
                 else:
@@ -908,7 +908,7 @@ end
             context.declare_var(target, ast_node=node)
             if len(range_args) == 1:
                 # for var in range(a): ...
-                # stores limit a in tmp[tmp_offset]
+                # stores limit a in _tmp[tmp_offset]
                 tmp_offset = context.request_tmp_expr()
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
@@ -918,7 +918,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
 """
             elif len(range_args) == 2:
                 # for var in range(a, b)
-                # stores limit b in tmp[tmp_offset]
+                # stores limit b in _tmp[tmp_offset]
                 tmp_offset = context.request_tmp_expr()
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
@@ -931,7 +931,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
 """
             else:
                 # for var in range(a, b, c)
-                # stores limit b in tmp[tmp_offset] and step c in tmp[tmp_offset+1]
+                # stores limit b in _tmp[tmp_offset] and step c in _tmp[tmp_offset+1]
                 tmp_offset = context.request_tmp_expr(2)
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
