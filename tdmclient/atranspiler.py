@@ -944,7 +944,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
                 value, aux_statements, is_boolean = self.compile_expr(range_args[2], context, self.PRI_NUMERIC)
                 code += aux_statements
                 code += f"""{context.tmp_var_str(tmp_offset + 1)} = {value}
-while {target_str} < {context.tmp_var_str(tmp_offset)} do
+while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_str(tmp_offset)} * {context.tmp_var_str(tmp_offset + 1)} do
 """
             body = self.compile_node_array(node.body, context)
             code += body
