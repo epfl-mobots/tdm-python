@@ -113,7 +113,7 @@ class Context:
         """Declare a global variable.
         """
         if name in self.var:
-            raise TranspilerError(f"variable {name} declared global after being assigned to", ast_node)
+            raise TranspilerError(f"variable '{name}' declared global after being assigned to", ast_node)
         self.global_var.add(name)
 
     def declare_var(self, name, size=None, ast_node=None):
@@ -124,7 +124,7 @@ class Context:
             if name in context.var:
                 if (size != context.var[name] or
                     name in self.global_var and name in ATranspiler.PREDEFINED_VARIABLES and size != ATranspiler.PREDEFINED_VARIABLES[name]):
-                    raise TranspilerError(f"incompatible sizes for list assignment to {name}", ast_node)
+                    raise TranspilerError(f"incompatible sizes for list assignment to '{name}'", ast_node)
             else:
                 context.var[name] = size
 
@@ -382,18 +382,18 @@ class ATranspiler:
                         raise TranspilerError(f'unsupported function decorator "{decorator.id}"', ast_node=node)
                     is_onevent = True
                 if node.name in parent_context.functions:
-                    raise TranspilerError(f"function {node.name} defined multiple times", ast_node=node)
+                    raise TranspilerError(f"function '{node.name}' defined multiple times", ast_node=node)
                 if len(node.args.args) > 0:
                     if is_onevent:
-                        raise TranspilerError(f"unexpected arguments in @onevent function {node.name}", ast_node=node)
+                        raise TranspilerError(f"unexpected arguments in @onevent function '{node.name}'", ast_node=node)
                     if len(node.args.defaults) > 0:
-                        raise TranspilerError(f"unsupported default values for arguments of {node.name}", ast_node=node)
+                        raise TranspilerError(f"unsupported default values for arguments of '{node.name}'", ast_node=node)
                     if len({a.arg for a in node.args.args}) < len(node.args.args):
-                        raise TranspilerError(f"multiple arguments with the same name in function {node.name}", ast_node=node)
+                        raise TranspilerError(f"multiple arguments with the same name in function '{node.name}'", ast_node=node)
                 if node.args.vararg is not None:
-                    raise TranspilerError(f"unsupported varargs in arguments of {node.name}", ast_node=node)
+                    raise TranspilerError(f"unsupported varargs in arguments of '{node.name}'", ast_node=node)
                 if node.args.kwarg is not None:
-                    raise TranspilerError(f"unsupported kwargs in arguments of {node.name}", ast_node=node)
+                    raise TranspilerError(f"unsupported kwargs in arguments of '{node.name}'", ast_node=node)
                 parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
             else:
                 top_code.append(node)
@@ -491,9 +491,9 @@ end
                 context.called_functions.add(fun_name)
                 # set arguments (assign values to function's local variables)
                 if len(node.args) > len(function_def.function_def.args.args):
-                    raise TranspilerError(f"too many arguments in call to function {fun_name}", ast_node=node)
+                    raise TranspilerError(f"too many arguments in call to function '{fun_name}'", ast_node=node)
                 if len(node.args) < len(function_def.function_def.args.args):
-                    raise TranspilerError(f"too few arguments in call to function {fun_name}", ast_node=node)
+                    raise TranspilerError(f"too few arguments in call to function '{fun_name}'", ast_node=node)
                 for i, arg_def in enumerate(function_def.function_def.args.args):
                     arg = node.args[i]
                     code, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_COMMA)
@@ -518,14 +518,14 @@ end
                 a_function = self.predefined_function_dict[fun_name]
             if a_function is not None:
                 if len(node.args) != len(a_function.argin):
-                    raise TranspilerError(f"wrong number of arguments for function {fun_name}", ast_node=node)
+                    raise TranspilerError(f"wrong number of arguments for function '{fun_name}'", ast_node=node)
                 values, aux_statements = a_function.get_code(self, context, node.args)
                 if a_function.nargout == 1:
                     code = values[0]
                 else:
                     # no return value: must not be called in a subexpression
                     if priority_container != self.PRI_EXPR:
-                        raise TranspilerError(f"wrong number of results for function {fun_name}", ast_node=node)
+                        raise TranspilerError(f"wrong number of results for function '{fun_name}'", ast_node=node)
                 return code, aux_statements, False
             # hard-coded functions
             if fun_name == "abs":
@@ -546,7 +546,7 @@ end
                 else:
                     raise TranspilerError("type of argument of len is not a list", ast_node=node)
                 return code, aux_statements, False
-            raise TranspilerError(f"unknown function {fun_name}", ast_node=node)
+            raise TranspilerError(f"unknown function '{fun_name}'", ast_node=node)
         elif isinstance(node, ast.Compare):
             op_str = {
                 ast.Eq: "==",
@@ -605,7 +605,7 @@ if {context.tmp_var_str(tmp_offset + 1)} {op_str[type(node.ops[i])]} {context.tm
             elif node.value is True:
                 code = "1"
             else:
-                raise TranspilerError(f"unsupported constant {node.value}", node)
+                raise TranspilerError(f"unsupported constant '{node.value}'", node)
         elif isinstance(node, ast.IfExp):
             tmp_offset = context.request_tmp_expr()
             value, aux_st, is_boolean = self.compile_expr(node.test, context, self.PRI_ASSIGN)
@@ -643,17 +643,17 @@ end
         elif isinstance(node, ast.Name):
             var_array_size = context.var_array_size(node.id)
             if var_array_size is False:
-                raise TranspilerError(f"unknown variable {node.id}", node)
+                raise TranspilerError(f"unknown variable '{node.id}'", node)
             if isinstance(var_array_size, int):
-                raise TranspilerError(f"list variable {node.id} used in expression", node)
+                raise TranspilerError(f"list variable '{node.id}' used in expression", node)
             code = context.var_str(node.id)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
             var_array_size = context.var_array_size(name)
             if var_array_size is False:
-                raise TranspilerError(f"unknown variable {name}", node)
+                raise TranspilerError(f"unknown variable '{name}'", node)
             if var_array_size is None:
-                raise TranspilerError(f"indexing of variable {name} which is not a list", node)
+                raise TranspilerError(f"indexing of variable '{name}' which is not a list", node)
             index = node.slice
             index_value, aux_st, is_index_boolean = self.compile_expr(index, context, self.PRI_NUMERIC)
             if is_index_boolean:
@@ -692,7 +692,7 @@ end
                 aux_statements += aux_st
                 code = "-" + operand
             else:
-                raise TranspilerError(f"unsupported unary op {op}", node)
+                raise TranspilerError(f"unsupported unary op '{op}'", node)
         else:
             raise TranspilerError(f"node {ast.dump(node)} not implemented", node)
 
@@ -744,7 +744,7 @@ end
                     name_right = self.decode_attr(node.value)
                     target_size = context.var_array_size(name_right)
                     if target_size is False:
-                        raise TranspilerError(f"unknown variable {name_right}", node)
+                        raise TranspilerError(f"unknown variable '{name_right}'", node)
                     context.declare_var(target, target_size, ast_node=node)
                     # code special case (parsing of var2 as an expression would fail)
                     module_value = context.get_module_value(name_right, True)
@@ -847,7 +847,7 @@ end
                     # will ignore any output
                     predefined_function = self.predefined_function_dict[fun_name]
                     if len(expr.args) != len(predefined_function.argin):
-                        raise TranspilerError(f"wrong number of arguments for function {fun_name}", node)
+                        raise TranspilerError(f"wrong number of arguments for function '{fun_name}'", node)
                     _, aux_statements = predefined_function.get_code(self, context, expr.args)
                     return aux_statements
                 if fun_name == "emit":
@@ -1002,13 +1002,13 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
             for alias in node.names:
                 module_name = alias.name
                 if module_name not in self.modules:
-                    raise TranspilerError(f"unknown module {module_name}", node)
+                    raise TranspilerError(f"unknown module '{module_name}'", node)
                 context.add_module(alias.asname or module_name, self.modules[module_name])
             return ""
         if isinstance(node, ast.ImportFrom):
             module_name = node.module
             if module_name not in self.modules:
-                raise TranspilerError(f"unknown module {module_name}", node)
+                raise TranspilerError(f"unknown module '{module_name}'", node)
             if len(node.names) == 1 and node.names[0].name == "*":
                 # import all symbols
                 context.add_module(module_name, self.modules[module_name],
@@ -1033,11 +1033,11 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
             if context.parent_context is None:
                 raise TranspilerError("return outside function", node)
             if context.is_onevent and node.value is not None:
-                raise TranspilerError(f"returned value in @onevent function {context.function_name}", node)
+                raise TranspilerError(f"returned value in @onevent function '{context.function_name}'", node)
             if context.has_return_val is None:
                 context.has_return_val = node.value is not None
             elif context.has_return_val != (node.value is not None):
-                raise TranspilerError(f"inconsistent return values in function {context.function_name}", node)
+                raise TranspilerError(f"inconsistent return values in function '{context.function_name}'", node)
             if node.value is not None:
                 tmp_offset = context.request_tmp_expr()
                 ret_value, aux_statements, _ = self.compile_expr(node.value, context, self.PRI_NUMERIC)
@@ -1127,7 +1127,7 @@ sub {fun_name}
         # check recursivity
         for fun_name in context_top.functions:
             if context_top.functions[fun_name].is_recursive(context_top.functions):
-                raise TranspilerError(f"recursive function {fun_name}", context_top.functions[fun_name].function_def)
+                raise TranspilerError(f"recursive function '{fun_name}'", context_top.functions[fun_name].function_def)
 
         # variable declarations
         var_decl = context_top.var_declarations()
