@@ -4,6 +4,20 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In transpiler:
+    - support for `exit`
+
+### Fixed
+
+- In transpiler:
+    - `and` and `or`
+    - augmented assignments with indexed variable target
+    - `range` with negative step
+    - list arguments in native function calls
+- In repl, event listeners reset when needed
+
 ## [0.1.4] - 2021-08-30
 
 ### Added
