@@ -13,3 +13,7 @@ def timer0():
     else:
         print(i, "even")
         leds_top = [0, 0, 0]
+
+@onevent
+def button_center():
+    exit()
