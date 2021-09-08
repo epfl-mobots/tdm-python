@@ -213,7 +213,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | `call natfun(expr1, expr2, ...)` | `nf_natfun(expr1, expr2, ...)` (see below)
 | | `natfun(expr1, ...)` in expressions
 
-In Python, the names of native functions have underscores instead of dots. Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf_` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays, lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result.
+In Python, the names of native functions have underscores instead of dots. Many native functions can be called with the syntax of a plain function call, with a name prefixed with `nf_` and the same arguments as in Aseba. In the table below, uppercase letters stand for arrays (lists in Python), lowercase letters for scalar values, `A`, `B`, `a` and `b` for inputs, `R` and `r` for result, and `P` for both input and result. Lists can be variables or lists of numbers and/or booleans.
 
 Arguments are the same in the same order, except for `_system.settings.read` which returns a single scalar value. In Python, scalar numbers are passed by value and not by reference, contrary to Aseba; therefore the result is passed as a return value and can be used directly in any expression. Note also that in Python, lists (arrays) of length 1 are _not_ interchangeable with scalars, contrary to Aseba.
 

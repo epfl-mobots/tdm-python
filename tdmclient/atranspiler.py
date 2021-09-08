@@ -295,10 +295,15 @@ class AFunction:
         arg_code = []
         for i, arg in enumerate(args):
             if self.argin[i]:
-                if not isinstance(arg, ast.Name):
+                if isinstance(arg, ast.Name):
+                    arg_code.append(arg.id)
+                elif isinstance(arg, ast.List):
+                    value, aux_st, _ = atranspiler.compile_expr(arg, context, atranspiler.PRI_ASSIGN)
+                    aux_statements += aux_st
+                    arg_code.append(value)
+                else:
                     raise TranspilerError(f"list variable argument expected by function '{self.name}'",
                                           ast_node=arg)
-                arg_code.append(arg.id)
             else:
                 value, aux_st, _ = atranspiler.compile_expr(arg, context, ATranspiler.PRI_NUMERIC)
                 aux_statements += aux_st
