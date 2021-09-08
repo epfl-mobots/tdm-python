@@ -36,7 +36,7 @@ class ClientAsync(tdmclient.Client):
             return node
 
     @types.coroutine
-    def sleep(self, duration=-1):
+    def sleep(self, duration=-1, wake=None):
         t0 = monotonic()
         while duration < 0 or monotonic() < t0 + duration:
             self.process_waiting_messages()
@@ -44,6 +44,8 @@ class ClientAsync(tdmclient.Client):
                   if duration < 0
                   else max(min(self.DEFAULT_SLEEP, t0 + duration - monotonic()),
                            self.DEFAULT_SLEEP / 1e3))
+            if wake is not None and wake():
+                break
             yield
 
     @types.coroutine
