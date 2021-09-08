@@ -201,23 +201,32 @@ class TDMConsole(code.InteractiveConsole):
 
     def run_program(self, src, language="aseba", wait=False, import_thymio=True):
         print_statements = []
+        events = []
         if language == "python":
             # transpile from Python to Aseba
             transpiler = self.transpile(src, import_thymio)
             src = transpiler.get_output()
             print_statements = transpiler.print_format_strings
             if len(print_statements) > 0:
-                ClientAsync.aw(self.node.register_events([("_print", 1 + transpiler.print_max_num_args)]))
+                events.append(("_print", 1 + transpiler.print_max_num_args))
+            if transpiler.has_exit_event:
+                events.append(("_exit", 0))
+            if len(events) > 0:
+                ClientAsync.aw(self.node.register_events(events))
         elif language != "aseba":
             raise Exception(f"Unsupported language {language}")
         # compile, load, run, and set scratchpad without checking the result
         error = ClientAsync.aw(self.node.compile(src))
         if error is not None:
             raise Exception(error["error_msg"])
-        if len(print_statements) > 0 and wait:
+        exit_received = False
+        if len(events) > 0 and wait:
             def on_event_received(node, event_name, event_data):
                 if self.output_enabled:
-                    if event_name == "_print":
+                    if event_name == "_exit":
+                        nonlocal exit_received
+                        exit_received = True
+                    elif event_name == "_print":
                         print_id = event_data[0]
                         print_format, print_num_args = print_statements[print_id]
                         print_args = tuple(event_data[1 : 1 + print_num_args])
@@ -232,7 +241,9 @@ class TDMConsole(code.InteractiveConsole):
             raise Exception(f"Error {error['error_code']}")
         self.node.send_set_scratchpad(src)
         if wait:
-            ClientAsync.aw(self.client.sleep())
+            def wake():
+                return exit_received
+            ClientAsync.aw(self.client.sleep(wake=wake))
 
     def stop_program(self, discard_output=False):
         output_enabled_orig = self.output_enabled
