@@ -293,10 +293,16 @@ class AFunction:
         """
         aux_statements = ""
         arg_code = []
-        for arg in args:
-            value, aux_st, _ = atranspiler.compile_expr(arg, context, ATranspiler.PRI_NUMERIC)
-            aux_statements += aux_st
-            arg_code.append(value)
+        for i, arg in enumerate(args):
+            if self.argin[i]:
+                if not isinstance(arg, ast.Name):
+                    raise TranspilerError(f"list variable argument expected by function '{self.name}'",
+                                          ast_node=arg)
+                arg_code.append(arg.id)
+            else:
+                value, aux_st, _ = atranspiler.compile_expr(arg, context, ATranspiler.PRI_NUMERIC)
+                aux_statements += aux_st
+                arg_code.append(value)
         values, aux_st = self.fun(context, arg_code)
         aux_statements += aux_st
         return values, aux_statements
