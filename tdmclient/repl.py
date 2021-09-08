@@ -234,6 +234,7 @@ class TDMConsole(code.InteractiveConsole):
                         print(print_str)
                     else:
                         print("event", event_name, event_data)
+            self.client.clear_event_received_listeners()
             self.client.add_event_received_listener(on_event_received)
             ClientAsync.aw(self.node.watch(events=True))
         error = ClientAsync.aw(self.node.run())

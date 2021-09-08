@@ -33,17 +33,26 @@ class Listener:
     def remove_variables_changed_listener(self, listener):
         self.on_variables_changed.remove(listener)
 
+    def clear_variables_changed_listeners(self):
+        self.on_variables_changed = set()
+
     def add_events_received_listener(self, listener):
         self.on_events_received.add(listener)
 
     def remove_events_received_listener(self, listener):
         self.on_events_received.remove(listener)
 
+    def clear_events_received_listeners(self):
+        self.on_events_received = set()
+
     def add_event_received_listener(self, listener):
         self.on_event_received.add(listener)
 
     def remove_event_received_listener(self, listener):
         self.on_event_received.remove(listener)
+
+    def clear_event_received_listeners(self):
+        self.on_event_received = set()
 
     def notify_variables_changed(self, node, variable_dict):
         for f in self.on_variables_changed:
