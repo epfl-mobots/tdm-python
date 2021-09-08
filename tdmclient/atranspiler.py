@@ -350,6 +350,7 @@ class ATranspiler:
         self.print_format_strings = {}
         self.print_format_string_next_id = 0
         self.print_max_num_args = 0
+        self.has_exit_event = False
 
     @staticmethod
     def decode_attr(node):
@@ -866,6 +867,11 @@ end
                             code += value
                         code += "]"
                     code = aux_statements + code + "\n"
+                    return code
+                elif fun_name == "exit":
+                    # hard-coded exit() -> "emit _exit"
+                    code = "emit _exit\n"
+                    self.has_exit_event = True
                     return code
                 elif fun_name == "print":
                     # hard-coded print(args...) -> "emit _print [print_id, non_string_args...]"
