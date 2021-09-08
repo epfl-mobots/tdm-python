@@ -1,3 +1,5 @@
+# Demo of print(...) function
+
 i = 0
 
 timer_period[0] = 1000

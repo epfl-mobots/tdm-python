@@ -56,6 +56,7 @@ if __name__ == "__main__":
 
     def on_event_received(node, event_name, event_data):
         if event_name == "_exit":
+            global exit_received
             exit_received = True
         elif event_name == "_print":
             print_id = event_data[0]
