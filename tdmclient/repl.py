@@ -245,6 +245,7 @@ class TDMConsole(code.InteractiveConsole):
             def wake():
                 return exit_received
             ClientAsync.aw(self.client.sleep(wake=wake))
+            self.stop_program(discard_output=True)
 
     def stop_program(self, discard_output=False):
         output_enabled_orig = self.output_enabled
