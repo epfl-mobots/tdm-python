@@ -127,7 +127,7 @@ class ModuleThymio(Module):
         def _fun_math_clamp(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
+            return [var_str], f"""call math.clamp({var_str}, [{args[0]}], [{args[1]}], [{args[2]}])
 """
 
         @AFunction.define(self.functions, "nf_math_rand", [True])
@@ -156,7 +156,7 @@ class ModuleThymio(Module):
         def _fun_math_muldiv(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
-            return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}, {args[2]}])
+            return [var_str], f"""call math.muldiv({var_str}, [{args[0]}], [{args[1]}], [{args[2]}])
 """
 
         @AFunction.define(self.functions, "nf_math_atan2", [True, True, True])

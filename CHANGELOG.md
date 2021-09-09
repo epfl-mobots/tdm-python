@@ -19,6 +19,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - `range` with negative step
     - list arguments in native function calls
     - check for recursive function calls
+    - code generated for functions `math_clamp` and `math_muldiv`
 - In repl, event listeners reset when needed
 
 ## [0.1.4] - 2021-08-30
