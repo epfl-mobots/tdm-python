@@ -86,18 +86,22 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def lock(self, **kwargs):
+    def lock(self, wait_for_busy_node=False, **kwargs):
         """Lock the first available node matching the selection criteria and
         return it.
 
         Keyword arguments:
+            wait_for_busy_node: whether to wait until a busy node becomes available
             node_id: node id (string or None)
             node_name: robot name (string or None)
 
         Should be used in a "with" construct which will manage the unlocking.
         """
 
-        yield from self.wait_for_status(self.NODE_STATUS_AVAILABLE)
+        yield from self.wait_for_status_set(
+            {self.NODE_STATUS_AVAILABLE} if wait_for_busy_node
+            else {self.NODE_STATUS_AVAILABLE, self.NODE_STATUS_BUSY}
+        )
         node = self.first_node(**kwargs)
         result = yield from node.lock_node()
         if result is not None:

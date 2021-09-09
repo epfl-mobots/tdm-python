@@ -10,6 +10,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - support for `exit`
 - In documentation:
     - note on the replacement of `run_async_program` with `await` in Jupyter notebooks
+- By default, locking the default node raises an error if it's busy instead of waiting
 
 ### Fixed
 
