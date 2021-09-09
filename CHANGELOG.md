@@ -16,6 +16,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - augmented assignments with indexed variable target
     - `range` with negative step
     - list arguments in native function calls
+    - check for recursive function calls
 - In repl, event listeners reset when needed
 
 ## [0.1.4] - 2021-08-30

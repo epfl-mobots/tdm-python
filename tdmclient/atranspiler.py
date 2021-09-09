@@ -250,7 +250,7 @@ class Context:
             if fun_name not in connections:
                 connections_upd = fun_dict[fun_name].called_functions.copy()
                 for fun in fun_dict[fun_name].called_functions:
-                    if fun == self.function_name or connect(f):
+                    if fun == self.function_name or connect(fun):
                         return True
                     connections_upd |= connections[fun]
                 connections[fun_name] = connections_upd
