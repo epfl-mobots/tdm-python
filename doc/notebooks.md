@@ -27,7 +27,9 @@ replacing `/.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl` with the actua
 
 This section describes the use of the class `ClientAsync` in a notebook.
 
-The main difference between using tdmclient in a notebook and in the standard Python repl (read-eval-print loop) is that you can use directly the `await` keyword to execute `async` methods and wait for their result.
+The main difference between using tdmclient in a notebook and in the standard Python repl (read-eval-print loop) is that you can use directly the `await` keyword to execute `async` methods and wait for their result. Therefore:
+- You can avoid writing async functions if it's just to run them with `run_async_program`.
+- If you still write async functions, run them with `await prog()` instead of `client.run_async_program(prog)`.
 
 In the code fragments below, you can put separate statements in distinct cells and intersperse text cells. Only larger Python constructs such as `with`, loops, or function definitions, must be contained as a whole in a single cell.
 

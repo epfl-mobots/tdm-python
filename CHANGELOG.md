@@ -8,6 +8,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - In transpiler:
     - support for `exit`
+- In documentation:
+    - note on the replacement of `run_async_program` with `await` in Jupyter notebooks
 
 ### Fixed
 
