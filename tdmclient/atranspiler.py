@@ -362,6 +362,7 @@ class ATranspiler:
         self.print_format_string_next_id = 0
         self.print_max_num_args = 0
         self.has_exit_event = False
+        self.events = {}
 
     @staticmethod
     def decode_attr(node):
@@ -868,10 +869,16 @@ end
                         not isinstance(expr.args[0].value, str)):
                         raise TranspilerError("bad event name in emit", node)
                     event_name = expr.args[0].value
+                    event_size = len(expr.args) - 1
+                    if event_name in self.events:
+                        if event_size != self.events[event_name]:
+                            raise TranspilerError(f"inconsistent size for event '{event_name}'", node)
+                    else:
+                        self.events[event_name] = event_size
                     code = f"emit {event_name}"
                     aux_statements = ""
                     if len(expr.args) > 1:
-                        for i in range(len(expr.args) - 1):
+                        for i in range(event_size):
                             value, aux_st, _ = self.compile_expr(expr.args[1 + i], context, self.PRI_NUMERIC)
                             aux_statements += aux_st
                             code += " [" if i == 0 else ", "
