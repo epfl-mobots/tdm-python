@@ -211,6 +211,8 @@ class TDMConsole(code.InteractiveConsole):
                 events.append(("_print", 1 + transpiler.print_max_num_args))
             if transpiler.has_exit_event:
                 events.append(("_exit", 1))
+            for event_name in transpiler.events:
+                events.append((event_name, transpiler.events[event_name]))
             if len(events) > 0:
                 ClientAsync.aw(self.node.register_events(events))
         elif language != "aseba":

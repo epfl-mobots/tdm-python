@@ -26,12 +26,14 @@ if __name__ == "__main__":
 
     show_print = False
     show_exit = False
+    show_events = False
     import_thymio = True
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
                                           "",
                                           [
+                                              "events",
                                               "exit",
                                               "help",
                                               "nothymio",
@@ -41,7 +43,9 @@ if __name__ == "__main__":
         print(str(err))
         sys.exit(1)
     for arg, val in arguments:
-        if arg == "--exit":
+        if arg == "--events":
+            show_events = True
+        elif arg == "--exit":
             show_exit = True
         elif arg == "--help":
             help()
@@ -68,11 +72,14 @@ if __name__ == "__main__":
 """)
     transpiler.set_source(src)
     transpiler.transpile()
+    if show_events:
+        if len(transpiler.events) > 0:
+            print(transpiler.events)
     if show_exit:
         if transpiler.has_exit_event:
             print("_exit")
     if show_print:
         if transpiler.print_format_strings is not None:
             print(transpiler.print_format_strings)
-    else:
+    if not show_events and not show_exit and not show_print:
         print(transpiler.get_output())
