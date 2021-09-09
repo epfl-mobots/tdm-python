@@ -210,7 +210,7 @@ class TDMConsole(code.InteractiveConsole):
             if len(print_statements) > 0:
                 events.append(("_print", 1 + transpiler.print_max_num_args))
             if transpiler.has_exit_event:
-                events.append(("_exit", 0))
+                events.append(("_exit", 1))
             if len(events) > 0:
                 ClientAsync.aw(self.node.register_events(events))
         elif language != "aseba":
@@ -219,13 +219,13 @@ class TDMConsole(code.InteractiveConsole):
         error = ClientAsync.aw(self.node.compile(src))
         if error is not None:
             raise Exception(error["error_msg"])
-        exit_received = False
+        exit_received = None  # or exit code once received
         if len(events) > 0 and wait:
             def on_event_received(node, event_name, event_data):
                 if self.output_enabled:
                     if event_name == "_exit":
                         nonlocal exit_received
-                        exit_received = True
+                        exit_received = event_data[0]
                     elif event_name == "_print":
                         print_id = event_data[0]
                         print_format, print_num_args = print_statements[print_id]
@@ -243,9 +243,11 @@ class TDMConsole(code.InteractiveConsole):
         self.node.send_set_scratchpad(src)
         if wait:
             def wake():
-                return exit_received
+                return exit_received is not None
             ClientAsync.aw(self.client.sleep(wake=wake))
             self.stop_program(discard_output=True)
+            if exit_received:
+                print(f"Exit, status={exit_received}")
 
     def stop_program(self, discard_output=False):
         output_enabled_orig = self.output_enabled

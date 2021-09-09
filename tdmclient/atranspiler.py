@@ -872,7 +872,7 @@ end
                     aux_statements = ""
                     if len(expr.args) > 1:
                         for i in range(len(expr.args) - 1):
-                            value, aux_st, is_boolean = self.compile_expr(expr.args[1 + i], context, self.PRI_NUMERIC)
+                            value, aux_st, _ = self.compile_expr(expr.args[1 + i], context, self.PRI_NUMERIC)
                             aux_statements += aux_st
                             code += " [" if i == 0 else ", "
                             code += value
@@ -880,8 +880,14 @@ end
                     code = aux_statements + code + "\n"
                     return code
                 elif fun_name == "exit":
-                    # hard-coded exit() -> "emit _exit"
-                    code = "emit _exit\n"
+                    # hard-coded exit(status=0) -> "emit _exit status"
+                    if len(expr.args) > 1:
+                        raise TranspilerError("too many arguments in exit", node)
+                    if len(expr.args) == 1:
+                        value, aux_st, _ = self.compile_expr(expr.args[0], context, self.PRI_NUMERIC)
+                        code = aux_st + f"emit _exit {value}\n"
+                    else:
+                        code = "emit _exit 0\n"
                     self.has_exit_event = True
                     return code
                 elif fun_name == "print":
@@ -894,7 +900,7 @@ end
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                             print_format_string += (" " if i > 0 else "") + arg.value
                         else:
-                            value, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_NUMERIC)
+                            value, aux_st, _ = self.compile_expr(arg, context, self.PRI_NUMERIC)
                             aux_statements += aux_st
                             code += ", " + value
                             arg_count += 1
@@ -906,9 +912,8 @@ end
                     self.print_max_num_args = max(self.print_max_num_args, arg_count)
                     code = aux_statements + code
                     return code
-            # parse expression
-            value, aux_statements, is_boolean = self.compile_expr(expr, context, self.PRI_EXPR)
-            # ignore result
+            # parse expression, ignoring result
+            _, aux_statements, _ = self.compile_expr(expr, context, self.PRI_EXPR)
             return aux_statements
         if isinstance(node, ast.For):
             # for var in range(...): ...

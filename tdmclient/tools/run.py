@@ -52,12 +52,12 @@ if __name__ == "__main__":
     import_thymio = True
 
     print_statements = []
-    exit_received = False
+    exit_received = None  # or exit status once received
 
     def on_event_received(node, event_name, event_data):
         if event_name == "_exit":
             global exit_received
-            exit_received = True
+            exit_received = event_data[0]
         elif event_name == "_print":
             print_id = event_data[0]
             print_format, print_num_args = print_statements[print_id]
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         if len(print_statements) > 0:
             events.append(("_print", 1 + transpiler.print_max_num_args))
         if transpiler.has_exit_event:
-            events.append(("_exit", 0))
+            events.append(("_exit", 1))
 
     if sleep is None:
         sleep = len(events) > 0
@@ -216,9 +216,10 @@ if __name__ == "__main__":
                     if scratchpad < 2 and sleep:
                         # expect events: wait forever or until _exit is received
                         def wake():
-                            return exit_received
+                            return exit_received is not None
                         await client.sleep(-1, wake)
                         await node.stop()
+                        status = exit_received
 
         client.run_async_program(prog)
 
