@@ -65,7 +65,7 @@ if __name__ == "__main__":
             print_str = print_format % print_args
             print(print_str)
         else:
-            print("event", event_name, event_data)
+            print(event_name + "".join(["," + str(d) for d in event_data]))
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
