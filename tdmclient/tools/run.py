@@ -15,7 +15,7 @@ from tdmclient.atranspiler import ATranspiler
 from tdmclient.module_thymio import ModuleThymio
 
 
-def help():
+def help(**kwargs):
     print("""Usage: python3 -m tdmclient.tools.run [options] [filename]
 Run program on robot, from file or stdin
 
@@ -33,7 +33,7 @@ Options:
   --stop         stop program (no filename or stdin expected)
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
   --tdmport=P    tdm port (default: from zeroconf)
-""")
+""", **kwargs)
 
 
 if __name__ == "__main__":
@@ -87,7 +87,7 @@ if __name__ == "__main__":
                                               "tdmport=",
                                           ])
     except getopt.error as err:
-        print(str(err))
+        print(str(err), file=sys.stderr)
         sys.exit(1)
     for arg, val in arguments:
         if arg == "--help":
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         elif arg == "--event":
             r = event_re.match(val)
             if r is None:
-                help()
+                help(file=sys.stderr)
                 sys.exit(1)
             events.append((
                 r.group(1),
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     if stop:
         if len(values) > 0:
-            help()
+            help(file=sys.stderr)
             sys.exit(1)
     else:
         if len(values) == 0:
@@ -155,7 +155,7 @@ if __name__ == "__main__":
                 # guess language from file extension
                 language = "python" if os.path.splitext(values[0])[1] == ".py" else "aseba"
         else:
-            help()
+            help(file=sys.stderr)
             sys.exit(1)
 
     status = 0
