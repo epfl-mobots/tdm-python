@@ -4,11 +4,13 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.5] - 2021-09-14
+
 ### Added
 
 - In transpiler:
     - support for `exit`
-    - dict of events emitted by `emit`, with automatic declaration by tool `tdmclient.tools.run` and and function `run` in repl and notebooks
+    - dict of events emitted by `emit`, with automatic declaration by tool `tdmclient.tools.run` and function `run` in repl and notebooks
 - In documentation:
     - note on the replacement of `run_async_program` with `await` in Jupyter notebooks
 - By default, locking the default node raises an error if it's busy instead of waiting
