@@ -90,7 +90,7 @@ You can copy-paste the code above to the repl. We show it below with the repl pr
 >>>
 ```
 
-Even if you've defined the function in Python running on your computer, nothing more happens. On the Thymio, there is just the variable `timer.period[0]` which has been set to 500. The magic happens with the `run()` function:
+Once you've defined the function in Python running on your computer, nothing more happens. On the Thymio, there is just the variable `timer.period[0]` which has been set to 500. The magic happens with the `run()` function:
 ```
 >>> run()
 >>>
@@ -133,4 +133,48 @@ onevent timer0
     end
 
 >>>
+```
+
+To retrieve data from the robot and process them further or store them on your computer, you can send events with `emit`. Let's write a short demonstration. But first, to avoid any interference with our previous definitions, we ask Python to forget the list of `@onevent` functions and assignments to Thymio's variables:
+```
+robot_code_new()
+```
+
+Here is a short program which collects 20 samples of the front proximity sensor, one every 200ms (5 per second), i.e. during 4 seconds:
+```
+i = 0
+timer_period[0] = 200
+
+@onevent
+def timer0():
+    global i, prox_horizontal
+    i += 1
+    if i > 20:
+        exit()
+    emit("front", prox_horizontal[2])
+```
+
+Note how the Thymio program terminates with a call to the `exit()` function. Running it is done as usual with `run()`. Since the program emits events, `run` continues running to process the events it receives until it receives `_exit` (emitted by `exit()`) or you type control-C. All events, except for `_exit` and `_print`, are collected with their data. Event data are retrieved with `get_event_data(event_name)`:
+```
+>>> run()  # 4 seconds to move your hand in front of the robot
+>>> get_event_data("front")
+[[0], [0], [0], [0], [1732], [2792], [4182], [4325], [3006], [1667], [0], [1346], [2352], [3972], [4533], [2644], [1409], [0], [0], [0], [0]]
+```
+
+You can send events with different names. You can also reset an event collection by calling `clear_event_data(event_name)`, or without argument to clear all the events:
+```
+>>> clear_event_data()
+```
+
+We've mentionned the `_print` event. It's emitted by the `print()` function, an easy way to check what the program does. The Thymio robot is limited to handling integer numbers, but `print` still accepts constant strings. The robot and the computer work together to display what's expected.
+```
+>>> robot_code_new()
+>>> @onevent
+... def button_forward():
+...    print("Temparetature:", temperature)
+...
+>>> run()  # press the forward button a few times, then control-C
+Temperature: 292
+Temperature: 293
+^C
 ```

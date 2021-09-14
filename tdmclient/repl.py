@@ -116,12 +116,15 @@ class TDMConsole(code.InteractiveConsole):
             self.robot_var_set.clear()
             self.onevent_functions.clear()
 
-        def run():
-            """Run program obtained by robot_code on the robot.
+        def run(wait=None):
+            """Run program obtained by robot_code on the robot. By default, wait
+            to process events until "_exit" is received (call to "exit()" in the
+            robot's program), or return immediately if the program doesn't send
+            any event.
             """
-            src_a = robot_code(language="aseba")
+            src_p = robot_code()
             # compile, load, run, and set scratchpad without checking the result
-            self.run_program(src_a)
+            self.run_program(src_p, language="python", wait=wait)
 
         def stop():
             """Stop the program running on the robot.
@@ -248,6 +251,9 @@ class TDMConsole(code.InteractiveConsole):
         if error is not None:
             raise Exception(error["error_msg"])
         exit_received = None  # or exit code once received
+        if wait is None:
+            # wait if there are events to receive
+            wait = len(events) > 0
         if len(events) > 0 and wait:
             def on_event_received(node, event_name, event_data):
                 if self.output_enabled:
