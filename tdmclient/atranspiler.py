@@ -333,6 +333,13 @@ class ATranspiler:
     PREDEFINED_VARIABLES = {
     }
 
+    # set of built-in functions
+    PREDEFINED_FUNCTIONS = {
+        "emit",
+        "exit",
+        "print",
+    }
+
     def __init__(self):
         self.preamble = None
         self.src = None

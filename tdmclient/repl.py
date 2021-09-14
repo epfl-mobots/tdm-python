@@ -353,7 +353,9 @@ class TDMConsole(code.InteractiveConsole):
                 ast.dump(node)
                 if isinstance(node.func, ast.Name):
                     fun_name = node.func.id
-                    fun_called.add(fun_name)
+                    if (fun_name not in ATranspiler.PREDEFINED_FUNCTIONS
+                        or fun_name in self.fun_defs):
+                        fun_called.add(fun_name)
                     if fun_name in self.fun_defs:
                         # call to a user-defined function
                         var_got |= self.fun_defs[fun_name]["in"]
