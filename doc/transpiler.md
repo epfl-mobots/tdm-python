@@ -210,6 +210,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | | assigned variables are local by default
 | `emit name` | `emit("name")`
 | `emit name [expr1, expr2, ...]` | `emit("name", expr1, expr2, ...)`
+| explicit event declaration outside program | no event declaration
 | | `print(...)`
 | `call natfun(expr1, expr2, ...)` | `nf_natfun(expr1, expr2, ...)` (see below)
 | | `natfun(expr1, ...)` in expressions

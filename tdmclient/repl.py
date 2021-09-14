@@ -31,6 +31,8 @@ class TDMConsole(code.InteractiveConsole):
         self.client = None
         self.node = None
 
+        self.event_data_dict = {}
+
         def onevent(fun):
             """Function decorator @onevent for event handlers. The event name
             is given by the function name.
@@ -126,6 +128,16 @@ class TDMConsole(code.InteractiveConsole):
             """
             self.stop_program(discard_output=True)
 
+        def clear_event_data(event_name=None):
+            """Clear all or named event data.
+            """
+            self.clear_event_data(event_name)
+
+        def get_event_data(event_name=None):
+            """Get list of event data received until now.
+            """
+            return self.get_event_data(event_name)
+
         self.functions = {
             "onevent": onevent,
             "sleep": sleep,
@@ -133,6 +145,8 @@ class TDMConsole(code.InteractiveConsole):
             "robot_code_new": robot_code_new,
             "run": run,
             "stop": stop,
+            "clear_event_data": clear_event_data,
+            "get_event_data": get_event_data,
         }
 
         if local_var is None:
@@ -199,6 +213,18 @@ class TDMConsole(code.InteractiveConsole):
         transpiler.transpile()
         return transpiler
 
+    def clear_event_data(self, event_name=None):
+        if event_name is None:
+            self.event_data_dict = {}
+        elif event_name in self.event_data_dict:
+            del self.event_data_dict[event_name]
+
+    def get_event_data(self, event_name=None):
+        if event_name is None:
+            return self.event_data_dict
+        else:
+            return self.event_data_dict[event_name] if event_name in self.event_data_dict else []
+
     def run_program(self, src, language="aseba", wait=False, import_thymio=True):
         print_statements = []
         events = []
@@ -235,7 +261,10 @@ class TDMConsole(code.InteractiveConsole):
                         print_str = print_format % print_args
                         print(print_str)
                     else:
-                        print("event", event_name, event_data)
+                        if len(event_data) > 0:
+                            if event_name not in self.event_data_dict:
+                                self.event_data_dict[event_name] = []
+                            self.event_data_dict[event_name].append(event_data)
             self.client.clear_event_received_listeners()
             self.client.add_event_received_listener(on_event_received)
             ClientAsync.aw(self.node.watch(events=True))
