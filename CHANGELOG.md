@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- In transpiler, `%` in print string constants
+
 ## [0.1.6] - 2021-09-22
 
 ### Added

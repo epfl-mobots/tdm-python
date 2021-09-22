@@ -912,7 +912,7 @@ end
                     aux_statements = ""
                     for i, arg in enumerate(expr.args):
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                            print_format_string += (" " if i > 0 else "") + arg.value
+                            print_format_string += (" " if i > 0 else "") + arg.value.replace("%", "%%")
                         else:
                             value, aux_st, _ = self.compile_expr(arg, context, self.PRI_NUMERIC)
                             aux_statements += aux_st
