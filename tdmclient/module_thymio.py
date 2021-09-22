@@ -213,28 +213,211 @@ class ModuleThymio(Module):
 """
 
         @AFunction.define(self.functions, "nf__leds_set", [False, False])
-        def _fun__leds_set(context, args):
+        def _leds_set(context, args):
             return None, f"""call _leds.set({args[0]}, {args[1]})
 """
 
         @AFunction.define(self.functions, "nf__system_reboot", [])
-        def _fun__poweroff(context, args):
+        def _system_reboot(context, args):
             return None, """call _system.reboot()
 """
 
         @AFunction.define(self.functions, "nf__system_settings_read", [False], 1)
-        def _fun___system_settings_read(context, args):
+        def _fun__system_settings_read(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call _system.settings.read({args[0]}, {var_str})
 """
 
         @AFunction.define(self.functions, "nf__system_settings_write", [False, False])
-        def _fun___system_settings_write(context, args):
+        def _system_settings_write(context, args):
             return None, f"""call _system.settings.write({args[0]}, {args[1]})
 """
 
         @AFunction.define(self.functions, "nf__poweroff", [])
-        def _fun__poweroff(context, args):
+        def _poweroff(context, args):
             return None, """call _poweroff()
+"""
+
+        # functions defined in thymio_natives.c
+
+        @AFunction.define(self.functions, "nf__leds_set", [False, False])
+        def _leds_set(context, args):
+            return None, f"""call _leds.set({args[0]}, {args[1]})
+
+"""
+
+        @AFunction.define(self.functions, "nf_sound_record", [False])
+        def _sound_record(context, args):
+            return None, f"""call sound.record({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_play", [False])
+        def _sound_play(context, args):
+            return None, f"""call sound.play({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_replay", [False])
+        def _sound_replay(context, args):
+            return None, f"""call sound.replay({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_duration", [False], 1)
+        def _sound_duration(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call sound.duration({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_system", [False])
+        def _sound_system(context, args):
+            return None, f"""call sound.system({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_circle", [False, False, False, False, False, False, False, False])
+        def _leds_circle(context, args):
+            return None, f"""call leds.circle({args[0]}, {args[1]}, {args[2]}, {args[3]}, {args[4]}, {args[5]}, {args[6]}, {args[7]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_top", [False, False, False])
+        def _leds_top(context, args):
+            return None, f"""call leds.top({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_bottom_right", [False, False, False])
+        def _leds_bottom_right(context, args):
+            return None, f"""call leds.bottom.right({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_bottom_left", [False, False, False])
+        def _leds_bottom_left(context, args):
+            return None, f"""call leds.bottom.left({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_buttons", [False, False, False, False])
+        def _leds_buttons(context, args):
+            return None, f"""call leds.buttons({args[0]}, {args[1]}, {args[2]}, {args[3]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_prox_h", [False, False, False, False, False, False, False, False])
+        def _leds_prox_h(context, args):
+            return None, f"""call leds.prox.h({args[0]}, {args[1]}, {args[2]}, {args[3]}, {args[4]}, {args[5]}, {args[6]}, {args[7]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_prox_v", [False, False])
+        def _leds_prox_v(context, args):
+            return None, f"""call leds.prox.v({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_rc", [False])
+        def _leds_rc(context, args):
+            return None, f"""call leds.rc({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_sound", [False])
+        def _leds_sound(context, args):
+            return None, f"""call leds.sound({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_leds_temperature", [False, False])
+        def _leds_temperature(context, args):
+            return None, f"""call leds.temperature({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_freq", [False, False])
+        def _sound_freq(context, args):
+            return None, f"""call sound.freq({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "nf_sound_wave", [True])
+        def _sound_wave(context, args):
+            return None, f"""call sound.wave({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_prox_comm_enable", [False])
+        def _prox_comm_enable(context, args):
+            return None, f"""call prox.comm.enable({args[0]})
+"""
+
+        @AFunction.define(self.functions, "nf_sd_open", [False], 1)
+        def _fun_sd_open(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call sd.open({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "nf_sd_write", [True], 1)
+        def _fun_sd_write(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call sd.write({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "nf_sd_read", [True], 1)
+        def _fun_sd_read(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call sd.read({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "nf_sd_seek", [False], 1)
+        def _fun_sd_seek(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call sd.seek({args[0]}, {var_str})
+"""
+
+        # @AFunction.define(self.functions, "nf__rf_nodeid", [False])
+        # def _rf_nodeid(context, args):
+        #     return None, f"call _rf.nodeid({args[0]})\n"
+
+        # @AFunction.define(self.functions, "nf__rf_setupd", [False, False])
+        # def _rf_setup(context, args):
+        #     return None, f"call _rf.setup({args[0]}, {args[1]})\n"
+
+        @AFunction.define(self.functions, "deque_size", [True], 1)
+        def _deque_size(context, args):
+            tmp_offset = context.request_tmp_expr()
+            var_str = context.tmp_var_str(tmp_offset)
+            return [var_str], f"""call deque.size({args[0]}, {var_str})
+"""
+
+        @AFunction.define(self.functions, "deque_push_front", [True, True])
+        def _deque_push_front(context, args):
+            return None, f"""call deque.push_front({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "deque_push_back", [True, True])
+        def _deque_push_back(context, args):
+            return None, f"""call deque.push_back({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "deque_pop_front", [True, True])
+        def _deque_pop_front(context, args):
+            return None, f"""call deque.pop_front({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "deque_pop_back", [True, True])
+        def _deque_pop_back(context, args):
+            return None, f"""call deque.pop_back({args[0]}, {args[1]})
+"""
+
+        @AFunction.define(self.functions, "deque_get", [True, True, False])
+        def _deque_get(context, args):
+            return None, f"""call deque.get({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "deque_sez", [True, True, False])
+        def _deque_set(context, args):
+            return None, f"""call deque.set({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "deque_insert", [True, True, False])
+        def _deque_insert(context, args):
+            return None, f"""call deque.insert({args[0]}, {args[1]}, {args[2]})
+"""
+
+        @AFunction.define(self.functions, "deque_erase", [True, False, False])
+        def _deque_erase(context, args):
+            return None, f"""call deque.erase({args[0]}, {args[1]}, {args[2]})
 """

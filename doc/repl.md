@@ -171,7 +171,7 @@ We've mentionned the `_print` event. It's emitted by the `print()` function, an 
 >>> robot_code_new()
 >>> @onevent
 ... def button_forward():
-...    print("Temparetature:", temperature)
+...    print("Temperature:", temperature)
 ...
 >>> run()  # press the forward button a few times, then control-C
 Temperature: 292

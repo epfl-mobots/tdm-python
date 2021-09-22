@@ -244,8 +244,41 @@ Arguments are the same in the same order, except for `_system.settings.read` whi
 | `call _system.reboot()` | `nf__system_reboot()`
 | `call _system.settings.read(a, r)` | `r = nf__system_settings_read(a)`
 | `call _system.settings.write(a, b)` | `nf__system_settings_write(a, b)`
+| `call _leds.set(i, br)` | `nf__leds_set(i, br)`
+| `call sound.record(i)` | `nf_sound_record(i)`
+| `call sound.play(i)` | `nf_sound_play(i)`
+| `call sound.replay(i)` | `nf_sound_replay(i)`
+| `call sound.duration(i, d)` | `d = nf_sound_duration(i)`
+| `call sound.system(i)` | `nf_sound_system(i)`
+| `call leds.circle(br0,br1,br2,br3,br4,br5,br6,br7)` | `nf_leds_circle(br0,br1,br2,br3,br4,br5,br6,br7)`
+| `call leds.top(r, g, b)` | `nf_leds_top(r, g, b)`
+| `call leds.bottom.right(r, g, b)` | `nf_leds_bottom.right(r, g, b)`
+| `call leds.bottom.left(r, g, b)` | `nf_leds_bottom_left(r, g, b)`
+| `call leds.buttons(br0,br1,br2,br3)` | `nf_leds_buttons(br0,br1,br2,br3)`
+| `call leds.leds.prox.h(br0,br1,br2,br3,br4,br5,br6,br7)` | `nf_leds_prox_h(br0,br1,br2,br3,br4,br5,br6,br7)`
+| `call leds.leds.prox.v(br0, br1)` | `nf_leds_prox_v(br0, br1)`
+| `call leds.rc(br)` | `nf_leds_rc(br)`
+| `call leds.sound(br)` | `nf_leds_sound(br)`
+| `call leds.temperature(r, g)` | `nf_leds_temperature(r, g)`
+| `call sound.freq(f, d)` | `nf_sound_freq(f, d)`
+| `call sound.wave(W)` | `nf_sound_wave(W)`
+| `call prox.comm.enable(en)` | `nf_prox_comm_enable(en)`
+| `call sd.open(i, status)` | `status = nf_sd_open(i)`
+| `call sd.write(data, n)` | `n = nf_sd_write(data)`
+| `call sd.read(data, n)` | `n = nf_sd_read(data)`
+| `call sd.seek(pos, status)` | `status = nf_sd_seek(pos)`
+| `call deque.size(queue, n)` | `n = nf_deque_size(queue)`
+| `call deque.push_front(queue, data)` | `nf_deque_push_front(queue, data)`
+| `call deque.push_back(queue, data)` | `nf_deque_push_back(queue, data)`
+| `call deque.pop_front(queue, data)` | `nf_deque_pop_front(queue, data)`
+| `call deque.pop_back(queue, data)` | `nf_deque_pop_back(queue, data)`
+| `call deque.get(queue, data, i)` | `nf_deque_get(queue, data, i)`
+| `call deque.set(queue, data, i)` | `nf_deque_set(queue, data, i)`
+| `call deque.insert(queue, data, i)` | `nf_deque_insert(queue, data, i)`
+| `call deque.erase(queue, i, len)` | `nf_deque_erase(queue, i, len)`
 
-A few of them have a name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in assignments or other expressions.
+
+Some math functions have an alternative name without the `nf_` prefix, scalar arguments and a single scalar result. They can be used in assignments or other expressions.
 
 | Aseba native function | Python function call
 | --- | ---
@@ -285,7 +318,7 @@ In addition to variables and native functions, the following constants are defin
 | `WHITE` | `[32, 32, 32]`
 | `YELLOW` | `[32, 32, 0]`
 
-Function `emit` and decorator `@onevent` are always predefined. This is also the case for `abs`, `len` and `print`, like in plain Python.
+Function `emit` and decorator `@onevent` are always predefined. This is also the case for `abs`, `exit`, `len` and `print`, like in plain Python.
 
 Here are examples which all transpile to the same Aseba program `leds.top = [32, 0, 0]`:
 ```
