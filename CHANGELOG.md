@@ -4,9 +4,13 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.6] - 2021-09-22
+
 ### Added
 
 - In transpiler, definitions for more native functions
+- New notebook to illustrate the use of native functions
+- Nul bytes in zeroconf property "ws-port" discarded
 
 ## [0.1.5] - 2021-09-14
 

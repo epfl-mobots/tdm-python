@@ -407,7 +407,7 @@ class ModuleThymio(Module):
             return None, f"""call deque.get({args[0]}, {args[1]}, {args[2]})
 """
 
-        @AFunction.define(self.functions, "deque_sez", [True, True, False])
+        @AFunction.define(self.functions, "deque_set", [True, True, False])
         def _deque_set(context, args):
             return None, f"""call deque.set({args[0]}, {args[1]}, {args[2]})
 """

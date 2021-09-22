@@ -18,7 +18,7 @@ with open("doc/notebooks.md", "r") as f:
 
 setup(
     name="tdmclient",
-    version="0.1.5",
+    version="0.1.6",
     author="Yves Piguet",
     packages=["tdmclient", "tdmclient.tools", "tdmclient.notebook", ],
     description="Communication with Thymio II robot via the Thymio Device Manager",
