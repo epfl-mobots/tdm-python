@@ -17,7 +17,9 @@ class TDMZeroconfBrowser:
                 info = zeroconf.get_service_info(service_type, name)
                 if info:
                     if info.properties and b"ws-port" in info.properties:
-                        ws_port = int(info.properties[b"ws-port"])
+                        # ws_port = int(info.properties[b"ws-port"])
+                        # robust wrt unexpected trailing nul byte
+                        ws_port = int(info.properties[b"ws-port"].replace(b"\0", b""))
                     else:
                         ws_port = None
                     for addr in info.parsed_addresses():
