@@ -1217,10 +1217,17 @@ sub {fun_name}
         return self.pretty_print(self.output_src)
 
     @staticmethod
-    def simple_transpile(input_src, modules=None, preamble=None):
+    def simple_transpile(input_src,
+                         modules="thymio",
+                         preamble="from thymio import *\n"):
         """Transpile program from python to aseba, returning the aseba source code.
         """
         transpiler = ATranspiler()
+        if modules == "thymio":
+            from tdmclient.module_thymio import ModuleThymio
+            modules = {
+                "thymio": ModuleThymio()
+            }
         if modules is not None:
             transpiler.modules = {**transpiler.modules, **modules}
         if preamble is not None:

@@ -6,7 +6,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Fixed
 
-- In transpiler, `%` in print string constants
+- In transpiler:
+	- `%` in print string constants
+	- in method `simple_transpile`, symbols from module `thymio` imported by default
 
 ## [0.1.6] - 2021-09-22
 
