@@ -91,3 +91,53 @@ leds.circle = v
 v = [32, 0, 32, 0, 32, 0, 32, 0]
 leds_circle = v
 ```
+
+### Custom events
+
+To retrieve data from the robot and process them further in your notebook, you can send events with `emit`. In the program below, we collects 20 samples of the front proximity sensor, one every 200ms (5 per second), i.e. during 4 seconds.
+```
+%%run_python --wait
+
+i = 0
+timer_period[0] = 200
+
+@onevent
+def timer0():
+    global i, prox_horizontal
+    i += 1
+    if i > 20:
+        exit()
+    emit("front", prox_horizontal[2])
+```
+
+Events received by the computer are collected automatically. We retrieve them with `get_event_data(event_name)`, a list of all the data sent by `emit`, which are lists themselves.
+```
+data = get_event_data("front")
+print(data)
+```
+
+You can send events with different names. You can also reset an event collection by calling `clear_event_data(event_name)`, or without argument to clear all the events:
+```
+clear_event_data()
+```
+
+You can also send events in the other direction, from the notebook to the robot. This can be useful for instance if you implement a low-level behavior on the robot, such as obstacle avoidance and sensor acquisition, and send at a lower rate high-level commands which require more computing power available only on the PC.
+
+The Thymio program below listens for events named `color` and changes the top RGB led color based on a single number. Bits 0, 1 and 2 represents the red, green, and blue components respectively.
+```
+%%run_python
+
+@onevent
+def color(c):
+    global leds_top
+    leds_top[0] = 32 if c & 1 else 0
+    leds_top[1] = 32 if c & 2 else 0
+    leds_top[2] = 32 if c & 4 else 0
+```
+
+Now that the program runs on the robot, we can send it `color` events. The number of values in `send_event` should match the `@onevent` declaration. They can be passed as numeric arguments or as arrays.
+```
+for col in range(8):
+    send_event("color", col)
+    sleep(0.5)
+```

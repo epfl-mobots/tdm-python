@@ -6,7 +6,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
-- New async function `tdmclient.notebook.stop()`
+- In transpiler, support for receiving custom events with arguments
+- In repl, function `send_event`
+- In notebooks, functions `stop`, `get_client`, `get_node`
 
 ### Fixed
 
