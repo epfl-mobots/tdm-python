@@ -73,8 +73,8 @@ if __name__ == "__main__":
     transpiler.set_source(src)
     transpiler.transpile()
     if show_events:
-        if len(transpiler.events) > 0:
-            print(transpiler.events)
+        if len(transpiler.events_in) + len(transpiler.events_out) > 0:
+            print({**transpiler.events_in, **transpiler.events_out})
     if show_exit:
         if transpiler.has_exit_event:
             print("_exit")

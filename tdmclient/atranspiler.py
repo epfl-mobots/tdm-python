@@ -369,7 +369,8 @@ class ATranspiler:
         self.print_format_string_next_id = 0
         self.print_max_num_args = 0
         self.has_exit_event = False
-        self.events = {}
+        self.events_in = {}  # @onevent
+        self.events_out = {}  # emit
 
     @staticmethod
     def decode_attr(node):
@@ -877,11 +878,11 @@ end
                         raise TranspilerError("bad event name in emit", node)
                     event_name = expr.args[0].value
                     event_size = len(expr.args) - 1
-                    if event_name in self.events:
-                        if event_size != self.events[event_name]:
+                    if event_name in self.events_out:
+                        if event_size != self.events_out[event_name]:
                             raise TranspilerError(f"inconsistent size for event '{event_name}'", node)
                     else:
-                        self.events[event_name] = event_size
+                        self.events_out[event_name] = event_size
                     code = f"emit {event_name}"
                     aux_statements = ""
                     if len(expr.args) > 1:
@@ -1142,6 +1143,7 @@ return
         for fun_name in context_top.functions:
             fun_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
             if context_top.functions[fun_name].is_onevent:
+                self.events_in[fun_name] = 0
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
 """
