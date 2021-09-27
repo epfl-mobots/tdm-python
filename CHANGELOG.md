@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- New async function `tdmclient.notebook.stop()`
+
 ### Fixed
 
 - In transpiler:

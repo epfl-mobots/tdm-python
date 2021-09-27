@@ -4,6 +4,14 @@
 _interactive_console = None
 from tdmclient import ClientAsync, TDMConsole
 
+# define functions in tdmclient.notebook
+
+def _pre_run_cell(info):
+    _interactive_console.pre_run(info.raw_cell)
+
+def _post_run_cell(_):
+    _interactive_console.post_run()
+
 async def start(tdm_addr=None, tdm_port=None, **kwargs):
     """Start the connection with the Thymio and variable synchronization.
 
@@ -25,16 +33,24 @@ async def start(tdm_addr=None, tdm_port=None, **kwargs):
     # configure ipython
     ip = get_ipython()
 
-    def pre_run_cell(info):
-        _interactive_console.pre_run(info.raw_cell)
+    ip.events.register("pre_run_cell", _pre_run_cell)
+    ip.events.register("post_run_cell", _post_run_cell)
 
-    def post_run_cell(_):
-        _interactive_console.post_run()
+async def stop():
+    """Stop the connection with the Thymio and variable synchronization.
+    """
 
-    ip.events.register("pre_run_cell", pre_run_cell)
-    ip.events.register("post_run_cell", post_run_cell)
+    # undo ipython configuration
+    ip = get_ipython()
+    ip.events.unregister("pre_run_cell", _pre_run_cell)
+    ip.events.unregister("post_run_cell", _post_run_cell)
 
-# define functions in tdmclient.notebook
+
+    global _interactive_console
+    await _interactive_console.node.unlock()
+    _interactive_console.client.disconnect()
+    _interactive_console.client.close()
+    _interactive_console = None
 
 def tdm_properties():
     """Get the TDM address (string) and TCP port (number), or None if not
