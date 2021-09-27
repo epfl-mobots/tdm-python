@@ -95,6 +95,27 @@ class ClientAsyncCacheNode(ClientAsyncNode):
         self.mark_change(key)
 
     @types.coroutine
+    def var_description(self):
+        if self.vm_description is None:
+            # not retrieved yet
+            yield from self.get_vm_description()
+        return self.vm_description["variables"]
+
+    @types.coroutine
+    def event_description(self):
+        if self.vm_description is None:
+            # not retrieved yet
+            yield from self.get_vm_description()
+        return self.vm_description["events"]
+
+    @types.coroutine
+    def function_description(self):
+        if self.vm_description is None:
+            # not retrieved yet
+            yield from self.get_vm_description()
+        return self.vm_description["functions"]
+
+    @types.coroutine
     def wait_for_variables(self, var_set=None):
         """Wait until the specified variables, or all of them, have been received.
         """
@@ -105,10 +126,8 @@ class ClientAsyncCacheNode(ClientAsyncNode):
 
         if var_set is None:
             # variables in vm description
-            if self.vm_description is None:
-                # not retrieved yet
-                yield from self.get_vm_description()
-            var_set = set(self.vm_description["variables"].keys())
+            descr = yield from self.var_description()
+            var_set = set(descr.keys())
 
         while not set(self.var).issuperset(var_set):
             if not self.thymio.process_waiting_messages():
@@ -127,3 +146,21 @@ class ClientAsyncCacheNode(ClientAsyncNode):
         # overwrite variables just sent in case they've been replaced by older values
         self.var = {**self.var, **self.var_to_send}
         self.var_to_send = {}
+
+    @types.coroutine
+    def register_events(self, events):
+        # remove vm events
+        event_descr = yield from self.event_description()
+        event_descr_names = (
+            e[0]
+            for e in event_descr
+        )
+        events = [
+            event
+            for event in events
+            if event[0] not in event_descr_names
+        ]
+
+        # register them
+        result = yield from super().register_events(events)
+        return result

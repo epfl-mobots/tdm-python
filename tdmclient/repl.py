@@ -141,6 +141,11 @@ class TDMConsole(code.InteractiveConsole):
             """
             return self.get_event_data(event_name)
 
+        def send_event(event_name):
+            """Send a custom event to the robot.
+            """
+            self.node.send_send_events({event_name: []})
+
         self.functions = {
             "onevent": onevent,
             "sleep": sleep,
@@ -150,6 +155,7 @@ class TDMConsole(code.InteractiveConsole):
             "stop": stop,
             "clear_event_data": clear_event_data,
             "get_event_data": get_event_data,
+            "send_event": send_event,
         }
 
         if local_var is None:

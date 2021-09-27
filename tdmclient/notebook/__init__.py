@@ -45,12 +45,22 @@ async def stop():
     ip.events.unregister("pre_run_cell", _pre_run_cell)
     ip.events.unregister("post_run_cell", _post_run_cell)
 
-
+    # disconnect node, tdm and zeroconf
     global _interactive_console
     await _interactive_console.node.unlock()
     _interactive_console.client.disconnect()
     _interactive_console.client.close()
     _interactive_console = None
+
+def get_client():
+    """Get the ClientAsync object.
+    """
+    return _interactive_console.client if _interactive_console else None
+
+def get_node():
+    """Get the ClientAsyncCacheNode object.
+    """
+    return _interactive_console.node if _interactive_console else None
 
 def tdm_properties():
     """Get the TDM address (string) and TCP port (number), or None if not
