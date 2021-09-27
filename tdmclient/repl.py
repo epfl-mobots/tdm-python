@@ -141,10 +141,17 @@ class TDMConsole(code.InteractiveConsole):
             """
             return self.get_event_data(event_name)
 
-        def send_event(event_name):
-            """Send a custom event to the robot.
+        def send_event(event_name, *args):
+            """Send a custom event to the robot. Arguments can be numbers,
+            booleans and/or arrays.
             """
-            self.node.send_send_events({event_name: []})
+            # flatten args
+            data = [
+                item
+                for arg in args
+                for item in (arg if isinstance(arg, list) else [arg])
+            ]
+            self.node.send_send_events({event_name: data})
 
         self.functions = {
             "onevent": onevent,
