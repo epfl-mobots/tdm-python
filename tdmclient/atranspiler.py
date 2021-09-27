@@ -404,8 +404,6 @@ class ATranspiler:
                 if node.name in parent_context.functions:
                     raise TranspilerError(f"function '{node.name}' defined multiple times", ast_node=node)
                 if len(node.args.args) > 0:
-                    if is_onevent:
-                        raise TranspilerError(f"unexpected arguments in @onevent function '{node.name}'", ast_node=node)
                     if len(node.args.defaults) > 0:
                         raise TranspilerError(f"unsupported default values for arguments of '{node.name}'", ast_node=node)
                     if len({a.arg for a in node.args.args}) < len(node.args.args):
@@ -1141,11 +1139,15 @@ return
             self.reset_transpile_phase(fun_print_format_string_next_id)
         # second pass to produce transpiled code with correct local variable names
         for fun_name in context_top.functions:
-            fun_output_src = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
-            if context_top.functions[fun_name].is_onevent:
-                self.events_in[fun_name] = 0
+            function = context_top.functions[fun_name]
+            fun_output_src = self.compile_node_array(function.function_def.body, function)
+            if function.is_onevent:
+                self.events_in[fun_name] = len(function.function_def.args.args)
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
+"""
+                for i, arg in enumerate(function.function_def.args.args):
+                    function_src += f"""{function.var_str(arg.arg, True)} = event.args[{i}]
 """
             else:
                 function_src += f"""
