@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.7] - 2021-09-27
+
 ### Added
 
 - In transpiler, support for receiving custom events with arguments
