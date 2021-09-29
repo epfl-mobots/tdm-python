@@ -258,6 +258,7 @@ class TDMConsole(code.InteractiveConsole):
             for event_name in transpiler.events_out:
                 events.append((event_name, transpiler.events_out[event_name]))
             if len(events) > 0:
+                events = ClientAsync.aw(self.node.filter_out_vm_events(events))
                 ClientAsync.aw(self.node.register_events(events))
         elif language != "aseba":
             raise Exception(f"Unsupported language {language}")

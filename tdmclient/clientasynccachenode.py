@@ -148,19 +148,21 @@ class ClientAsyncCacheNode(ClientAsyncNode):
         self.var_to_send = {}
 
     @types.coroutine
-    def register_events(self, events):
-        # remove vm events
+    def filter_out_vm_events(self, events):
+        """Remove events which are predefined in the vm, keeping only those
+        which must be registered and are used between the PC and the robot.
+        """
         event_descr = yield from self.event_description()
-        event_descr_names = (
-            e[0]
-            for e in event_descr
-        )
-        events = [
+        return [
             event
             for event in events
-            if event[0] not in event_descr_names
+            if event[0] not in event_descr
         ]
 
-        # register them
+    @types.coroutine
+    def register_events(self, events):
+        """Register events not predefined in the vm.
+        """
+        events = yield from self.filter_out_vm_events(events)
         result = yield from super().register_events(events)
         return result

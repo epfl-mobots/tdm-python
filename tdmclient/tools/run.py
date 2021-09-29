@@ -183,13 +183,10 @@ if __name__ == "__main__":
         for event_name in transpiler.events_out:
             events.append((event_name, transpiler.events_out[event_name]))
 
-    if sleep is None:
-        sleep = len(events) > 0
-
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
 
         async def prog():
-            global status
+            global status, events, sleep
             with await client.lock(node_id=robot_id, node_name=robot_name) as node:
                 if stop:
                     error = await node.stop()
@@ -199,7 +196,10 @@ if __name__ == "__main__":
                 else:
                     if scratchpad < 2:
                         if len(events) > 0:
+                            events = await node.filter_out_vm_events(events)
                             await node.register_events(events)
+                            if sleep is None:
+                                sleep = len(events) > 0
                         error = await node.compile(program)
                         if error is not None:
                             print(f"Compilation error: {error['error_msg']}")
