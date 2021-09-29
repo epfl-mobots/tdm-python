@@ -20,7 +20,7 @@ Everything will work as expected: you can evaluate expressions, assign values to
 - Every time you type a command, the repl will check if your variables are known to the Thymio. Those whose name matches are synchronized with the Thymio before being used in expressions or after being assigned to. Python names are the same as Thymio name as they appear in the documentation and in Aseba Studio, except that dots are replaced with underscores (`leds.top` on the Thymio becomes `leds_top` in the repl). And the source code of function definitions will be remembered in case we need it later.
 - A few functions specific to the Thymio are defined.
 
-Here are a few examples of what you can do. Check that you still can use all the functions of Python:
+Here are a few examples of what you can do. Check that you can still use all the functions of Python:
 ```
 >>> 1 + 2
 3
@@ -36,13 +36,13 @@ Change the color of the RGB led on the top of the Thymio:
 >>>
 ```
 
-Get the Thymio temperature and converted it from degree Celsius to Kelvin. Notice we've waited a little too long between the two commands: the temperature has changed, or maybe the sensor measurement is corrupted by noise.
+Get the Thymio temperature and convert it from tenths of degree Celsius to Kelvin. Notice we've waited a little too long between the two commands: the temperature has changed, or maybe the sensor measurement is corrupted by noise.
 ```
 >>> temperature
 281
->>> temp_K = temperature + 273.15
+>>> temp_K = temperature / 10 + 273.15
 >>> temp_K
-556.15
+301.65
 >>>
 ```
 

@@ -4,6 +4,11 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- In the `run()` function of repl and notebooks and in `tdmclient.tools.run`, the decision to wait or not when no explicit option is specified is now based only on custom events (events not predefined in the vm)
+- Minor documentation improvements
+
 ## [0.1.7] - 2021-09-27
 
 ### Added

@@ -20,10 +20,12 @@ def help(**kwargs):
 Run program on robot, from file or stdin
 
 Options:
-  --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
+  --debug=n      display diagnostic info (0=none, 1=basic, 2=more, 3=verbose)
+  --event=N      register custom event without data
+  --event=N[S]   register custom event with data of the specified size
   --help         display this help message and exit
   --language=L   programming language (aseba or python); default=automatic
-  --nosleep      exit immediately (default with neither events nor print statement)
+  --nosleep      exit immediately (default with no events, print() or exit())
   --nothymio     don't import the symbols of thymio library
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any

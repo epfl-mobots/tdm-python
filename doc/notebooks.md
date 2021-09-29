@@ -123,7 +123,7 @@ clear_event_data()
 
 You can also send events in the other direction, from the notebook to the robot. This can be useful for instance if you implement a low-level behavior on the robot, such as obstacle avoidance and sensor acquisition, and send at a lower rate high-level commands which require more computing power available only on the PC.
 
-The Thymio program below listens for events named `color` and changes the top RGB led color based on a single number. Bits 0, 1 and 2 represents the red, green, and blue components respectively.
+The Thymio program below listens for events named `color` and changes the top RGB led color based on a single number. Bits 0, 1 and 2 represent the red, green, and blue components respectively.
 ```
 %%run_python
 
