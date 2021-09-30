@@ -483,7 +483,7 @@ class TDMConsole(code.InteractiveConsole):
                              ast.Delete, ast.FunctionDef,
                              ast.Import, ast.ImportFrom,
                              ast.Lambda,
-                             ast.Nonlocal,
+                             ast.NameConstant, ast.Nonlocal, ast.Num,
                              ast.Pass)):
                 pass
             elif node is not None:

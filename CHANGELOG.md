@@ -11,7 +11,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - In the `run()` function of repl and notebooks and in `tdmclient.tools.run`, the decision to wait or not when no explicit option is specified is now based only on custom events (events not predefined in the vm)
-- In transpiler, support of string constants as documentation strings or arguments of `print()` and `emit()` made compatible with Python 3.6
+- Better compatibility with Python 3.6:
+	- in transpiler, support of string constants as documentation strings or arguments of `print()` and `emit()`
+	- in repl, no warning for numbers and booleans
 - Decoding of the size of array variables obtained from tdm
 - Minor documentation improvements
 
