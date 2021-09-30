@@ -66,12 +66,14 @@ if __name__ == "__main__":
         elif arg == "--tdmport":
             tdm_port = int(val)
 
-    interactive_console = TDMConsole()
-
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
 
         async def co_init():
             with await client.lock(node_id=robot_id, node_name=robot_name) as node:
+                interactive_console = TDMConsole(user_functions={
+                    "get_client": lambda: client,
+                    "get_node": lambda: node,
+                })
                 await interactive_console.init(client, node)
                 interactive_console.interact()
 

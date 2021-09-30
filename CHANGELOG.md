@@ -4,9 +4,14 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Functions `get_client()` and `get_node()` added to repl
+
 ### Fixed
 
 - In the `run()` function of repl and notebooks and in `tdmclient.tools.run`, the decision to wait or not when no explicit option is specified is now based only on custom events (events not predefined in the vm)
+- In transpiler, support of string constants as documentation strings or arguments of `print()` and `emit()` made compatible with Python 3.6
 - Minor documentation improvements
 
 ## [0.1.7] - 2021-09-27

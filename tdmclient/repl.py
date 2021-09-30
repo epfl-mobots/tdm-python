@@ -17,7 +17,10 @@ from tdmclient.module_thymio import ModuleThymio
 
 class TDMConsole(code.InteractiveConsole):
 
-    def __init__(self, local_var=None, define_functions=True):
+    def __init__(self,
+                 local_var=None,
+                 define_functions=True,
+                 user_functions=None):
         """New interactive console with synchronization with TDM node.
 
         Argument:
@@ -163,6 +166,7 @@ class TDMConsole(code.InteractiveConsole):
             "clear_event_data": clear_event_data,
             "get_event_data": get_event_data,
             "send_event": send_event,
+            **(user_functions if user_functions is not None else {}),
         }
 
         if local_var is None:
