@@ -151,7 +151,6 @@ class ServerThread(threading.Thread):
                         node = self.server.findNode(node_id_str)
                         if node is not None:
                             msg = self.thymio.create_message((
-#T(iT(*u)iii*T(2si)*T(2ss)*T(2ss*T(si)))
                                 ThymioFB.MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION,
                                 (
                                     request_id,
