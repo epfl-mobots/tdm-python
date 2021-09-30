@@ -856,7 +856,7 @@ end
             if isinstance(expr, ast.Ellipsis):
                 return ""
             # hard-coded constants, such as strings used for documentation
-            if isinstance(expr, ast.Constant):
+            if isinstance(expr, (ast.Constant, ast.Str)):
                 return ""
             # special functions
             if isinstance(expr, ast.Call):
@@ -870,11 +870,14 @@ end
                     return aux_statements
                 if fun_name == "emit":
                     # hard-coded emit(name, params...) -> "emit name [params]"
-                    if (len(expr.args) < 1 or
-                        not isinstance(expr.args[0], ast.Constant) or
-                        not isinstance(expr.args[0].value, str)):
+                    event_name = None
+                    if len(expr.args) >= 1:
+                        if isinstance(expr.args[0], ast.Constant) and isinstance(expr.args[0].value, str):
+                            event_name = expr.args[0].value
+                        elif isinstance(expr.args[0], ast.Str):
+                            event_name = expr.args[0].s
+                    if event_name is None:
                         raise TranspilerError("bad event name in emit", node)
-                    event_name = expr.args[0].value
                     event_size = len(expr.args) - 1
                     if event_name in self.events_out:
                         if event_size != self.events_out[event_name]:
@@ -912,6 +915,8 @@ end
                     for i, arg in enumerate(expr.args):
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                             print_format_string += (" " if i > 0 else "") + arg.value.replace("%", "%%")
+                        elif isinstance(arg, ast.Str):
+                            print_format_string += (" " if i > 0 else "") + arg.s.replace("%", "%%")
                         else:
                             value, aux_st, _ = self.compile_expr(arg, context, self.PRI_NUMERIC)
                             aux_statements += aux_st
