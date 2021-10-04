@@ -3,6 +3,7 @@
 
 _interactive_console = None
 from tdmclient import ClientAsync, TDMConsole
+import builtins
 
 # define functions in tdmclient.notebook
 
@@ -11,6 +12,71 @@ def _pre_run_cell(info):
 
 def _post_run_cell(_):
     _interactive_console.post_run()
+
+async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+    """Get a list of all the robots.
+
+    Arguments:
+        tdm_addr - TDM address as a string (default: localhost)
+        tdm_port - TDM TCP port number (default: provided by zeroconf)
+        robot_id - robot id to restrict the output (default: any)
+        robot_name - robot name to restrict the output (default: any)
+    """
+
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+
+        for _ in range(50):
+            client.process_waiting_messages()
+            if len(client.nodes) > 0:
+                break
+            await client.sleep(0.1)
+
+        nodes = builtins.list(client.filter_nodes(client.nodes,
+                                                  node_id=robot_id,
+                                                  node_name=robot_name))
+
+    return nodes
+
+async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+    """Display a list of all the robots.
+
+    Arguments:
+        tdm_addr - TDM address as a string (default: localhost)
+        tdm_port - TDM TCP port number (default: provided by zeroconf)
+        robot_id - robot id to restrict the output (default: any)
+        robot_name - robot name to restrict the output (default: any)
+    """
+
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+
+        for _ in range(50):
+            client.process_waiting_messages()
+            if len(client.nodes) > 0:
+                break
+            await client.sleep(0.1)
+
+        for node in client.filter_nodes(client.nodes,
+                                        node_id=robot_id, node_name=robot_name):
+            print(f"id:       {node.id_str}")
+            if "group_id_str" in node.props and node.props["group_id_str"] is not None:
+                print(f"group id: {node.props['group_id_str']}")
+            if "name" in node.props:
+                print(f"name:     {node.props['name']}")
+            if "status" in node.props:
+                status_str = {
+                    ClientAsync.NODE_STATUS_UNKNOWN: "unknown",
+                    ClientAsync.NODE_STATUS_CONNECTED: "connected",
+                    ClientAsync.NODE_STATUS_AVAILABLE: "available",
+                    ClientAsync.NODE_STATUS_BUSY: "busy",
+                    ClientAsync.NODE_STATUS_READY: "ready",
+                    ClientAsync.NODE_STATUS_DISCONNECTED: "disconnected",
+                }[node.status]
+                print(f"status:   {node.status} ({status_str})")
+            if "capabilities" in node.props:
+                print(f"cap:      {node.props['capabilities']}")
+            if "fw_version" in node.props:
+                print(f"firmware: {node.props['fw_version']}")
+            print()
 
 async def start(tdm_addr=None, tdm_port=None, **kwargs):
     """Start the connection with the Thymio and variable synchronization.

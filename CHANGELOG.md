@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - Functions `get_client()` and `get_node()` added to repl
+- Functions `get_nodes()` and `list()` added to notebook
 
 ### Fixed
 
