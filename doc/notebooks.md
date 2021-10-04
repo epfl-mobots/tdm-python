@@ -19,7 +19,7 @@ python3 setup.py bdist_wheel
 ```
 Then in your notebook, replace the `%pip` cell above with
 ```
-%pip install --force-reinstall /.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl
+%pip install --quiet --force-reinstall /.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl
 ```
 replacing `/.../tdm-python/dist/tdmclient-0.1.3-py3-none-any.whl` with the actual location of the `.whl` file.
 
@@ -140,4 +140,87 @@ Now that the program runs on the robot, we can send it `color` events. The numbe
 for col in range(8):
     send_event("color", col)
     sleep(0.5)
+```
+
+### Connection and disconnection
+
+Usually, once we've imported the notebook support with `import tdmclient.notebook`, we would connect to the first robot, assuming there is just one. It's also possible to get the list of robots:
+```
+await tdmclient.notebook.list()
+```
+```
+id:       67a5510c-d1af-4386-9458-d9145d951664
+group id: 7dcf1f69-85a8-4fd4-9c4b-b74d155a1246
+name:     AA003
+status:   2 (available)
+cap:      7
+firmware: 14
+```
+
+When you start the notebook session, you can add options to `tdmclient.notebook.start` to specify which robot to use. Robots can be identified by their id, which is unique hence unambiguous but difficult to type and remember, or by their name which you can define yourself.
+
+Since we don't know the id or name of your robot, we'll cheat by picking the actual id and name of the first robot. To get the list of robots (or nodes), instead of `tdmclient.notebook.list` as above where the result is displayed in a nice list of properties, we call `tdmclient.notebook.get_nodes` which returns a list.
+```
+nodes = await tdmclient.notebook.get_nodes()
+id_first_node = nodes[0].id_str
+name_first_node = nodes[0].props["name"]
+print(f"id: {id_first_node}")
+print(f"name: {name_first_node}")
+```
+```
+id: 67a5510c-d1af-4386-9458-d9145d951664
+name: AA003
+```
+
+Then you can specify the robot id:
+```
+await tdmclient.notebook.start(node_id=id_first_node)
+```
+
+We want to show you how to use the robot's name instead of its id, but first we must close the connection:
+```
+await tdmclient.notebook.stop()
+```
+
+Now the robot is available again.
+```
+await tdmclient.notebook.start(node_name=name_first_node)
+```
+
+### Direct use of node objects
+
+Once connected, the node object used to communicate with the robot can be obtained with `get_node()`:
+```
+robot = tdmclient.notebook.get_node()
+```
+
+Then all the methods and properties defined for `ClientAsyncCacheNode` objects can be used. For example, you can get the list of its variables:
+```
+robot_variables = list(await robot.var_description())
+robot_variables
+```
+```
+['_id',
+ 'event.source',
+ 'event.args',
+ ...
+ 'sd.present']
+ ```
+
+Or set the content of the scratchpad, used by the tdm to share the source code amoung all the clients. No need to use the actual source code, you can set it to any string. Check then in Aseba Studio.
+```
+await robot.set_scratchpad("Hello from a notebook, Studio!")
+```
+
+The client object is also available as a `ClientAsync` object:
+```
+client = tdmclient.notebook.get_client()
+```
+
+The client object doesn't have many intersting usages, because there are simpler alternatives with higher-level functions. Let's check whether the tdm is local:
+```
+client.localhost_peer
+```
+```
+True
 ```
