@@ -150,6 +150,24 @@ def list_robots(**kwargs):
     _interactive_console.client.process_waiting_messages()
     return list(_interactive_console.client.filter_nodes(_interactive_console.client.nodes, **kwargs))
 
+def sync_var(func):
+    # candidate variables to sync: globals referenced in func
+    candidates = set(func.__code__.co_names)
+
+    def func_wrapper(*args, **kwargs):
+        node = get_node()
+        vars_to_sync = candidates & {_interactive_console.to_python_name(name) for name in node.var.keys()}
+        _interactive_console.fetch_variables(vars_to_sync)
+        r = func(*args, **kwargs)
+        _interactive_console.send_variables(vars_to_sync)
+        return r
+
+    # make a copy of wrapper and change its default args to match func
+    import types, functools
+    w = types.FunctionType(code=func_wrapper.__code__, globals=func_wrapper.__globals__, name=func.__name__, closure=func_wrapper.__closure__)
+    functools.update_wrapper(w, func)
+    return w
+
 from IPython.core.magic import register_line_magic, register_cell_magic
 
 @register_cell_magic
