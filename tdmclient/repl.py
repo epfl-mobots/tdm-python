@@ -52,17 +52,13 @@ class TDMConsole(code.InteractiveConsole):
             """
 
             # send and flush all variables which might have been changed
-            if len(self.var_set) > 0:
-                for name in self.var_set:
-                    self.send_variable(name, self.local_var[name])
-                self.flush_variables()
+            self.send_variables(self.var_set)
 
             # wait
             ClientAsync.aw(self.client.sleep(t))
 
             # fetch all variables which might be used
-            for name in self.var_got:
-                self.local_var[name] = self.fetch_variable(name)
+            self.fetch_variables(self.var_got, node_flush=False)
 
         def robot_code(language="python"):
             """Gather Python or Aseba source code for the robot.
@@ -74,8 +70,8 @@ class TDMConsole(code.InteractiveConsole):
             src = ""
 
             # robot variables
-            for name in self.robot_var_set:
-                name_py = self.to_python_name(name)
+            for name_a in self.robot_var_set:
+                name_py = self.to_python_name(name_a)
                 src += f"""{name_py} = {self.local_var[name_py]}
 """
 
@@ -204,11 +200,11 @@ class TDMConsole(code.InteractiveConsole):
         # fetch all variables
         await self.node.wait_for_variables()
         sync_var = set()
-        for name in self.node.vm_description["variables"]:
-            value = self.node[name]
+        for name_a in self.node.vm_description["variables"]:
+            value = self.node[name_a]
             if isinstance(value, ArrayCache):
                 value = list(value)
-            name_py = self.to_python_name(name)
+            name_py = self.to_python_name(name_a)
             self.local_var[name_py] = value
             sync_var.add(name_py)
         self.sync_var = sync_var
@@ -322,24 +318,46 @@ class TDMConsole(code.InteractiveConsole):
         return re.sub(r"(?<=.)_", r".", p_name)
 
     @staticmethod
-    def to_python_name(a_name):
+    def to_python_name(name_a):
         # replace dots with underscores
-        return a_name.replace(".", "_")
+        return name_a.replace(".", "_")
 
-    def fetch_variable(self, name):
-        self.node.flush()
-        value = self.node[self.from_python_name(name)]
+    def fetch_variable(self, name_py, node_flush=True):
+        """Fetch a variable from the robot and return its value.
+        """
+
+        if node_flush:
+            self.node.flush()
+        value = self.node[self.from_python_name(name_py)]
         if isinstance(value, ArrayCache):
             value = list(value)
         return value
 
-    def send_variable(self, name, value):
-        a_name = self.from_python_name(name)
-        self.robot_var_set.add(a_name)
-        self.node[a_name] = value
+    def fetch_variables(self, names_py, node_flush=True):
+        """Fetch variables from the robot and store their values into
+        self.local_var.
+        """
+
+        if node_flush:
+            self.node.flush()
+        for name_py in names_py:
+            self.local_var[name_py] = self.fetch_variable(name_py,
+                                                          node_flush=False)
+
+    def send_variable(self, name_py, value):
+        name_a = self.from_python_name(name_py)
+        self.robot_var_set.add(name_a)
+        self.node[name_a] = value
 
     def flush_variables(self):
         self.node.flush()
+
+    def send_variables(self, names_py, node_flush=True):
+        if len(names_py) > 0:
+            for name_py in names_py:
+                self.send_variable(name_py, self.local_var[name_py])
+            if node_flush:
+                self.flush_variables()
 
     def find_global_var(self, nodes, globals=None):
         """Return variable referenced in expressions, variables assigned to,
@@ -520,8 +538,7 @@ class TDMConsole(code.InteractiveConsole):
             self.var_got, self.var_set, _, _ = self.find_global_var(self.cmd_tree.body)
             self.var_got &= self.sync_var
             self.var_set &= self.sync_var
-            for name in self.var_got:
-                self.local_var[name] = self.fetch_variable(name)
+            self.fetch_variables(self.var_got)
         except Exception as e:
             # print("pre_run error", e)
             pass
@@ -563,10 +580,7 @@ class TDMConsole(code.InteractiveConsole):
         """Analyze a complete command after it has been executed,
         with or without error.
         """
-        if len(self.var_set) > 0:
-            for name in self.var_set:
-                self.send_variable(name, self.local_var[name])
-            self.flush_variables()
+        self.send_variables(self.var_set)
         try:
             if (self.cmd_tree is not None and
                 self.cmd_tree.body is not None):
