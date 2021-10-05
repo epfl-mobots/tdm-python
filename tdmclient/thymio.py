@@ -695,6 +695,7 @@ class ThymioFB(Listener):
                 variables = {
                     v.fields[0][0]: v.fields[1][0]
                     for v in fb.root.union_data[0].fields[1][0]
+                    if v.fields[1][0] is not None
                 }
                 self.notify_variables_changed(node, variables)
                 if node is not None:
