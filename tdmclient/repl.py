@@ -130,6 +130,24 @@ class TDMConsole(code.InteractiveConsole):
             """
             self.stop_program(discard_output=True)
 
+        def get_var(*args):
+            """Get robot variables passed as a set or list of names and
+            return them in a tuple.
+            """
+            self.fetch_variables(args)
+            return tuple(
+                self.local_var[name_py]
+                for name_py in args
+            )
+
+        def set_var(**kwargs):
+            """Set robot variables passed as keyword arguments.
+            """
+            for name_py in kwargs:
+                self.local_var[name_py] = kwargs[name_py]
+                self.send_variable(name_py, kwargs[name_py])
+            self.flush_variables()
+
         def clear_event_data(event_name=None):
             """Clear all or named event data.
             """
@@ -159,6 +177,8 @@ class TDMConsole(code.InteractiveConsole):
             "robot_code_new": robot_code_new,
             "run": run,
             "stop": stop,
+            "get_var": get_var,
+            "set_var": set_var,
             "clear_event_data": clear_event_data,
             "get_event_data": get_event_data,
             "send_event": send_event,
