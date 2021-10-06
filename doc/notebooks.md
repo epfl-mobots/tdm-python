@@ -92,6 +92,33 @@ v = [32, 0, 32, 0, 32, 0, 32, 0]
 leds_circle = v
 ```
 
+Variables accessed or changed in the notebook are synchronized with the robot only if the statements are located directly in notebook cells. This isn't automatically the case for functions, to let you decide when it's efficient to receive or send values to the robot. There are two ways to do it:
+- Function `get_var("var1", "var2", ...)` retrieves the value of variables `var1`, `var2` etc. and returns them in a tuple in the same order. The typical use is to unpack the tuple directly into variables in an assignment: `var1,var2,...=get_var("var1","var2",...)`; beware to have a trailing comma if you retrieve only one variable, else you'll get a plain assignment of the tuple itself.
+
+    Function `set_var(var1=value1,var2=value2,...)` sends new values to the robot.
+
+    Here is an example which sets the color of the robot to red or blue depending on its temperature:
+    ```
+    def f(temp_limit=30):
+        temperature, = get_var("temperature")
+        if temperature > temp_limit * 10:
+            set_variables({"leds_top": [32, 0, 0]})
+        else:
+            set_variables({"leds_top": [0, 10, 32]})
+    ```
+- To synchronized global variables whose names match the robot's, the function can be decorated with `@tdmclient.notebook.sync_var`. The effect of the decorator is to extend the function so that these variables are fetched at the beginning and sent back to the robot before the function returns.
+
+    Here is the same example:
+    ```
+    @tdmclient.notebook.sync_var
+    def f(temp_limit=30):
+        global temperature, leds_top
+        if temperature > temp_limit * 10:
+            leds_top = [32, 0, 0]
+        else:
+            leds_top = [0, 10, 32]
+    ```
+
 ### Custom events
 
 To retrieve data from the robot and process them further in your notebook, you can send events with `emit`. In the program below, we collects 20 samples of the front proximity sensor, one every 200ms (5 per second), i.e. during 4 seconds.
