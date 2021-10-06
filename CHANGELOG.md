@@ -20,6 +20,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- in transpiler, support of string constants as documentation strings or arguments of `print()` and `emit()`
 	- in repl, no warning for numbers and booleans
 - Decoding of the size of array variables obtained from tdm
+- In repl, underscores not converted to dots in name of global variables which don't correspond to a known Thymio variable
 - Documentation improvements
 
 ## [0.1.7] - 2021-09-27

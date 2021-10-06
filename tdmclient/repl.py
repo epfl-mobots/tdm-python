@@ -332,10 +332,14 @@ class TDMConsole(code.InteractiveConsole):
         finally:
             self.output_enabled = output_enabled_orig
 
-    @staticmethod
-    def from_python_name(p_name):
-        # replace underscores with dots, except first underscore
-        return re.sub(r"(?<=.)_", r".", p_name)
+    def from_python_name(self, name_py):
+        # replace underscores with dots, except first underscore, for node variables
+        if self.node is not None:
+            name_a = re.sub(r"(?<=.)_", r".", name_py)
+            if name_a in self.node.var:
+                return name_a
+        # not a node variable: keep as is
+        return name_py
 
     @staticmethod
     def to_python_name(name_a):
