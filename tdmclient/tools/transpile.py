@@ -10,6 +10,7 @@ import sys
 import getopt
 from tdmclient.atranspiler import ATranspiler
 import tdmclient.module_thymio
+import tdmclient.module_clock
 
 def help():
     print("""Usage: python3 -m tdmclient.tools.transpile [options] [filename]
@@ -62,10 +63,11 @@ if __name__ == "__main__":
     else:
         src = sys.stdin.read()
 
-    modules = {
-        "thymio": tdmclient.module_thymio.ModuleThymio()
-    }
     transpiler = ATranspiler()
+    modules = {
+        "thymio": tdmclient.module_thymio.ModuleThymio(transpiler),
+        "clock": tdmclient.module_clock.ModuleClock(transpiler),
+    }
     transpiler.modules = {**transpiler.modules, **modules}
     if import_thymio:
         transpiler.set_preamble("""from thymio import *

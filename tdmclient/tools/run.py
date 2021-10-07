@@ -13,6 +13,7 @@ import re
 from tdmclient import ClientAsync
 from tdmclient.atranspiler import ATranspiler
 from tdmclient.module_thymio import ModuleThymio
+from tdmclient.module_clock import ModuleClock
 
 
 def help(**kwargs):
@@ -164,10 +165,11 @@ if __name__ == "__main__":
 
     if language == "python":
         # transpile from Python to Aseba
-        modules = {
-            "thymio": ModuleThymio()
-        }
         transpiler = ATranspiler()
+        modules = {
+            "thymio": ModuleThymio(transpiler),
+            "clock": ModuleClock(transpiler),
+        }
         transpiler.modules = {**transpiler.modules, **modules}
         if import_thymio:
             transpiler.set_preamble("""from thymio import *

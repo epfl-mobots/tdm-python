@@ -13,8 +13,8 @@ from tdmclient.atranspiler import Module, AFunction
 
 class ModuleThymio(Module):
 
-    def __init__(self):
-        super().__init__("Thymio")
+    def __init__(self, transpiler):
+        super().__init__(transpiler, "Thymio")
         self.constants = {
             "BLACK": ("[0, 0, 0]", 3),
             "BLUE": ("[0, 0, 32]", 3),

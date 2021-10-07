@@ -317,7 +317,8 @@ class Module:
     """Module known to transpiler.
     """
 
-    def __init__(self, name, constants=None, variables=None, functions=None):
+    def __init__(self, transpiler, name, constants=None, variables=None, functions=None):
+        self.transpiler = transpiler
         self.name = name
         self.constants = constants or {}
         self.variables = variables or {}
@@ -1260,8 +1261,10 @@ onevent {fun_name.replace("_", ".")}
         transpiler = ATranspiler()
         if modules == "thymio":
             from tdmclient.module_thymio import ModuleThymio
+            from tdmclient.module_clock import ModuleClock
             modules = {
-                "thymio": ModuleThymio()
+                "thymio": ModuleThymio(transpiler),
+                "clock": ModuleClock(transpiler),
             }
         if modules is not None:
             transpiler.modules = {**transpiler.modules, **modules}

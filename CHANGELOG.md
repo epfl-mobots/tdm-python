@@ -6,6 +6,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
+- In transpiler:
+	- module `clock` with functions `seconds()`, `ticks_50Hz()` and `reset()`
 - In repl:
 	- functions `get_client()` and `get_node()`
 	- functions `get_var` and `set_var`

@@ -13,6 +13,7 @@ import re
 from tdmclient import ClientAsync, ArrayCache
 from tdmclient.atranspiler import ATranspiler
 from tdmclient.module_thymio import ModuleThymio
+from tdmclient.module_clock import ModuleClock
 
 
 class TDMConsole(code.InteractiveConsole):
@@ -249,10 +250,11 @@ class TDMConsole(code.InteractiveConsole):
             src -- Python source code
             import_thymio -- if True (default), predefine all Thymio symbols
         """
-        modules = {
-            "thymio": ModuleThymio()
-        }
         transpiler = ATranspiler()
+        modules = {
+            "thymio": ModuleThymio(transpiler),
+            "clock": ModuleClock(transpiler),
+        }
         transpiler.modules = {**transpiler.modules, **modules}
         if import_thymio:
             transpiler.set_preamble("""from thymio import *
