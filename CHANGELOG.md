@@ -9,6 +9,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In repl:
 	- functions `get_client()` and `get_node()`
 	- functions `get_var` and `set_var`
+	- global variables defined in the robot program added to the list of variables to be synchronized
 - In notebooks:
 	- functions `get_nodes()` and `list()` to get the list of nodes available in the tdm
 	- decorator `@sync_var` to synchronize the robot variables accessed in the function

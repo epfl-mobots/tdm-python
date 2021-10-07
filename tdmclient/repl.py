@@ -197,6 +197,9 @@ class TDMConsole(code.InteractiveConsole):
             if define_functions:
                 self.local_var.update(self.functions)
 
+        # from initial node description
+        self.sync_var_vm = None
+        # completed by variable change messages
         self.sync_var = None
 
         # for generating source code for robot
@@ -227,7 +230,16 @@ class TDMConsole(code.InteractiveConsole):
             name_py = self.to_python_name(name_a)
             self.local_var[name_py] = value
             sync_var.add(name_py)
-        self.sync_var = sync_var
+        self.sync_var_vm = sync_var
+        self.sync_var = sync_var.copy()
+
+        # complete self.sync_var when receiving values for unknown variables
+        def update_sync_var(node, variables):
+            for name in variables:
+                if variables[name] is not None:
+                    self.sync_var.add(name)
+
+        self.node.add_variables_changed_listener(update_sync_var)
 
     @staticmethod
     def transpile(src, import_thymio=True):
@@ -260,6 +272,9 @@ class TDMConsole(code.InteractiveConsole):
             return self.event_data_dict
         else:
             return self.event_data_dict[event_name] if event_name in self.event_data_dict else []
+
+    def reset_sync_var(self):
+        self.sync_var = self.sync_var_vm.copy()
 
     def run_program(self, src, language="aseba", wait=False, import_thymio=True):
         print_statements = []
@@ -310,6 +325,7 @@ class TDMConsole(code.InteractiveConsole):
             self.client.clear_event_received_listeners()
             self.client.add_event_received_listener(on_event_received)
             ClientAsync.aw(self.node.watch(events=True))
+        self.reset_sync_var()
         error = ClientAsync.aw(self.node.run())
         if error is not None:
             raise Exception(f"Error {error['error_code']}")
