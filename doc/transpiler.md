@@ -304,7 +304,7 @@ Thymio variables and native functions are mapped to Thymio's. Their names contai
 - `from thymio import s1 as a1, s2 as a2, ...` in the global scope: same as above, but variables (or only some of them) are aliased to a different name.
 - `from thymio import ...` in function definition scope: variables can be accessed in expressions or assignments in the function.
 
-In other words, the expected Python rules apply. No other module is available.
+In other words, the expected Python rules apply.
 
 In addition to variables and native functions, the following constants are defined:
 
@@ -348,3 +348,17 @@ leds_top = RED
 from thymio import leds_top as led, RED as color
 led = color
 ```
+
+## Module `clock`
+
+In addition to `thymio`, there is one other module available. The module `clock` provides functions to get the current time since the start of the program or the last call to its function `reset()`. It can be used to measure the time between two events or to add time information to data sent from the robot to the PC with events.
+
+The module implements the following functions:
+
+| Function | Description
+| --- | ---
+| `reset()` | reset the tick counter (restart times from 0)
+| `seconds()` | time in second
+| `ticks_50Hz()` | time in 1/50 second
+
+The values are based on a counter incremented 50 times per second. Since it's stored in a signed 16-bit integer, like all Thymio variables, there is an overflow after 32767/50 seconds, or 5 minutes and 55 seconds. If your program runs longer, use the clock to measure smaller intervals and reset it for each new interval.
