@@ -353,11 +353,26 @@ class ATranspiler:
         # dict module_name: module (modules which can be imported)
         self.modules = {}
 
+        # onevent_preamble[E]: code prepended to transpiled @onevent def E
+        # or definition of onevent E if no @onevent is given for E
+        self.onevent_preamble = {}
+        # associated variable declarations
+        self.additional_var_declarations = ""
+
     def set_preamble(self, preamble):
         """Set the Python source code compiled just before source
         (typically import statements).
         """
         self.preamble = preamble
+
+    def add_onevent_preamble(self, name, src_aseba, src_var_decl=""):
+        """Add source code to be prepended to transpiled @onevent definition.
+        """
+        if name in self.onevent_preamble:
+            self.onevent_preamble[name] += src_aseba
+        else:
+            self.onevent_preamble[name] = src_aseba
+        self.additional_var_declarations += src_var_decl
 
     def set_source(self, source):
         """Set the Python source code and reset transpilation.
@@ -1151,6 +1166,8 @@ return
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
 """
+                if fun_name in self.onevent_preamble:
+                    function_src += self.onevent_preamble[fun_name]
                 for i, arg in enumerate(function.function_def.args.args):
                     function_src += f"""{function.var_str(arg.arg, True)} = event.args[{i}]
 """
@@ -1159,6 +1176,13 @@ onevent {fun_name.replace("_", ".")}
 sub {fun_name}
 """
             function_src += fun_output_src
+        # onevent_preamble for functions not defined in Python source code
+        for fun_name in self.onevent_preamble:
+            if fun_name not in context_top.functions:
+                function_src += f"""
+onevent {fun_name.replace("_", ".")}
+"""
+                function_src += self.onevent_preamble[fun_name]
 
         # compile top-level code again, now that function return types are known
         self.output_src = self.compile_node_array(top_code, context_top) + function_src
@@ -1174,6 +1198,8 @@ sub {fun_name}
             context_top.functions[fun_name].var_declarations()
             for fun_name in context_top.functions
         ])
+        if self.additional_var_declarations:
+            var_decl += self.additional_var_declarations
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
 
