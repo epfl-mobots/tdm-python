@@ -174,7 +174,11 @@ from IPython.core.magic import register_line_magic, register_cell_magic
 def run_python(line, cell):
     args = line.split()
     wait = "--wait" in args
+    clear_event_data = "--clear-event-data" in args
     import_thymio = "--nothymio" not in args
+
+    if clear_event_data:
+        _interactive_console.clear_event_data()
     _interactive_console.run_program(cell, "python", wait=wait, import_thymio=import_thymio)
 
 @register_cell_magic

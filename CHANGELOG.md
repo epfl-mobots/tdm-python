@@ -13,8 +13,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- functions `get_var` and `set_var`
 	- global variables defined in the robot program added to the list of variables to be synchronized
 - In notebooks:
-	- functions `get_nodes()` and `list()` to get the list of nodes available in the tdm
+	- functions `get_nodes()` and `list()` to get the list of nodes available in the TDM
 	- decorator `@sync_var` to synchronize the robot variables accessed in the function
+	- in `%%run_python`, option `--clear-event-data` to call `clear_event_data()` before starting the program
 
 ### Fixed
 
@@ -22,7 +23,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - Better compatibility with Python 3.6:
 	- in transpiler, support of string constants as documentation strings or arguments of `print()` and `emit()`
 	- in repl, no warning for numbers and booleans
-- Decoding of the size of array variables obtained from tdm
+- Decoding of the size of array variables obtained from TDM
 - In repl, underscores not converted to dots in name of global variables which don't correspond to a known Thymio variable
 - Documentation improvements
 
