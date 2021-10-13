@@ -108,6 +108,7 @@ class Context:
         else:
             for symbol in symbols:
                 self.module_symbols[symbol] = module, symbols[symbol]
+        module.on_import()
 
     def declare_global(self, name, ast_node=None):
         """Declare a global variable.
@@ -324,6 +325,9 @@ class Module:
         self.variables = variables or {}
         self.functions = functions or {}
 
+    def on_import(self):
+        pass
+
 
 class ATranspiler:
     """Transpiler from a subset of Python3 to Aseba.
@@ -354,11 +358,11 @@ class ATranspiler:
         # dict module_name: module (modules which can be imported)
         self.modules = {}
 
-        # onevent_preamble[E]: code prepended to transpiled @onevent def E
-        # or definition of onevent E if no @onevent is given for E
+        # onevent_preamble[E]: set of code fragments prepended to transpiled
+        # @onevent def E or definition of onevent E if no @onevent is given for E
         self.onevent_preamble = {}
         # associated variable declarations
-        self.additional_var_declarations = ""
+        self.additional_var_declarations = {}
 
     def set_preamble(self, preamble):
         """Set the Python source code compiled just before source
@@ -366,14 +370,16 @@ class ATranspiler:
         """
         self.preamble = preamble
 
-    def add_onevent_preamble(self, name, src_aseba, src_var_decl=""):
+    def add_onevent_preamble(self, name, src_aseba, var_decl=None):
         """Add source code to be prepended to transpiled @onevent definition.
         """
         if name in self.onevent_preamble:
-            self.onevent_preamble[name] += src_aseba
+            self.onevent_preamble[name].add(src_aseba)
         else:
-            self.onevent_preamble[name] = src_aseba
-        self.additional_var_declarations += src_var_decl
+            self.onevent_preamble[name] = {src_aseba}
+        if var_decl is not None:
+            self.additional_var_declarations = {**self.additional_var_declarations,
+                                                **var_decl}
 
     def set_source(self, source):
         """Set the Python source code and reset transpilation.
@@ -1168,7 +1174,7 @@ return
 onevent {fun_name.replace("_", ".")}
 """
                 if fun_name in self.onevent_preamble:
-                    function_src += self.onevent_preamble[fun_name]
+                    function_src += "".join(self.onevent_preamble[fun_name])
                 for i, arg in enumerate(function.function_def.args.args):
                     function_src += f"""{function.var_str(arg.arg, True)} = event.args[{i}]
 """
@@ -1183,7 +1189,7 @@ sub {fun_name}
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
 """
-                function_src += self.onevent_preamble[fun_name]
+                function_src += "".join(self.onevent_preamble[fun_name])
 
         # compile top-level code again, now that function return types are known
         self.output_src = self.compile_node_array(top_code, context_top) + function_src
@@ -1199,8 +1205,9 @@ onevent {fun_name.replace("_", ".")}
             context_top.functions[fun_name].var_declarations()
             for fun_name in context_top.functions
         ])
-        if self.additional_var_declarations:
-            var_decl += self.additional_var_declarations
+        for var_name, var_val0 in enumerate(self.additional_var_declarations):
+            var_decl += f"""var {var_name} = {var_val0}
+"""
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
 

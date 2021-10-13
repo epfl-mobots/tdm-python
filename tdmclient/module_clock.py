@@ -16,10 +16,6 @@ class ModuleClock(Module):
     def __init__(self, transpiler):
         super().__init__(transpiler, "Clock")
 
-        self.transpiler.add_onevent_preamble("buttons",
-                                             "_ticks50Hz++\n",
-                                             "var _ticks50Hz = 0\n")
-
         @AFunction.define(self.functions, "ticks_50Hz", [], 1)
         def _ticks_50Hz(context, args):
             return ["_ticks50Hz"], ""
@@ -32,3 +28,8 @@ class ModuleClock(Module):
         def _reset(context, args):
             return None, f"""_ticks50Hz = 0
 """
+
+    def on_import(self):
+        self.transpiler.add_onevent_preamble("buttons",
+                                             "_ticks50Hz++\n",
+                                             {"_ticks50Hz": 0})
