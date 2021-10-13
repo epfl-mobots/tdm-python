@@ -1,4 +1,24 @@
-include help.md
-include transpiler.md
+include doc/help.md
+include doc/notebooks.md
+include doc/repl.md
+include doc/transpiler.md
+
+include examples/host/events.py
+include examples/host/runprogram.py
+include examples/robot/acquisition.py
+include examples/robot/backward.py
+include examples/robot/blink.aseba
+include examples/robot/blink.py
+include examples/robot/blue.aseba
+include examples/robot/clock.py
+include examples/robot/exit.py
+include examples/robot/print.py
+
+include notebooks/tdmclient_intro.ipynb
+include notebooks/tdmclient_sync.ipynb
+include notebooks/tdmclient_sync_adv.ipynb
+include notebooks/tdmclient_sync_interact.ipynb
+include notebooks/tdmclient_sync_nf.ipynb
+
 include LICENSE
 include CHANGELOG.md
