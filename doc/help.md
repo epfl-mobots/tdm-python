@@ -112,7 +112,7 @@ The client will connect to the TDM which will send messages to us, such as one t
     ```
     node = client.nodes[0]
     ```
-- Call an asynchronous function in such a way that its result is waited for. This can be done in a coroutine, a special function which is executed at the same time as other tasks your program must perform, with the `await` Python keyword; or handled by the helper function `aw`. Keyword `await` is valid only in a function, hence we cannot call it directly from the Python prompt. In this section, we'll use `aw`. Robots are associated to nodes. To get the first node once it's available (i.e. an object which refers to the first or only robot after having received and processed enough messages from the TDM to have this information), type
+- Call an asynchronous function in such a way that its result is waited for. This can be done in a coroutine, a special function which is executed at the same time as other tasks your program must perform, with the `await` Python keyword; or handled by the helper function `aw`. In plain Python, keyword `await` is valid only in a function, hence we cannot call it directly from the Python prompt (IPython, an improved command interpreter which is used in Jupyter, supports directly `await`). In this section, we'll use `aw`. Robots are associated to nodes. To get the first node once it's available (i.e. an object which refers to the first or only robot after having received and processed enough messages from the TDM to have this information), type
     ```
     node = aw(client.wait_for_node())
     ```

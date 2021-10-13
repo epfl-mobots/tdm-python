@@ -253,3 +253,181 @@ client.localhost_peer
 ```
 True
 ```
+
+### Interactive widgets
+
+This section illustrates the use of `tdmclient.notebook` with interactive widgets provided by the `ipywidgets` package.
+
+Import the required classes and connect to the robot. In addition to `tdmclient.notebook`, `ipywidgets` provides support for interactive widgets, i.e. GUI elements which you can control with the mouse.
+```
+import tdmclient.notebook
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+await tdmclient.notebook.start()
+```
+
+A function can be made interactive by adding a decorator `@interact` which specifies the range of values of each argument. When the cell is executed, sliders are displayed for each interactive argument. `(0,32,1)` means a range of integer values from 0 to 32 with a step of 1. Since the default value of the step is 1, we can just write `(0,32)`. The initial value of the arguments is given by their default value in the function definition.
+
+Thymio variables aren't synchronized automatically when they're located inside functions. By adding a decorator `@tdmclient.notebook.sync_var`, all Thymio variables referenced in the function are fetched from the robot before the function execution and sent back to the robot afterwards. Note the order of the decorators: `@tdmclient.notebook.sync_var` modifies the function to make its variables synchronized with the robot, and `@interact` makes this modified function interactive.
+```
+@interact(red=(0,32), green=(0,32), blue=(0,32))
+@tdmclient.notebook.sync_var
+def rgb(red=0, green=0, blue=0):
+    global leds_top
+    leds_top = [red, green, blue]
+```
+
+Here are alternative ways for the same result. Instead of a decorator in front of the function, you can call `interact` as a normal function, passing it the function whose arguments are manipulated interactively. Instead of decorating the function with `@tdmclient.notebook.sync_var`, you can call explicitly `set_var` to change the robot variables. And if your function is just a simple expression (a call to `set_var` or to another function if the values of its arguments don't fit directly the sliders of `interact`), you can replace it with a lambda expression.
+```
+interact(lambda red=0,green=0,blue=0: set_var(leds_top=[red,green,blue]), red=(0,32), green=(0,32), blue=(0,32));
+```
+
+You can combine a program running on the robot and interactive controls in the notebook to change variables. Here is a program which uses its front proximity sensor to remain at some distance from an obstacle. Put your hand or a white box in front of the Thymio before you run the cell, or be ready to catch it before it falls off the table.
+```
+%%run_python
+
+prox0 = 1000
+gain_prc = 2
+timer_period[0] = 100
+
+@onevent
+def timer0():
+    global prox_horizontal, motor_left_target, motor_right_target, prox0, gain_prc
+    speed = math_muldiv(prox0 - prox_horizontal[2], gain_prc, 100)
+    motor_left_target = speed
+    motor_right_target = speed
+```
+
+The global variables created by the program are also synchronized with those in the notebook:
+```
+prox0
+```
+```
+1000
+```
+```
+gain_prc = 5
+```
+
+Changing the value of `prox0`, which is related to the distance the robot will maintain with respect to the obstacle, can be done with a slider as for `leds_top` above:
+```
+@interact(prox_target=(0, 4000, 10))
+@tdmclient.notebook.sync_var
+def change_prox0(prox_target):
+    global prox0
+    prox0 = prox_target
+```
+
+Change the value of the target value of the proximity sensor with the slider and observe how the robot moves backward or forward until it reaches a position where the expression `prox0 - prox_horizontal[2]` is 0, hence the speed is 0. Actually because it's unlikely the sensor reading remains perfectly constant, the robot will continue making small adjustments.
+
+When you've finished experimenting, stop the program:
+```
+stop()
+```
+
+### Graphics
+
+The usual Python module for graphics is `matplotlib`. To plot a sensor value, or any computed value, as a function of time, you can retrieve the values with events.
+```
+import matplotlib.pyplot as plt
+```
+
+We can begin with the example presented to illustrate the use of events:
+```
+%%run_python --clear-event-data --wait
+
+i = 0
+timer_period[0] = 200
+
+@onevent
+def timer0():
+    global i, prox_horizontal
+    i += 1
+    if i > 20:
+        exit()
+    emit("front", prox_horizontal[2])
+```
+
+Then we retrieve and plot the event data:
+```
+%matplotlib inline
+prox_front = get_event_data("front")
+plt.plot(prox_front);
+```
+
+The horizontal scale shows the sample index, from 0 to 20 (the `_exit` event sent by the call to `exit()` is processed by the PC after the complete execution of `timer0()`; thus the program emits values for `i` from 1 to 21).
+
+You may prefer to use a time scale. If the events are produced in a timer event at a known rate, the time can be computed in the notebook. But often it's more convenient to get the actual time on the robot by reading its clock. For that, we use the `ticks_50Hz()` function defined in the `clock` module, which returns a value incremented 50 times per second. Instead of counting samples, we stop when the clock reaches 4 seconds. Both `clock.ticks_50Hz()` and `clock.seconds()` are reset to 0 when the program starts or when `clock.reset()` is called. Here is a new version of the robot program:
+```
+%%run_python --clear-event-data --wait
+
+import clock
+
+timer_period[0] = 200
+
+@onevent
+def timer0():
+    global prox_horizontal
+    if clock.seconds() >= 4:
+        exit()
+    emit("front", clock.ticks_50Hz(), prox_horizontal[2])
+```
+
+The events produced by `emit()` contain 2 values, the number of ticks and the front proximity sensor. We can extract them into `t` and `y` with list comprehensions, a compact way to manipulate list values. The time is converted to seconds as fractional number, something which cannot be done on the Thymio where all numbers are integers.
+```
+%matplotlib inline
+prox_front = get_event_data("front")
+t = [data[0] / 50 for data in prox_front]
+y = [data[1] for data in prox_front]
+plt.plot(t, y);
+```
+
+### Live graphics
+
+Support for animated graphics, where new data are displayed when there're available, depends on the version of Jupyter and the extensions which are installed. This section describes one way to update a figure in JupyterLab without any extension.
+
+We modify the program and plot above to run continuously with a sliding time window of 10 seconds. The call to `exit()` is removed from the robot program, and we don't wait for the program to terminate.
+```
+%%run_python --clear-event-data
+
+import clock
+
+timer_period[0] = 200
+
+@onevent
+def timer0():
+    global prox_horizontal
+    emit("front", clock.ticks_50Hz(), prox_horizontal[2])
+```
+
+The figure below displays the last 10 seconds of data in a figure which is updated everytime new events are received. For each event received, the first data value is the time in 1/50 second, and the remaining values are displayed as separate lines. Thus you can keep the same code with different robot programs, as long as you emit events with a unique name and a fixed number of values.
+
+Click the stop button in the toolbar above to interrupt the kernel (the Python session which executes the notebook cells).
+```
+from IPython.display import clear_output
+from matplotlib import pyplot as plt
+%matplotlib inline
+
+def on_event_data(event_name):
+
+    def update_plot(t, y, time_span=10):
+        clear_output(wait=True)
+        plt.figure()
+
+        if len(t) > 1:
+            plt.plot(t, y)
+            t_last = t[-1]
+            plt.xlim(t_last - time_span, t_last)
+
+        plt.grid(True)
+        plt.show();
+
+    data_list = get_event_data(event_name)
+    t = [data[0] / 50 for data in data_list]
+    y = [data[1:] for data in data_list]
+
+    update_plot(t, y)
+
+clear_event_data()
+tdmclient.notebook.process_events(on_event_data)
+```
