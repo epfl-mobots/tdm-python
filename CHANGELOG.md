@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.8] - 2021-10-13
+
 ### Added
 
 - In transpiler:
