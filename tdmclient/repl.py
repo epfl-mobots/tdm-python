@@ -278,6 +278,49 @@ class TDMConsole(code.InteractiveConsole):
     def reset_sync_var(self):
         self.sync_var = self.sync_var_vm.copy()
 
+    def process_events(self, on_event_data=None):
+        """Listen to events sent by the program running on the robot and process
+        them until _exit is received.
+
+        Argument:
+            on_event_data -- func(event_name) called when new data is received
+        """
+
+        exit_received = None  # or exit code once received
+
+        def on_event_received(node, event_name, event_data):
+            if self.output_enabled:
+                if event_name == "_exit":
+                    nonlocal exit_received
+                    exit_received = event_data[0]
+                elif event_name == "_print":
+                    print_id = event_data[0]
+                    print_format, print_num_args = print_statements[print_id]
+                    print_args = tuple(event_data[1 : 1 + print_num_args])
+                    print_str = print_format % print_args
+                    print(print_str)
+                else:
+                    if len(event_data) > 0:
+                        if event_name not in self.event_data_dict:
+                            self.event_data_dict[event_name] = []
+                        self.event_data_dict[event_name].append(event_data)
+                        if on_event_data is not None:
+                            on_event_data(event_name)
+
+        def wake():
+            return exit_received is not None
+
+        self.client.clear_event_received_listeners()
+        self.client.add_event_received_listener(on_event_received)
+        try:
+            ClientAsync.aw(self.node.watch(events=True))
+            ClientAsync.aw(self.client.sleep(wake=wake))
+            self.stop_program(discard_output=True)
+            if exit_received:
+                print(f"Exit, status={exit_received}")
+        finally:
+            self.client.clear_event_received_listeners()
+
     def run_program(self, src, language="aseba", wait=False, import_thymio=True):
         print_statements = []
         events = []
@@ -303,6 +346,7 @@ class TDMConsole(code.InteractiveConsole):
         error = ClientAsync.aw(self.node.compile(src))
         if error is not None:
             raise Exception(error["error_msg"])
+        self.client.clear_event_received_listeners()
         exit_received = None  # or exit code once received
         if wait is None:
             # wait if there are events to receive
@@ -324,7 +368,6 @@ class TDMConsole(code.InteractiveConsole):
                             if event_name not in self.event_data_dict:
                                 self.event_data_dict[event_name] = []
                             self.event_data_dict[event_name].append(event_data)
-            self.client.clear_event_received_listeners()
             self.client.add_event_received_listener(on_event_received)
             ClientAsync.aw(self.node.watch(events=True))
         self.reset_sync_var()
@@ -333,12 +376,15 @@ class TDMConsole(code.InteractiveConsole):
             raise Exception(f"Error {error['error_code']}")
         self.node.send_set_scratchpad(src)
         if wait:
-            def wake():
-                return exit_received is not None
-            ClientAsync.aw(self.client.sleep(wake=wake))
-            self.stop_program(discard_output=True)
-            if exit_received:
-                print(f"Exit, status={exit_received}")
+            try:
+                def wake():
+                    return exit_received is not None
+                ClientAsync.aw(self.client.sleep(wake=wake))
+                self.stop_program(discard_output=True)
+                if exit_received:
+                    print(f"Exit, status={exit_received}")
+            finally:
+                self.client.clear_event_received_listeners()
 
     def stop_program(self, discard_output=False):
         output_enabled_orig = self.output_enabled

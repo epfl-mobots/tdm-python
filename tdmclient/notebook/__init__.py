@@ -168,6 +168,20 @@ def sync_var(func):
     functools.update_wrapper(w, func)
     return w
 
+def process_events(on_event_data=None):
+    """Listen to events sent by the program running on the robot and process
+    them until _exit is received.
+
+    Argument:
+        on_event_data -- func(event_name) called when new data is received
+    """
+
+    try:
+        _interactive_console.process_events(on_event_data=on_event_data)
+    except KeyboardInterrupt:
+        # avoid long exception message with stack trace
+        print("Interrupted")
+
 from IPython.core.magic import register_line_magic, register_cell_magic
 
 @register_cell_magic
