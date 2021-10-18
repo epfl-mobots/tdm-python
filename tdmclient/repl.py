@@ -482,7 +482,6 @@ class TDMConsole(code.InteractiveConsole):
                 do_nodes(node.values)
             elif isinstance(node, ast.Call):
                 do_nodes(node.args)
-                ast.dump(node)
                 if isinstance(node.func, ast.Name):
                     fun_name = node.func.id
                     if (fun_name not in ATranspiler.PREDEFINED_FUNCTIONS
@@ -586,11 +585,13 @@ class TDMConsole(code.InteractiveConsole):
                             (ast.AsyncFunctionDef, ast.Attribute,
                              ast.Break,
                              ast.ClassDef, ast.Constant, ast.Continue,
-                             ast.Delete, ast.FunctionDef,
+                             ast.Delete,
+                             ast.FunctionDef,
                              ast.Import, ast.ImportFrom,
                              ast.Lambda,
                              ast.NameConstant, ast.Nonlocal, ast.Num,
-                             ast.Pass)):
+                             ast.Pass,
+                             ast.Str)):
                 pass
             elif node is not None:
                 print("Unchecked", ast.dump(node))
@@ -631,7 +632,7 @@ class TDMConsole(code.InteractiveConsole):
             # print("pre_run error", e)
             pass
 
-    def get_function_def_src(self, node):
+    def get_function_def_src(self, node, next_node):
         # use bytes b/c col_offset is in bytes
         src_b = bytes(self.cmd_src, "utf-8")
 
@@ -653,14 +654,10 @@ class TDMConsole(code.InteractiveConsole):
                 index_from -= 1
             if src_b[index_from - 1] == ord("@"):
                 index_from -= 1
-            else:
-                raise SyntaxError("Internal error",
-                                  ("<stdin>",
-                                   node.decorator_list[0].lineno,
-                                   node.decorator_list[0].col_offset,
-                                   self.cmd_src))
 
-        index_to = index(node.end_lineno, node.end_col_offset)
+        index_to = (index(next_node.lineno, next_node.col_offset)
+                    if next_node is not None
+                    else len(src_b))
 
         return str(src_b[index_from : index_to], "utf-8") + "\n"
 
@@ -672,13 +669,16 @@ class TDMConsole(code.InteractiveConsole):
         try:
             if (self.cmd_tree is not None and
                 self.cmd_tree.body is not None):
-                for statement in self.cmd_tree.body:
+                for i, statement in enumerate(self.cmd_tree.body):
                     if isinstance(statement, ast.FunctionDef):
                         # keep function source code
                         var_got, var_set, var_gl, fun_called = self.find_global_var(statement.body,
                                                                                     globals=set())
                         self.fun_defs[statement.name] = {
-                            "src": self.get_function_def_src(statement),
+                            "src": self.get_function_def_src(statement,
+                                                             self.cmd_tree.body[i + 1]
+                                                             if i + 1 < len(self.cmd_tree.body)
+                                                             else None),
                             "in": var_got,
                             "out": var_set,
                             "global": var_gl,
