@@ -4,6 +4,15 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In `tdmclient.tools.repl`, launch code moved to a function `main` so that it can be called from the Python shell
+
+### Fixed
+
+- In transpiler, module "clock" fixed
+- In repl, better support for Python 3.6
+
 ## [0.1.8] - 2021-10-13
 
 ### Added

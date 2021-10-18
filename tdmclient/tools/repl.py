@@ -33,38 +33,38 @@ Options:
 """)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     tdm_addr = None
     tdm_port = None
     robot_id = None
     robot_name = None
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "help",
-                                              "robotid=",
-                                              "robotname=",
-                                              "tdmaddr=",
-                                              "tdmport=",
-                                          ])
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--robotid":
-            robot_id = val
-        elif arg == "--robotname":
-            robot_name = val
-        elif arg == "--tdmaddr":
-            tdm_addr = val
-        elif arg == "--tdmport":
-            tdm_port = int(val)
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(argv[1:],
+                                              "",
+                                              [
+                                                  "help",
+                                                  "robotid=",
+                                                  "robotname=",
+                                                  "tdmaddr=",
+                                                  "tdmport=",
+                                              ])
+        except getopt.error as err:
+            print(str(err))
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--robotid":
+                robot_id = val
+            elif arg == "--robotname":
+                robot_name = val
+            elif arg == "--tdmaddr":
+                tdm_addr = val
+            elif arg == "--tdmport":
+                tdm_port = int(val)
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
 
@@ -78,3 +78,7 @@ if __name__ == "__main__":
                 interactive_console.interact()
 
         client.run_async_program(co_init)
+
+
+if __name__ == "__main__":
+    main(sys.argv)
