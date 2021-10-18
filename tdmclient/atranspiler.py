@@ -1205,8 +1205,8 @@ onevent {fun_name.replace("_", ".")}
             context_top.functions[fun_name].var_declarations()
             for fun_name in context_top.functions
         ])
-        for var_name, var_val0 in enumerate(self.additional_var_declarations):
-            var_decl += f"""var {var_name} = {var_val0}
+        for var_name in self.additional_var_declarations:
+            var_decl += f"""var {var_name} = {self.additional_var_declarations[var_name]}
 """
         if len(var_decl) > 0:
             self.output_src = var_decl + "\n" + self.output_src
