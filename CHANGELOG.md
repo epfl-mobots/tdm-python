@@ -6,7 +6,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
-- In `tdmclient.tools.repl`, launch code moved to a function `main` so that it can be called from the Python shell
+- In `tdmclient.tools.repl`, launch code moved to a function `main(argv=None)` so that it can be called from the Python shell
 
 ### Fixed
 
