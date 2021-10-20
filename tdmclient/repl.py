@@ -124,7 +124,11 @@ class TDMConsole(code.InteractiveConsole):
             """
             src_p = robot_code()
             # compile, load, run, and set scratchpad without checking the result
-            self.run_program(src_p, language="python", wait=wait)
+            try:
+                self.run_program(src_p, language="python", wait=wait)
+            except KeyboardInterrupt:
+                # avoid long exception message with stack trace
+                print("Interrupted")
 
         def stop():
             """Stop the program running on the robot.

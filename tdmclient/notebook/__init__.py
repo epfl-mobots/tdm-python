@@ -193,7 +193,11 @@ def run_python(line, cell):
 
     if clear_event_data:
         _interactive_console.clear_event_data()
-    _interactive_console.run_program(cell, "python", wait=wait, import_thymio=import_thymio)
+    try:
+        _interactive_console.run_program(cell, "python", wait=wait, import_thymio=import_thymio)
+    except KeyboardInterrupt:
+        # avoid long exception message with stack trace
+        print("Interrupted")
 
 @register_cell_magic
 def run_aseba(line, cell):
