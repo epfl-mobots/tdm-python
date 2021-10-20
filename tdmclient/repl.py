@@ -487,6 +487,7 @@ class TDMConsole(code.InteractiveConsole):
             elif isinstance(node, ast.BoolOp):
                 do_nodes(node.values)
             elif isinstance(node, ast.Call):
+                do_node(node.func)
                 do_nodes(node.args)
                 if isinstance(node.func, ast.Name):
                     fun_name = node.func.id
@@ -544,6 +545,8 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.value)
             elif isinstance(node, ast.JoinedStr):
                 do_nodes(node.values)
+            elif isinstance(node, ast.Lambda):
+                do_node(node.body)
             elif isinstance(node, ast.List):
                 do_nodes(node.elts)
             elif isinstance(node, ast.ListComp):
@@ -602,7 +605,6 @@ class TDMConsole(code.InteractiveConsole):
                              ast.Delete,
                              ast.FunctionDef,
                              ast.Import, ast.ImportFrom,
-                             ast.Lambda,
                              ast.NameConstant, ast.Nonlocal, ast.Num,
                              ast.Pass,
                              ast.Str)):
