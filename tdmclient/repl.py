@@ -462,6 +462,12 @@ class TDMConsole(code.InteractiveConsole):
         def do_node(node):
             nonlocal globals, var_got, var_set, var_global
 
+            # alternative to direct use of isinstance for node types
+            # which aren't defined in Python 3.6
+            def isinst(obj, ast_name):
+                return (hasattr(ast, ast_name)
+                        and isinstance(obj, getattr(ast, ast_name)))
+
             if isinstance(node, ast.Assign):
                 for target in node.targets:
                     if isinstance(target, ast.Tuple):
@@ -543,6 +549,14 @@ class TDMConsole(code.InteractiveConsole):
             elif isinstance(node, ast.ListComp):
                 do_node(node.elt)
                 do_nodes(node.generators)
+            elif isinst(node, "Match"):
+                do_node(node.subject)
+                for c in node.cases:
+                    do_node(c.pattern)
+                    do_node(c.guard)
+                    do_nodes(c.body)
+            elif isinst(node, "MatchValue"):
+                do_node(node.value)
             elif isinstance(node, ast.Name):
                 if node.id in globals:
                     var_got.add(node.id)
