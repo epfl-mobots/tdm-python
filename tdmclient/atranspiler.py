@@ -173,7 +173,7 @@ class Context:
                 else self.parent_context.get_module_for_symbol(symbol, True) if ancestors and self.parent_context is not None
                 else None)
 
-    def var_array_size(self, name):
+    def var_array_size(self, name, is_target=False):
         """Return size if name is a local or global array variable,
         None if it is a local or global scalar, or False if unknown.
         """
@@ -191,8 +191,8 @@ class Context:
                     else module.variables[name][1] if name in module.variables
                     else False)
             var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
-                else self.parent_context.var if name in self.global_var and self.parent_context is not None
-                else self.var)
+                   else self.parent_context.var if (name in self.global_var or not is_target and name not in self.var) and self.parent_context is not None
+                   else self.var)
             return False if name not in var else var[name]
 
     def var_declarations(self):
@@ -782,7 +782,7 @@ end
                 elif isinstance(node.value, (ast.Name, ast.Attribute)):
                     # var1 = var2: inherit size
                     name_right = self.decode_attr(node.value)
-                    target_size = context.var_array_size(name_right)
+                    target_size = context.var_array_size(name_right, is_target=True)
                     if target_size is False:
                         raise TranspilerError(f"unknown variable '{name_right}'", node)
                     context.declare_var(target, target_size, ast_node=node)
