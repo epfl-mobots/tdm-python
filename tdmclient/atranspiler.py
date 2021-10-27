@@ -296,9 +296,10 @@ class AFunction:
         arg_code = []
         for i, arg in enumerate(args):
             if self.argin[i]:
+                # array arg
                 if isinstance(arg, ast.Name):
                     arg_code.append(arg.id)
-                elif isinstance(arg, ast.List):
+                elif atranspiler.list_length(arg) is not None:
                     value, aux_st, _ = atranspiler.compile_expr(arg, context, atranspiler.PRI_ASSIGN)
                     aux_statements += aux_st
                     arg_code.append(value)
@@ -306,6 +307,7 @@ class AFunction:
                     raise TranspilerError(f"list variable argument expected by function '{self.name}'",
                                           ast_node=arg)
             else:
+                # scalar arg
                 value, aux_st, _ = atranspiler.compile_expr(arg, context, ATranspiler.PRI_NUMERIC)
                 aux_statements += aux_st
                 arg_code.append(value)
@@ -408,6 +410,40 @@ class ATranspiler:
             raise TranspilerError("invalid name", ast_node=node)
         return name
 
+    @staticmethod
+    def list_length(node):
+        """If node is a list, either [...], [...] * cst or cst * [...], get its
+        length; else return None.
+        """
+        if isinstance(node, ast.List):
+            return len(node.elts)
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+            if isinstance(node.left, ast.List) and isinstance(node.right, ast.Constant) and isinstance(node.right.value, int):
+                return len(node.left.elts) * node.right.value
+            elif isinstance(node.left, ast.Constant) and isinstance(node.left.value, int) and isinstance(node.right, ast.List):
+                return node.left.value * len(node.right.elts)
+            elif isinstance(node.left, ast.List) and isinstance(node.right, ast.Num):  # 3.6
+                return len(node.left.elts) * node.right.n
+            elif isinstance(node.left, ast.Num) and isinstance(node.right, ast.List):
+                return node.left.n * len(node.right.elts)
+
+    @staticmethod
+    def list_elements(node):
+        """If node is a list, either [...], [...] * cst or cst * [...], get its
+        elements; else return None.
+        """
+        if isinstance(node, ast.List):
+            return node.elts
+        elif isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+            if isinstance(node.left, ast.List) and isinstance(node.right, ast.Constant) and isinstance(node.right.value, int):
+                return node.left.elts * node.right.value
+            elif isinstance(node.left, ast.Constant) and isinstance(node.left.value, int) and isinstance(node.right, ast.List):
+                return node.left.value * node.right.elts
+            elif isinstance(node.left, ast.List) and isinstance(node.right, ast.Num):  # 3.6
+                return node.left.elts * node.right.n
+            elif isinstance(node.left, ast.Num) and isinstance(node.right, ast.List):
+                return node.left.n * node.right.elts
+
     def split(self, parent_context):
         """Split the Python source code into top-level source code, which is
         returned, and function definitions, which are stored into parent_context.
@@ -476,7 +512,19 @@ class ATranspiler:
         priority = self.PRI_HIGH
         is_boolean = False
 
-        if isinstance(node, ast.Num):
+        if self.list_length(node) is not None:
+            if priority_container > self.PRI_ASSIGN:
+                raise TranspilerError("list not supported in expression", node)
+            for el in self.list_elements(node):
+                el_code, aux_st, is_boolean = self.compile_expr(el, context, self.PRI_NUMERIC)
+                aux_statements += aux_st
+                if code is None:
+                    code = "[" + el_code
+                else:
+                    code += ", " + el_code
+            code += "]"
+            return code, aux_statements, False
+        elif isinstance(node, ast.Num):
             code = f"{node.n:d}"
         elif isinstance(node, ast.BinOp):
             op_str, priority = {
@@ -581,10 +629,11 @@ end
                 if isinstance(node.args[0], ast.Name):
                     len_arg_size = context.var_array_size(node.args[0].id)
                     code = f"{len_arg_size}" if len_arg_size is not None else "0"
-                elif isinstance(node.args[0], ast.List):
-                    code = f"{len(node.args[0].elts)}"
                 else:
-                    raise TranspilerError("type of argument of len is not a list", ast_node=node)
+                    list_len = self.list_length(node.args[0])
+                    if list_len is None:
+                        raise TranspilerError("type of argument of len is not a list", ast_node=node)
+                    code = f"{list_len}"
                 return code, aux_statements, False
             raise TranspilerError(f"unknown function '{fun_name}'", ast_node=node)
         elif isinstance(node, ast.Compare):
@@ -667,18 +716,6 @@ end
         elif isinstance(node, ast.Index):
             code, aux_st, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             aux_statements += aux_st
-            return code, aux_statements, False
-        elif isinstance(node, ast.List):
-            if priority_container > self.PRI_ASSIGN:
-                raise TranspilerError("list not supported in expression", node)
-            for el in node.elts:
-                el_code, aux_st, is_boolean = self.compile_expr(el, context, self.PRI_NUMERIC)
-                aux_statements += aux_st
-                if code is None:
-                    code = "[" + el_code
-                else:
-                    code += ", " + el_code
-            code += "]"
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
             var_array_size = context.var_array_size(node.id)
@@ -775,9 +812,10 @@ end
             target_str = context.var_str(target, True)
             if index is None:
                 # declare target
-                if isinstance(node.value, ast.List):
+                list_len = self.list_length(node.value)
+                if list_len is not None:
                     # var = [...]
-                    target_size = len(node.value.elts)
+                    target_size = list_len
                     context.declare_var(target, target_size, ast_node=node)
                 elif isinstance(node.value, (ast.Name, ast.Attribute)):
                     # var1 = var2: inherit size
@@ -797,7 +835,7 @@ end
                 else:
                     context.declare_var(target, ast_node=node)
             # compile value
-            if isinstance(node.value, ast.List):
+            if self.list_length(node.value) is not None:
                 if index is not None:
                     raise TranspilerError("list assigned to indexed variable", node)
                 value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_ASSIGN)

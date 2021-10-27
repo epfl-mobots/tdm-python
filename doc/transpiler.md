@@ -28,6 +28,7 @@ Here are the implemented features:
 - Constants `False` and `True`.
 - Assignments of scalars to scalar variables or array elements; or lists to whole array variables.
 - Augmented assignments `+=`, `-=`, `*=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`.
+- Lists as the values of assignments to list variables, the argument of `len`, or the arguments of native functions which expect arrays. Lists can be list variables, values between square brackets (`[expr1, expr2, ...]`), or product of a number with values between square brackets (`2 * [expr1, expr2, ...]` or `[expr1, expr2, ...] * 3`).
 - Programming constructs `if` `elif` `else`, `while` `else`, `for` `in range` `else`, `pass`, `return`. The `for` loop must use a `range` generator with 1, 2 or 3 arguments.
 - Functions with scalar arguments, with or without return value (either a scalar value in all `return` statement; or no `return` statement or only without value, and call from the top level of expression statements, i.e. not at a place where a value is expected). Variable-length arguments `*args` and `**kwargs`, default values and multiple arguments with the same name are forbidden. Variables are local unless declared as global or not assigned to. Thymio predefined variables must also be declared explicitly as global when used in functions. In Python, dots are replaced by underscores; e.g. `leds_top` in Python corresponds to `leds.top` in Aseba.
 - Function definitions for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event); except that dots are replaced by underscores in Python (e.g. `def button_left():`). Arguments are supported for custom events; they're initialized to `event.args[0]`, `event.args[1]`, etc. (the values passed to `emit`). Variables in event handlers behave like in plain function definitions.
@@ -181,6 +182,7 @@ The table below shows a mapping between Aseba and Python features. Empty cells s
 | `var v` | no declarations
 | `var a[size]` |
 | `var a[] = [...]` | `a = [...]`
+| | `a = number * [...]` `a = [...] * number`
 | `v = numeric_expr` | `v = any_expr`
 | `+=` `-=` `*=` `/=` `%=` `<<=` `>>=` `&=` <code>&#124;=</code> | `+=` `-=` `*=` `//=` `%=` `<<=` `>>=` `&=` <code>&#124;=</code>
 | `v++` `v--` | `v += 1` `v -= 1`
