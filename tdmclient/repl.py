@@ -281,6 +281,9 @@ class TDMConsole(code.InteractiveConsole):
 
     def reset_sync_var(self):
         self.sync_var = self.sync_var_vm.copy()
+        # also pick user variables not known at connection time
+        for name in self.node.var:
+            self.sync_var.add(name)
 
     def process_events(self, on_event_data=None):
         """Listen to events sent by the program running on the robot and process

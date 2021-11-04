@@ -4,6 +4,15 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In transpiler, support for lists given as `num*[...]` or `[...]*num`
+
+### Fixed
+
+- In transpiler, access to undeclared global variables when they aren't hidden by a local variable
+- In repl, synchronized user variables not forgotten when a program is run on the robot
+
 ## [0.1.9] - 2021-10-20
 
 ### Added
