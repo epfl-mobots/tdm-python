@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- In transpiler, temporary variables in `for` loops overwrote the loop limit and step
+
 ## [0.1.10] - 2021-11-04
 
 ### Added

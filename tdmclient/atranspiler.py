@@ -64,7 +64,15 @@ class Context:
         self.functions = {}
 
         self.has_return_val = None
+        # total tmp requirements
         self.tmp_req = 0
+        # current tmp requirements for statements, allocated by
+        # request_tmp_stmt / release_tmp_stmt
+        self.tmp_req_stmt = 0
+        # stack of request_tmp_stmt counts
+        self.tmp_req_stmt_count_stack = []
+        # current tmp requirements for expression on top of tmp_req_stmt,
+        # allocated by request_tmp_expr / reset_tmp_req_current_expr
         self.tmp_req_current_expr = 0
 
         # set of called functions, used for dependencies and recursivity check
@@ -204,18 +212,27 @@ class Context:
             if self.parent_context is not None or name not in ATranspiler.PREDEFINED_VARIABLES
         ])
 
-    def reset_tmp_req_current_expr(self):
-        """Reset the requirements for temporary variables for the current
-        expression.
-        """
-        self.tmp_req_current_expr = 0
-
     def request_tmp(self, total):
         """Request at least the specified amount of temporary variables.
         """
         if total > self.tmp_req:
             self.tmp_req = total
             self.var["_tmp"] = self.tmp_req
+
+    def request_tmp_stmt(self, count=1):
+        """Request temporary variable(s) for statement and return its index.
+        """
+        tmp_offset = self.tmp_req_stmt
+        self.tmp_req_stmt += count
+        self.request_tmp(self.tmp_req_stmt)
+        self.tmp_req_stmt_count_stack.append(count)
+        return tmp_offset
+
+    def release_tmp_stmt(self):
+        """Release temporary variable(s) for statement (must match
+        request_tmp_stmt).
+        """
+        self.tmp_req_stmt -= self.tmp_req_stmt_count_stack.pop()
 
     def request_tmp_expr(self, count=1):
         """Request temporary variable(s) and return its index.
@@ -224,6 +241,12 @@ class Context:
         self.tmp_req_current_expr += count
         self.request_tmp(self.tmp_req_current_expr)
         return tmp_offset
+
+    def reset_tmp_req_current_expr(self):
+        """Reset the requirements for temporary variables for the current
+        expression.
+        """
+        self.tmp_req_current_expr = self.tmp_req_stmt
 
     def freeze_return_type(self):
         """Freeze the return type (void if no return statement).
@@ -1009,7 +1032,7 @@ end
             if len(range_args) == 1:
                 # for var in range(a): ...
                 # stores limit a in _tmp[tmp_offset]
-                tmp_offset = context.request_tmp_expr()
+                tmp_offset = context.request_tmp_stmt()
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
                 code += f"""{target_str} = 0
@@ -1019,7 +1042,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             elif len(range_args) == 2:
                 # for var in range(a, b)
                 # stores limit b in _tmp[tmp_offset]
-                tmp_offset = context.request_tmp_expr()
+                tmp_offset = context.request_tmp_stmt()
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
                 code += f"""{target_str} = {value}
@@ -1032,7 +1055,7 @@ while {target_str} < {context.tmp_var_str(tmp_offset)} do
             else:
                 # for var in range(a, b, c)
                 # stores limit b in _tmp[tmp_offset] and step c in _tmp[tmp_offset+1]
-                tmp_offset = context.request_tmp_expr(2)
+                tmp_offset = context.request_tmp_stmt(2)
                 value, aux_statements, is_boolean = self.compile_expr(range_args[0], context, self.PRI_NUMERIC)
                 code += aux_statements
                 code += f"""{target_str} = {value}
@@ -1058,6 +1081,7 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
 """
             code += """end
 """
+            context.release_tmp_stmt()
             if node.orelse is not None and len(node.orelse) > 0:
                 # else clause always executed b/c break is not supported
                 body = self.compile_node_array(node.orelse, context)
