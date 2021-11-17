@@ -139,9 +139,10 @@ class ClientAsyncNode(ClientNode):
         return result
 
     @types.coroutine
-    def watch(self, flags=0, variables=False, events=False):
+    def watch(self, flags=0, variables=False, events=False, vm_state=False):
         flags |= ((ThymioFB.WATCHABLE_INFO_VARIABLES if variables else 0) |
-                  (ThymioFB.WATCHABLE_INFO_EVENTS if events else 0))
+                  (ThymioFB.WATCHABLE_INFO_EVENTS if events else 0) |
+                  (ThymioFB.WATCHABLE_INFO_VM_EXECUTION_STATE if vm_state else 0))
         if (self.watch_flags | flags) != self.watch_flags:
             self.watch_flags |= flags
             result = yield from self.thymio.send_msg_and_get_result(

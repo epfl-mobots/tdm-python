@@ -55,7 +55,7 @@ if __name__ == "__main__":
     import_thymio = True
 
     print_statements = []
-    exit_received = None  # or exit status once received
+    exit_received = None  # or exit status once received, or 1 if vm error
 
     def on_event_received(node, event_name, event_data):
         if event_name == "_exit":
@@ -69,6 +69,13 @@ if __name__ == "__main__":
             print(print_str)
         else:
             print(event_name + "".join(["," + str(d) for d in event_data]))
+
+    def on_vm_state_changed(node, state, line, error, error_msg):
+        if error != ClientAsync.ERROR_NO_ERROR:
+            global exit_received
+            exit_received = 1
+        if error_msg:
+            print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -209,9 +216,11 @@ if __name__ == "__main__":
                             print(f"Compilation error: {error['error_msg']}")
                             status = 2
                         else:
-                            if len(events) > 0 and sleep:
-                                client.add_event_received_listener(on_event_received)
-                                await node.watch(events=True)
+                            if sleep:
+                                if len(events) > 0:
+                                    client.add_event_received_listener(on_event_received)
+                                client.add_vm_state_changed_listener(on_vm_state_changed)
+                                await node.watch(events=True, vm_state=True)
                             error = await node.run()
                             if error is not None:
                                 print(f"Run error {error['error_code']}")

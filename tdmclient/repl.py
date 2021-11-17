@@ -358,25 +358,33 @@ class TDMConsole(code.InteractiveConsole):
         if wait is None:
             # wait if there are events to receive
             wait = len(events) > 0
-        if len(events) > 0 and wait:
-            def on_event_received(node, event_name, event_data):
-                if self.output_enabled:
-                    if event_name == "_exit":
-                        nonlocal exit_received
-                        exit_received = event_data[0]
-                    elif event_name == "_print":
-                        print_id = event_data[0]
-                        print_format, print_num_args = print_statements[print_id]
-                        print_args = tuple(event_data[1 : 1 + print_num_args])
-                        print_str = print_format % print_args
-                        print(print_str)
-                    else:
-                        if len(event_data) > 0:
-                            if event_name not in self.event_data_dict:
-                                self.event_data_dict[event_name] = []
-                            self.event_data_dict[event_name].append(event_data)
-            self.client.add_event_received_listener(on_event_received)
-            ClientAsync.aw(self.node.watch(events=True))
+        if wait:
+            if len(events) > 0:
+                def on_event_received(node, event_name, event_data):
+                    if self.output_enabled:
+                        if event_name == "_exit":
+                            nonlocal exit_received
+                            exit_received = event_data[0]
+                        elif event_name == "_print":
+                            print_id = event_data[0]
+                            print_format, print_num_args = print_statements[print_id]
+                            print_args = tuple(event_data[1 : 1 + print_num_args])
+                            print_str = print_format % print_args
+                            print(print_str)
+                        else:
+                            if len(event_data) > 0:
+                                if event_name not in self.event_data_dict:
+                                    self.event_data_dict[event_name] = []
+                                self.event_data_dict[event_name].append(event_data)
+                self.client.add_event_received_listener(on_event_received)
+            def on_vm_state_changed(node, state, line, error, error_msg):
+                if error != ClientAsync.ERROR_NO_ERROR:
+                    nonlocal exit_received
+                    exit_received = f"vm error {error}"
+                if error_msg:
+                    print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
+            self.client.add_vm_state_changed_listener(on_vm_state_changed)
+            ClientAsync.aw(self.node.watch(events=True, vm_state=True))
         self.reset_sync_var()
         error = ClientAsync.aw(self.node.run())
         if error is not None:

@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Runtime VM errors reported in repl and `tdmclient.tools.run`
+
 ### Fixed
 
 - In transpiler, temporary variables in `for` loops overwrote the loop limit and step

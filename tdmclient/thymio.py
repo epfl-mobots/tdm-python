@@ -26,6 +26,8 @@ class Listener:
         self.on_events_received = set()
         # on_event_received(node, event_name, event_data)
         self.on_event_received = set()
+        # on_vm_state_changed(node, state, line, error, error_msg)
+        self.on_vm_state_changed = set()
 
     def add_variables_changed_listener(self, listener):
         self.on_variables_changed.add(listener)
@@ -54,6 +56,15 @@ class Listener:
     def clear_event_received_listeners(self):
         self.on_event_received = set()
 
+    def add_vm_state_changed_listener(self, listener):
+        self.on_vm_state_changed.add(listener)
+
+    def remove_vm_state_changed_listener(self, listener):
+        self.on_vm_state_changed.remove(listener)
+
+    def clear_vm_state_changed_listener(self):
+        self.on_vm_state_changed = set()
+
     def notify_variables_changed(self, node, variable_dict):
         for f in self.on_variables_changed:
             f(node, variable_dict)
@@ -64,6 +75,10 @@ class Listener:
         for f in self.on_event_received:
             for name in event_dict:
                 f(node, name, event_dict[name])
+
+    def notify_vm_state_changed(self, node, state, line, error, error_msg):
+        for f in self.on_vm_state_changed:
+            f(node, state, line, error, error_msg)
 
 
 class Node(Listener):
@@ -568,7 +583,7 @@ class ThymioFB(Listener):
 
         fb = FlatBuffer()
         fb.parse(msg, ThymioFB.SCHEMA)
-        if self.debug >= 3:
+        if self.debug >= 2:
             fb.dump()
         if type(fb.root) is Union:
             if fb.root.union_type == self.MESSAGE_TYPE_PING:
@@ -742,10 +757,13 @@ class ThymioFB(Listener):
                                   events[name] if events[name] is not None else "")
             elif fb.root.union_type == self.MESSAGE_TYPE_VM_EXECUTION_STATE_CHANGED:
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[0])
+                node = self.find_node(node_id_str)
                 state = FlatBuffer.field_val(fb.root.union_data[0].fields[1], 0)
                 line = FlatBuffer.field_val(fb.root.union_data[0].fields[2], 0)
                 error = FlatBuffer.field_val(fb.root.union_data[0].fields[3], 0)
                 error_msg = FlatBuffer.field_val(fb.root.union_data[0].fields[4], "")
+                self.notify_vm_state_changed(node, state, line, error, error_msg)
+                node.notify_vm_state_changed(node, state, line, error, error_msg)
                 if self.debug >= 1:
                     print(f"execution state of node {node_id_str} changed to {state}, line={line}, error={error} {error_msg}")
             elif fb.root.union_type == self.MESSAGE_TYPE_SCRATCHPAD_UPDATE:
