@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.11] - 2021-11-17
+
 ### Added
 
 - Runtime VM errors reported in repl and `tdmclient.tools.run`
