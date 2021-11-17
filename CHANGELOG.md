@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - In transpiler, temporary variables in `for` loops overwrote the loop limit and step
+- Format of the tdm message for VM state changed
 
 ## [0.1.10] - 2021-11-04
 

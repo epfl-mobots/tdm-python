@@ -433,7 +433,7 @@ class ThymioFB(Listener):
             // SetVMExecutionState
             T(iT(*u)2)
             // VMExecutionStateChanged
-            T(T(*u)2iis)
+            T(T(*u)2i2s)
             // ScratchpadUpdate
             T(iT(*u)T(*u)T(*u)issb)
             // FirmwareUpgradeRequest
