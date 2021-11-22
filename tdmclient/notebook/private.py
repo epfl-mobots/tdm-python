@@ -185,6 +185,7 @@ def process_events(on_event_data=None):
 from IPython.core.magic import register_line_magic, register_cell_magic
 import getopt
 import sys
+import shlex
 
 @register_cell_magic
 def run_python(line, cell):
@@ -209,7 +210,7 @@ def run_python(line, cell):
         function get_event_data().
     """
 
-    args = line.split()
+    args = shlex.split(line)
     wait = False
     clear_event_data = False
     import_thymio = True
@@ -258,7 +259,7 @@ def run_aseba(line, cell):
     """Send to the robot the whole cell as an Aseba program and run it.
     """
 
-    args = line.split()
+    args = shlex.split(line)
     robot_id = None
     robot_name = None
     try:
@@ -293,7 +294,7 @@ def transpile_to_aseba(line, cell):
         imported explicitly if needed).
     """
 
-    args = line.split()
+    args = shlex.split(line)
     import_thymio = True
     try:
         arguments, values = getopt.getopt(args,
