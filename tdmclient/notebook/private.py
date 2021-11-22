@@ -183,6 +183,8 @@ def process_events(on_event_data=None):
         print("Interrupted")
 
 from IPython.core.magic import register_line_magic, register_cell_magic
+import getopt
+import sys
 
 @register_cell_magic
 def run_python(line, cell):
@@ -204,9 +206,30 @@ def run_python(line, cell):
     """
 
     args = line.split()
-    wait = "--wait" in args
-    clear_event_data = "--clear-event-data" in args
-    import_thymio = "--nothymio" not in args
+    wait = False
+    clear_event_data = False
+    import_thymio = True
+    try:
+        arguments, values = getopt.getopt(args,
+                                          "",
+                                          [
+                                              "clear-event-data",
+                                              "nothymio",
+                                              "wait",
+                                          ])
+    except getopt.error as err:
+        print(str(err), file=sys.stderr)
+        return
+    for arg, val in arguments:
+        if arg == "--clear-event-data":
+            clear_event_data = True
+        elif arg == "--nothymio":
+            import_thymio = False
+        elif arg == "--wait":
+            wait = True
+    if len(values) > 0:
+        print(f"Unexpected argument {values[0]}", file=sys.stderr)
+        return
 
     if clear_event_data:
         _interactive_console.clear_event_data()
@@ -221,6 +244,16 @@ def run_aseba(line, cell):
     """Send to the robot the whole cell as an Aseba program and run it.
     """
 
+    args = line.split()
+    try:
+        arguments, values = getopt.getopt(args, "", [])
+    except getopt.error as err:
+        print(str(err), file=sys.stderr)
+        return
+    if len(values) > 0:
+        print(f"Unexpected argument {values[0]}", file=sys.stderr)
+        return
+
     _interactive_console.run_program(cell, "aseba")
 
 @register_cell_magic
@@ -234,7 +267,23 @@ def transpile_to_aseba(line, cell):
     """
 
     args = line.split()
-    import_thymio = "--nothymio" not in args
+    import_thymio = True
+    try:
+        arguments, values = getopt.getopt(args,
+                                          "",
+                                          [
+                                              "nothymio",
+                                          ])
+    except getopt.error as err:
+        print(str(err), file=sys.stderr)
+        return
+    for arg, val in arguments:
+        if arg == "--nothymio":
+            import_thymio = False
+    if len(values) > 0:
+        print(f"Unexpected argument {values[0]}", file=sys.stderr)
+        return
+
     transpiler = _interactive_console.transpile(cell, import_thymio=import_thymio)
     src_a = transpiler.get_output()
     print(src_a)
