@@ -4,6 +4,11 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In `tdmclient.tools.watch`, options to select the tdm and the robot
+- In notebooks, docstrings for magic commands (e.g. `%%run_python?`)
+
 ## [0.1.11] - 2021-11-17
 
 ### Added

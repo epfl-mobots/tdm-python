@@ -186,6 +186,23 @@ from IPython.core.magic import register_line_magic, register_cell_magic
 
 @register_cell_magic
 def run_python(line, cell):
+    """Transpile the whole cell from Python to Aseba, send it to the robot and
+    run it.
+
+    Options:
+
+        --clear-event-data: clear event data so that function get_event_data()
+        doesn't include events from a previous run.
+
+        --nothymio: don't import Thymio symbols (module "thymio" should be
+        imported explicitly if needed).
+
+        --wait: continue running to receive events from the robot and display
+        print output until exit() is called in the program or the execution
+        is interrupted. Other events are stored and can be obtained with
+        function get_event_data().
+    """
+
     args = line.split()
     wait = "--wait" in args
     clear_event_data = "--clear-event-data" in args
@@ -201,10 +218,21 @@ def run_python(line, cell):
 
 @register_cell_magic
 def run_aseba(line, cell):
+    """Send to the robot the whole cell as an Aseba program and run it.
+    """
+
     _interactive_console.run_program(cell, "aseba")
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
+    """Transpile the whole cell from Python to Aseba and display the result.
+
+    Option:
+
+        --nothymio: don't import Thymio symbols (module "thymio" should be
+        imported explicitly if needed).
+    """
+
     args = line.split()
     import_thymio = "--nothymio" not in args
     transpiler = _interactive_console.transpile(cell, import_thymio=import_thymio)
