@@ -10,6 +10,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In notebooks:
 	- private symbols not defined anymore in `tdmclient.notebook`
 	- docstrings for magic commands, displayed with e.g. `%%run_python?`
+- In repl, in functions `run()` and `stop()`, keyword arguments `robot_id` and `robot_name` to specify another robot, which is locked just to perform the call
 - When decoding flatbuffer strings, illegal utf-8 sequences decoded as `U+FFFD` (replacement character) instead of raising an exception
 
 ## [0.1.11] - 2021-11-17

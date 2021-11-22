@@ -116,24 +116,35 @@ class TDMConsole(code.InteractiveConsole):
             self.robot_var_set.clear()
             self.onevent_functions.clear()
 
-        def run(wait=None):
+        def run(wait=None,
+                robot_id=None, robot_name=None):
             """Run program obtained by robot_code on the robot. By default, wait
             to process events until "_exit" is received (call to "exit()" in the
             robot's program), or return immediately if the program doesn't send
             any event.
+
+            Other keyword arguments:
+                robot_id: robot id, to run the program on a specific robot
+                robot_name: robot name, to run the program on a specific robot
             """
             src_p = robot_code()
             # compile, load, run, and set scratchpad without checking the result
             try:
-                self.run_program(src_p, language="python", wait=wait)
+                self.run_program(src_p, language="python", wait=wait,
+                                 node_id=robot_id, node_name=robot_name)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace
                 print("Interrupted")
 
-        def stop():
+        def stop(robot_id=None, robot_name=None):
             """Stop the program running on the robot.
+
+            Keyword arguments:
+                robot_id: robot id, to run the program on a specific robot
+                robot_name: robot name, to run the program on a specific robot
             """
-            self.stop_program(discard_output=True)
+            self.stop_program(discard_output=True,
+                              node_id=robot_id, node_name=robot_name)
 
         def get_var(*args):
             """Get robot variables passed as a set or list of names and
@@ -328,88 +339,111 @@ class TDMConsole(code.InteractiveConsole):
         finally:
             self.client.clear_event_received_listeners()
 
-    def run_program(self, src, language="aseba", wait=False, import_thymio=True):
-        print_statements = []
-        events = []
-        if language == "python":
-            # transpile from Python to Aseba
-            transpiler = self.transpile(src, import_thymio)
-            src = transpiler.get_output()
-            print_statements = transpiler.print_format_strings
-            if len(print_statements) > 0:
-                events.append(("_print", 1 + transpiler.print_max_num_args))
-            if transpiler.has_exit_event:
-                events.append(("_exit", 1))
-            for event_name in transpiler.events_in:
-                events.append((event_name, transpiler.events_in[event_name]))
-            for event_name in transpiler.events_out:
-                events.append((event_name, transpiler.events_out[event_name]))
-            if len(events) > 0:
-                events = ClientAsync.aw(self.node.filter_out_vm_events(events))
-                ClientAsync.aw(self.node.register_events(events))
-        elif language != "aseba":
-            raise Exception(f"Unsupported language {language}")
-        # compile, load, run, and set scratchpad without checking the result
-        error = ClientAsync.aw(self.node.compile(src))
-        if error is not None:
-            raise Exception(error["error_msg"])
-        self.client.clear_event_received_listeners()
-        exit_received = None  # or exit code once received
-        if wait is None:
-            # wait if there are events to receive
-            wait = len(events) > 0
-        if wait:
-            if len(events) > 0:
-                def on_event_received(node, event_name, event_data):
-                    if self.output_enabled:
-                        if event_name == "_exit":
-                            nonlocal exit_received
-                            exit_received = event_data[0]
-                        elif event_name == "_print":
-                            print_id = event_data[0]
-                            print_format, print_num_args = print_statements[print_id]
-                            print_args = tuple(event_data[1 : 1 + print_num_args])
-                            print_str = print_format % print_args
-                            print(print_str)
-                        else:
-                            if len(event_data) > 0:
-                                if event_name not in self.event_data_dict:
-                                    self.event_data_dict[event_name] = []
-                                self.event_data_dict[event_name].append(event_data)
-                self.client.add_event_received_listener(on_event_received)
-            def on_vm_state_changed(node, state, line, error, error_msg):
-                if error != ClientAsync.ERROR_NO_ERROR:
-                    nonlocal exit_received
-                    exit_received = f"vm error {error}"
-                if error_msg:
-                    print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
-            self.client.add_vm_state_changed_listener(on_vm_state_changed)
-            ClientAsync.aw(self.node.watch(events=True, vm_state=True))
-        self.reset_sync_var()
-        error = ClientAsync.aw(self.node.run())
-        if error is not None:
-            raise Exception(f"Error {error['error_code']}")
-        self.node.send_set_scratchpad(src)
-        if wait:
-            try:
-                def wake():
-                    return exit_received is not None
-                ClientAsync.aw(self.client.sleep(wake=wake))
-                self.stop_program(discard_output=True)
-                if exit_received:
-                    print(f"Exit, status={exit_received}")
-            finally:
-                self.client.clear_event_received_listeners()
+    def run_program(self, src,
+                    language="aseba", wait=False, import_thymio=True,
+                    node_id=None, node_name=None):
+        node = self.node
+        if node_id is not None or node_name is not None:
+            # could be another node we lock just for this call
+            node = self.client.first_node(node_id=node_id, node_name=node_name)
+            if node != self.node:
+                ClientAsync.aw(node.lock())
 
-    def stop_program(self, discard_output=False):
+        try:
+            print_statements = []
+            events = []
+            if language == "python":
+                # transpile from Python to Aseba
+                transpiler = self.transpile(src, import_thymio)
+                src = transpiler.get_output()
+                print_statements = transpiler.print_format_strings
+                if len(print_statements) > 0:
+                    events.append(("_print", 1 + transpiler.print_max_num_args))
+                if transpiler.has_exit_event:
+                    events.append(("_exit", 1))
+                for event_name in transpiler.events_in:
+                    events.append((event_name, transpiler.events_in[event_name]))
+                for event_name in transpiler.events_out:
+                    events.append((event_name, transpiler.events_out[event_name]))
+                if len(events) > 0:
+                    events = ClientAsync.aw(node.filter_out_vm_events(events))
+                    ClientAsync.aw(node.register_events(events))
+            elif language != "aseba":
+                raise Exception(f"Unsupported language {language}")
+            # compile, load, run, and set scratchpad without checking the result
+            error = ClientAsync.aw(node.compile(src))
+            if error is not None:
+                raise Exception(error["error_msg"])
+            self.client.clear_event_received_listeners()
+            exit_received = None  # or exit code once received
+            if wait is None:
+                # wait if there are events to receive
+                wait = len(events) > 0
+            if wait:
+                if len(events) > 0:
+                    def on_event_received(node, event_name, event_data):
+                        if self.output_enabled:
+                            if event_name == "_exit":
+                                nonlocal exit_received
+                                exit_received = event_data[0]
+                            elif event_name == "_print":
+                                print_id = event_data[0]
+                                print_format, print_num_args = print_statements[print_id]
+                                print_args = tuple(event_data[1 : 1 + print_num_args])
+                                print_str = print_format % print_args
+                                print(print_str)
+                            else:
+                                if len(event_data) > 0:
+                                    if event_name not in self.event_data_dict:
+                                        self.event_data_dict[event_name] = []
+                                    self.event_data_dict[event_name].append(event_data)
+                    self.client.add_event_received_listener(on_event_received)
+                def on_vm_state_changed(node, state, line, error, error_msg):
+                    if error != ClientAsync.ERROR_NO_ERROR:
+                        nonlocal exit_received
+                        exit_received = f"vm error {error}"
+                    if error_msg:
+                        print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
+                self.client.add_vm_state_changed_listener(on_vm_state_changed)
+                ClientAsync.aw(node.watch(events=True, vm_state=True))
+            self.reset_sync_var()
+            error = ClientAsync.aw(node.run())
+            if error is not None:
+                raise Exception(f"Error {error['error_code']}")
+            node.send_set_scratchpad(src)
+            if wait:
+                try:
+                    def wake():
+                        return exit_received is not None
+                    ClientAsync.aw(self.client.sleep(wake=wake))
+                    self.stop_program(discard_output=True)
+                    if exit_received:
+                        print(f"Exit, status={exit_received}")
+                finally:
+                    self.client.clear_event_received_listeners()
+        finally:
+            if node != self.node:
+                node.unlock()
+
+    def stop_program(self, discard_output=False,
+                     node_id=None, node_name=None):
+        node = self.node
+        if node_id is not None or node_name is not None:
+            # could be another node we lock just for this call
+            node = self.client.first_node(node_id=node_id, node_name=node_name)
+            if node != self.node:
+                ClientAsync.aw(node.lock())
+
         output_enabled_orig = self.output_enabled
         self.output_enabled = not discard_output
         try:
-            error = ClientAsync.aw(self.node.stop())
+            error = ClientAsync.aw(node.stop())
             if error is not None:
                 raise Exception(f"Error {error['error_code']}")
         finally:
             self.output_enabled = output_enabled_orig
+            if node != self.node:
+                node.unlock()
 
     def from_python_name(self, name_py):
         # replace underscores with dots, except first underscore, for node variables
