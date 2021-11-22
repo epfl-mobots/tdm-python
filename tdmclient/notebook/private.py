@@ -199,6 +199,10 @@ def run_python(line, cell):
         --nothymio: don't import Thymio symbols (module "thymio" should be
         imported explicitly if needed).
 
+        --robotid ID: run on robot specified by id.
+
+        --robotname NAME: run on robot specified by name.
+
         --wait: continue running to receive events from the robot and display
         print output until exit() is called in the program or the execution
         is interrupted. Other events are stored and can be obtained with
@@ -209,12 +213,16 @@ def run_python(line, cell):
     wait = False
     clear_event_data = False
     import_thymio = True
+    robot_id = None
+    robot_name = None
     try:
         arguments, values = getopt.getopt(args,
                                           "",
                                           [
                                               "clear-event-data",
                                               "nothymio",
+                                              "robotid=",
+                                              "robotname=",
                                               "wait",
                                           ])
     except getopt.error as err:
@@ -225,6 +233,10 @@ def run_python(line, cell):
             clear_event_data = True
         elif arg == "--nothymio":
             import_thymio = False
+        elif arg == "--robotid":
+            robot_id = val
+        elif arg == "--robotname":
+            robot_name = val
         elif arg == "--wait":
             wait = True
     if len(values) > 0:
@@ -234,7 +246,9 @@ def run_python(line, cell):
     if clear_event_data:
         _interactive_console.clear_event_data()
     try:
-        _interactive_console.run_program(cell, "python", wait=wait, import_thymio=import_thymio)
+        _interactive_console.run_program(cell, "python",
+                                         wait=wait, import_thymio=import_thymio,
+                                         node_id=robot_id, node_name=robot_name)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")
@@ -245,16 +259,29 @@ def run_aseba(line, cell):
     """
 
     args = line.split()
+    robot_id = None
+    robot_name = None
     try:
-        arguments, values = getopt.getopt(args, "", [])
+        arguments, values = getopt.getopt(args,
+                                          "",
+                                          [
+                                              "robotid=",
+                                              "robotname=",
+                                          ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
         return
+    for arg, val in arguments:
+        if arg == "--robotid":
+            robot_id = val
+        elif arg == "--robotname":
+            robot_name = val
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    _interactive_console.run_program(cell, "aseba")
+    _interactive_console.run_program(cell, "aseba",
+                                     node_id=robot_id, node_name=robot_name)
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
