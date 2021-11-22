@@ -7,7 +7,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - In `tdmclient.tools.watch`, options to select the tdm and the robot
-- In notebooks, docstrings for magic commands (e.g. `%%run_python?`)
+- In notebooks, docstrings for magic commands, displayed with e.g. `%%run_python?`
+- When decoding flatbuffer strings, illegal utf-8 sequences decoded as `U+FFFD` (replacement character) instead of raising an exception
 
 ## [0.1.11] - 2021-11-17
 

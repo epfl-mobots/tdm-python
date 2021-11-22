@@ -214,7 +214,7 @@ class FlatBuffer:
         elif schema[0] == "s":
             str_pos = pos + FlatBuffer.decode_i32(encoded_fb, pos)
             str_len = FlatBuffer.decode_u32(encoded_fb, str_pos)
-            return str(encoded_fb[str_pos + 4 : str_pos + 4 + str_len], "utf-8")
+            return encoded_fb[str_pos + 4 : str_pos + 4 + str_len].decode("utf-8", "replace")
         elif schema[0] == "*":
             # decode vector
             vec_pos = pos + FlatBuffer.decode_i32(encoded_fb, pos)
