@@ -569,9 +569,11 @@ class FlexBuffer:
             actual_type = type >> 2
             if actual_type == FlexBuffer.TYPE_NULL:
                 return None
+            elif actual_type in (FlexBuffer.TYPE_INT, FlexBuffer.TYPE_UINT):
+                return parse_int(el_byte_size, p, 0, actual_type << 2)
             elif actual_type == FlexBuffer.TYPE_VECTOR:
                 return parse_array(el_byte_size, p - buf[p])
-            raise Exception("flex not impl")
+            raise Exception(f"flex not impl (actual type {actual_type})")
 
         # last byte: root width in bytes
         root_width = buf[-1]
