@@ -14,6 +14,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- In magic commands `%%run_python` and `%%run_aseba`, options `--robot-id ID` or `--robot-name NAME` to specify another robot, which is locked during the execution
 - When decoding flatbuffer strings, illegal utf-8 sequences decoded as `U+FFFD` (replacement character) instead of raising an exception
 
+### Changed
+
+- In notebooks, functions `list()` and `get_nodes()` use by default the TDM connection established by `start()` instead of a local TDM advertized by zeroconf
+
 ## [0.1.11] - 2021-11-17
 
 ### Added

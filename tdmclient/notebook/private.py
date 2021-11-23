@@ -17,13 +17,15 @@ async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None
     """Get a list of all the robots.
 
     Arguments:
-        tdm_addr - TDM address as a string (default: localhost)
-        tdm_port - TDM TCP port number (default: provided by zeroconf)
+        tdm_addr - TDM address as a string (default: as in start())
+        tdm_port - TDM TCP port number (default: as in start())
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
     """
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+    with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
+          if tdm_addr is not None or tdm_port is not None
+          else _interactive_console.client) as client:
 
         for _ in range(50):
             client.process_waiting_messages()
@@ -41,13 +43,15 @@ async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
     """Display a list of all the robots.
 
     Arguments:
-        tdm_addr - TDM address as a string (default: localhost)
-        tdm_port - TDM TCP port number (default: provided by zeroconf)
+        tdm_addr - TDM address as a string (default: as in start())
+        tdm_port - TDM TCP port number (default: as in start())
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
     """
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+    with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
+          if tdm_addr is not None or tdm_port is not None
+          else _interactive_console.client) as client:
 
         for _ in range(50):
             client.process_waiting_messages()
