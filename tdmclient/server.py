@@ -284,6 +284,26 @@ class ServerThread(threading.Thread):
                             bp.fields[0][0]
                             for bp in fb.root.union_data[0].fields[2][0]
                         ]
+                        node = self.server.findNode(node_id_str)
+                        if node is not None:
+                            msg = self.thymio.create_message((
+                                ThymioFB.MESSAGE_TYPE_SET_BREAKPOINTS_RESPONSE,
+                                (
+                                    request_id,
+                                    ThymioFB.ERROR_NO_ERROR,
+                                    [
+                                        (
+                                            bp,
+                                        )
+                                        for bp in breakpoints
+                                    ],
+                                )
+                            ), ThymioFB.SCHEMA)
+                            self.send_packet(msg)
+                        else:
+                            msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
+                            self.send_packet(msg)
+                            print(f"-> unknown node {node.id}")
                     elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SET_VM_EXECUTION_STATE:
                         request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                         node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
