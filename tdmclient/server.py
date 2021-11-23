@@ -162,10 +162,11 @@ class ServerThread(threading.Thread):
                                     node.stack_size,
                                     [
                                         (
-                                            len(node.variables[name]),
+                                            i,
                                             name,
+                                            len(node.variables[name]),
                                         )
-                                        for name in node.variables
+                                        for i, name in enumerate(node.variables)
                                     ],
                                     [],
                                     [],
@@ -248,7 +249,7 @@ class ServerThread(threading.Thread):
                         request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                         node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
                         variables = {
-                            v.fields[0][0]: v.fields[1][0]
+                            v.fields[0][0]: v.fields[1][0] if isinstance(v.fields[1][0], list) else [v.fields[1][0]]
                             for v in fb.root.union_data[0].fields[2][0]
                         }
                         node = self.server.findNode(node_id_str)
