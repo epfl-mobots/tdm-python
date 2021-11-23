@@ -313,22 +313,31 @@ class ServerThread(threading.Thread):
                             command = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP)
                             if command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                                print("Set vm execution state: stop")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RUN:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+                                print("Set vm execution state: run")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                                print("Set vm execution state: step")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP_TO_NEXT_LINE:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                                print("Set vm execution state: step to next line")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_PAUSE:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                                print("Set vm execution state: pause")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RESET:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+                                print("Set vm execution state: reset")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_REBOOT:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                                print("Set vm execution state: reboot")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_SUSPEND:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                                print("Set vm execution state: suspend")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_WRITE_PROGRAM_TO_DEVICE_MEMORY:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                                print("Set vm execution state: write program to device memory")
                             msg = self.thymio.create_msg_request_completed(request_id)
                             self.send_packet(msg)
                             print(f"-> ok")
