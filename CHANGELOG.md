@@ -12,6 +12,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- private symbols not defined anymore in `tdmclient.notebook`
 	- docstrings for magic commands, displayed with e.g. `%%run_python?`
 	- In magic commands `%%run_python` and `%%run_aseba`, options `--robot-id ID` or `--robot-name NAME` to specify another robot, which is locked during the execution
+	- functions `list()` and `get_nodes()` can be called before `start()`
 - When decoding flatbuffer strings, illegal utf-8 sequences decoded as `U+FFFD` (replacement character) instead of raising an exception
 
 ### Changed

@@ -24,7 +24,9 @@ async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None
     """
 
     with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
-          if tdm_addr is not None or tdm_port is not None
+          if tdm_addr is not None or
+             tdm_port is not None or
+             _interactive_console is None
           else _interactive_console.client) as client:
 
         for _ in range(50):
@@ -50,7 +52,9 @@ async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
     """
 
     with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
-          if tdm_addr is not None or tdm_port is not None
+          if tdm_addr is not None or
+             tdm_port is not None or
+             _interactive_console is None
           else _interactive_console.client) as client:
 
         for _ in range(50):
