@@ -843,7 +843,7 @@ end
                 elif isinstance(node.value, (ast.Name, ast.Attribute)):
                     # var1 = var2: inherit size
                     name_right = self.decode_attr(node.value)
-                    target_size = context.var_array_size(name_right, is_target=True)
+                    target_size = context.var_array_size(name_right, is_target=False)
                     if target_size is False:
                         raise TranspilerError(f"unknown variable '{name_right}'", node)
                     context.declare_var(target, target_size, ast_node=node)

@@ -18,6 +18,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - In notebooks, functions `list()` and `get_nodes()` use by default the TDM connection established by `start()` instead of a local TDM advertized by zeroconf
 
+### Fixed
+
+- Local variables defined by the assignment of a global variable neither declared with `global` nor predefined as Thymio variables raised an exception
+
 ## [0.1.11] - 2021-11-17
 
 ### Added
