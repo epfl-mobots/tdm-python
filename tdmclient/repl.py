@@ -116,21 +116,32 @@ class TDMConsole(code.InteractiveConsole):
             self.robot_var_set.clear()
             self.onevent_functions.clear()
 
-        def run(wait=None,
+        def run(src=None, *,
+                language="python",
+                wait=None,
                 robot_id=None, robot_name=None):
             """Run program obtained by robot_code on the robot. By default, wait
             to process events until "_exit" is received (call to "exit()" in the
             robot's program), or return immediately if the program doesn't send
             any event.
 
+            Instead of the code obtained by robot_code, the complete source code
+            can be passed as a string.
+
             Other keyword arguments:
+                language: "python" (default) or "aseba" (valid only if the
+                source code is passed in a string)
                 robot_id: robot id, to run the program on a specific robot
                 robot_name: robot name, to run the program on a specific robot
             """
-            src_p = robot_code()
+
+            if src is None and language != "python":
+                raise Exception("Invalid language for robot code")
+            if src is None:
+                src = robot_code()
             # compile, load, run, and set scratchpad without checking the result
             try:
-                self.run_program(src_p, language="python", wait=wait,
+                self.run_program(src, language=language, wait=wait,
                                  node_id=robot_id, node_name=robot_name)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace

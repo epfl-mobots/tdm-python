@@ -7,7 +7,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - In `tdmclient.tools.watch`, options to select the tdm and the robot
-- In repl, in functions `run()` and `stop()`, keyword arguments `robot_id` or `robot_name` to specify another robot, which is locked during the call
+- In repl:
+	- in functions `run()` and `stop()`, keyword arguments `robot_id` or `robot_name` to specify another robot, which is locked during the call
+	- the complete Python or Aseba source code of a program can be passed to function `run()` as an alternative to collecting @onevent functions and global variables
 - In notebooks:
 	- private symbols not defined anymore in `tdmclient.notebook`
 	- docstrings for magic commands, displayed with e.g. `%%run_python?`
