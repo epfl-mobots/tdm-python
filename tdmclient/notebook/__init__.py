@@ -12,4 +12,5 @@ from tdmclient.notebook.private import (
     list_robots,
     sync_var,
     process_events,
+    watch,
 )

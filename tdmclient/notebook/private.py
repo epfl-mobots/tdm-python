@@ -190,6 +190,60 @@ def process_events(on_event_data=None):
         # avoid long exception message with stack trace
         print("Interrupted")
 
+async def watch(timeout=-1, tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+    """Display the robot variables with live updates until the timeout elapses
+    or the execution is interrupted.
+
+    Arguments:
+        timeout -- amount of time until updates stop
+        tdm_addr -- address of the tdm
+        tdm_port -- port of the tdm
+            (default: connection established by start(), or from zeroconf)
+        robot_id ID -- robot specified by id (default: first robot)
+
+        robot_name NAME -- robot specified by name (default: first robot)
+    """
+
+    import IPython.display
+
+    def var_dict_to_md(variable_dict):
+        md = "| Variable | Value |\n| --- | --- |\n"
+        md += "\n".join([
+            f"| {name} | {variable_dict[name]} |"
+            for name in variable_dict
+        ])
+        return md
+
+    async def watch_node(client, node):
+        variable_dict = node.var
+
+        def variables_changed_listener(node, variable_update_dict):
+            nonlocal variable_dict
+            variable_dict = dict(sorted({**variable_dict, **variable_update_dict}.items()))
+            IPython.display.clear_output(wait=True)
+            md = var_dict_to_md(variable_dict)
+            IPython.display.display(IPython.display.Markdown(md))
+
+        node.add_variables_changed_listener(variables_changed_listener)
+        variables_changed_listener(node, node.var)  # !!!
+        try:
+            await client.sleep()
+        except:
+            # avoid long exception message with stack trace
+            print("Interrupted")
+        finally:
+            IPython.display.clear_output(wait=True)
+            node.remove_variables_changed_listener(variables_changed_listener)
+
+    if _interactive_console is not None:
+        await watch_node(_interactive_console.client, _interactive_console.node)
+    else:
+        with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+            await client.wait_for_status_set({ClientAsync.NODE_STATUS_AVAILABLE, ClientAsync.NODE_STATUS_BUSY})
+            node = client.first_node(node_id=robot_id, node_name=robot_name)
+            await node.watch(variables=True)
+            await watch_node(client, node)
+
 from IPython.core.magic import register_line_magic, register_cell_magic
 import getopt
 import sys
