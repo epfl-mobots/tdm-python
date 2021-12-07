@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.12] - 2021-12-07
+
 ### Added
 
 - In `tdmclient.tools.watch`, options to select the tdm and the robot
@@ -140,7 +142,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - support for module `thymio` which can replace predefined Thymio variables and native functions
 - In tdmclient.tools.run, support for events
 
-# Fixed
+### Fixed
 
 - In transpiler:
     - native functions without return value
