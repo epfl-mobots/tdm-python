@@ -7,14 +7,18 @@
 
 from setuptools import setup
 
-with open("doc/help.md", "r") as f:
-    long_description = f.read()
-with open("doc/transpiler.md", "r") as f:
-    long_description += f.read()
-with open("doc/repl.md", "r") as f:
-    long_description += f.read()
-with open("doc/notebooks.md", "r") as f:
-    long_description += f.read()
+long_description = ""
+for filename in [
+                    "intro.md",
+                    "install.md",
+                    "tools.md",
+                    "transpiler.md",
+                    "repl.md",
+                    "notebooks.md",
+                    "lowlevel.md",
+                ]:
+    with open("doc/" + filename, "r") as f:
+        long_description += f.read()
 
 setup(
     name="tdmclient",

@@ -1,3 +1,4 @@
+
 ## Jupyter notebooks
 
 Jupyter notebooks offer a nice alternative to the plain Python prompt in a terminal. In notebooks, you can easily store a sequence of commands, edit them, repeat them, document them, have larger code fragments, produce graphics, or have interactive controls such as sliders and checkboxes. This section describes features specific to the use of tdmclient to connect and interact with a Thymio II robot. For general informations about Jupyter, how to install it and how to open an existing notebook or create a new one, please refer to its [documentation](https://jupyter.org/).

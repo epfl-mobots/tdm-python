@@ -1,3 +1,4 @@
+
 ## Python repl for Thymio
 
 The easiest way to explore the Thymio from Python is to use a special version of the Python _repl_ customized so that you're almost on the robot. A repl is a read-eval-print loop, i.e. the interactive environment where you type some code fragment (an expression, an assignment, a function call, or a longer piece of program), you hit the Return key and Python will evaluate your code, print the result and wait for more input.
