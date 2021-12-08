@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Method `Client.create_node()` referred to a symbol which wasn't imported
+
 ## [0.1.12] - 2021-12-07
 
 ### Added

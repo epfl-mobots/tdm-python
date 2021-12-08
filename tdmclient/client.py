@@ -5,7 +5,9 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from tdmclient import TDMZeroconfBrowser, TDMConnection, FlatBuffer, ThymioFB
+from tdmclient import TDMZeroconfBrowser, TDMConnection
+from tdmclient import FlatBuffer, ThymioFB
+from tdmclient.clientnode import ClientNode
 
 
 class DisconnectedError(Exception):
