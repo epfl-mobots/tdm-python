@@ -20,12 +20,13 @@ leds.bottom.right = [0, 32, 0]
 """
 
         async def prog():
-            with await client.lock() as node_id_str:
-                error = await client.compile(node_id_str, thymio_program)
+            with await client.lock() as node:
+                print(node)
+                error = await node.compile(thymio_program)
                 if error is not None:
                     print(f"Compilation error: {error['error_msg']}")
                 else:
-                    error = await client.run(node_id_str)
+                    error = await node.run()
                     if error is not None:
                         print(f"Error {error['error_code']}")
             print("done")
