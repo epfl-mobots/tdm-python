@@ -19,3 +19,7 @@ Create a connection to the tdm, lock the first robot, compile an Aseba program w
 ## events.py
 
 Create a connection to the tdm, lock the first robot, compile an Aseba program whose source code is in a string and run it. The Thymio program sends events to the computer. These events are received and displayed.
+
+## sound.py
+
+Demonstration of running a one-line program to call a native function. Contrary to variables which can be observed or changed directly, native functions can be executed only with a program running on the Thymio. This program plays one of the 9 system sounds.
