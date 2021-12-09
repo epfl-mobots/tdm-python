@@ -194,7 +194,7 @@ def process_events(on_event_data, *, all_nodes):
     them until _exit is received.
 
     Argument:
-        on_event_data -- func(event_name) called when new data is received
+        on_event_data -- func(node, event_name) called when new data is received
 
     Key argument:
         all_nodes -- True to get events from all robots,

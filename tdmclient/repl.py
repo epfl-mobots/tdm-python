@@ -320,7 +320,7 @@ class TDMConsole(code.InteractiveConsole):
         them until _exit is received.
 
         Argument:
-            on_event_data -- func(event_name) called when new data is received
+            on_event_data -- func(node, event_name) called when new data is received
         """
 
         exit_received = None  # or exit code once received
@@ -342,7 +342,7 @@ class TDMConsole(code.InteractiveConsole):
                             self.event_data_dict[event_name] = []
                         self.event_data_dict[event_name].append(event_data)
                         if on_event_data is not None:
-                            on_event_data(event_name)
+                            on_event_data(node, event_name)
 
         def wake():
             return exit_received is not None

@@ -409,7 +409,7 @@ from IPython.display import clear_output
 from matplotlib import pyplot as plt
 %matplotlib inline
 
-def on_event_data(event_name):
+def on_event_data(node, event_name):
 
     def update_plot(t, y, time_span=10):
         clear_output(wait=True)

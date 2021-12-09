@@ -13,6 +13,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- Optional robot specification in `send_event`
 	- Optional argument `all_nodes` in function `process_events`
 
+### Changed
+
+- In repl and Jupyter, callback `on_event_data` has a new `node` argument to better support interaction with multiple robots
+
 ### Fixed
 
 - Method `Client.create_node()` referred to a symbol which wasn't imported
