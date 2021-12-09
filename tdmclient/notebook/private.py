@@ -101,8 +101,8 @@ async def start(zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
         tdm_addr - TDM address as a string (default: localhost)
         tdm_port - TDM TCP port number
                    (default: standard or provided by zeroconf)
-        node_id - robot node id (default: any)
-        node_name - robot name (default: any)
+        robot_id - robot node id (default: any)
+        robot_name - robot name (default: any)
         zeroconf - True to use find TDM with zeroconf (default: automatic)
     """
 
@@ -157,17 +157,19 @@ def tdm_properties():
     return (_interactive_console.client.tdm_addr,
             _interactive_console.client.tdm_port)
 
-def list_robots(**kwargs):
+def list_robots(robot_id=None, robot_name=None):
     """List the robots known to tdmclient without waiting.
 
     Arguments:
-        node_id - robot node id (default: any)
-        node_name - robot name (default: any)
+        robot_id - robot node id (default: any)
+        robot_name - robot name (default: any)
     """
     if _interactive_console is None or _interactive_console.client is None:
         return []
     _interactive_console.client.process_waiting_messages()
-    return list(_interactive_console.client.filter_nodes(_interactive_console.client.nodes, **kwargs))
+    return list(_interactive_console.client.filter_nodes(_interactive_console.client.nodes,
+                                                         node_id=robot_id,
+                                                         node_name=robot_name))
 
 def sync_var(func):
     # candidate variables to sync: globals referenced in func
@@ -254,7 +256,8 @@ async def watch(timeout=-1,
     else:
         with ClientAsync(zeroconf=zeroconf,
                          tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
-            await client.wait_for_status_set({ClientAsync.NODE_STATUS_AVAILABLE, ClientAsync.NODE_STATUS_BUSY})
+            await client.wait_for_status_set({ClientAsync.NODE_STATUS_AVAILABLE,
+                                              ClientAsync.NODE_STATUS_BUSY})
             node = client.first_node(node_id=robot_id, node_name=robot_name)
             await node.watch(variables=True)
             await watch_node(client, node)
@@ -333,8 +336,8 @@ def run_python(line, cell):
     try:
         _interactive_console.run_program(cell, "python",
                                          wait=wait, import_thymio=import_thymio,
-                                         node_id=robot_id, node_name=robot_name,
-                                         node_index=robot_index)
+                                         robot_id=robot_id, robot_name=robot_name,
+                                         robot_index=robot_index)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")
@@ -380,8 +383,8 @@ def run_aseba(line, cell):
         return
 
     _interactive_console.run_program(cell, "aseba",
-                                     node_id=robot_id, node_name=robot_name,
-                                     node_index=robot_index)
+                                     robot_id=robot_id, robot_name=robot_name,
+                                     robot_index=robot_index)
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):

@@ -8,7 +8,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, `get_nodes()`, and `watch()`
 - Class `NodeLockError` with the current node status raised when a node cannot be locked
-- Key argument `node_index` in repl and Jupyter functions and option `--robotindex` in Jupyter magic commands to specify the robot by index
+- In repl:
+	- Key argument `robot_index` in functions and option `--robotindex` in Jupyter magic commands to specify the robot by index
+	- Optional robot specification in `send_event`
 
 ### Fixed
 

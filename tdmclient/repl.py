@@ -119,8 +119,7 @@ class TDMConsole(code.InteractiveConsole):
         def run(src=None, *,
                 language="python",
                 wait=None,
-                robot_id=None, robot_name=None,
-                robot_index=None):
+                **kwargs):
             """Run program obtained by robot_code on the robot. By default, wait
             to process events until "_exit" is received (call to "exit()" in the
             robot's program), or return immediately if the program doesn't send
@@ -143,14 +142,12 @@ class TDMConsole(code.InteractiveConsole):
                 src = robot_code()
             # compile, load, run, and set scratchpad without checking the result
             try:
-                self.run_program(src, language=language, wait=wait,
-                                 node_id=robot_id, node_name=robot_name,
-                                 node_index=robot_index)
+                self.run_program(src, language=language, wait=wait, **kwargs)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace
                 print("Interrupted")
 
-        def stop(robot_id=None, robot_name=None, robot_index=None):
+        def stop(**kwargs):
             """Stop the program running on the robot.
 
             Keyword arguments:
@@ -158,9 +155,7 @@ class TDMConsole(code.InteractiveConsole):
                 robot_name: robot name, to run the program on a specific robot
                 robot_index: robot index (0=first=default, 1=second etc.)
             """
-            self.stop_program(discard_output=True,
-                              node_id=robot_id, node_name=robot_name,
-                              node_index=robot_index)
+            self.stop_program(discard_output=True, **kwargs)
 
         def get_var(*args):
             """Get robot variables passed as a set or list of names and
@@ -190,17 +185,25 @@ class TDMConsole(code.InteractiveConsole):
             """
             return self.get_event_data(event_name)
 
-        def send_event(event_name, *args):
+        def send_event(event_name, *args, **kwargs):
             """Send a custom event to the robot. Arguments can be numbers,
             booleans and/or arrays.
+
+            Keyword arguments:
+                robot_id: robot id, to run the program on a specific robot
+                robot_name: robot name, to run the program on a specific robot
+                robot_index: robot index (0=first=default, 1=second etc.)
             """
+
             # flatten args
             data = [
                 item
                 for arg in args
                 for item in (arg if isinstance(arg, list) else [arg])
             ]
-            self.node.send_send_events({event_name: data})
+
+            with self.target_robot(**kwargs) as node:
+                node.send_send_events({event_name: data})
 
         self.functions = {
             "onevent": onevent,
@@ -355,21 +358,47 @@ class TDMConsole(code.InteractiveConsole):
         finally:
             self.client.clear_event_received_listeners()
 
+    def target_robot(self, **kwargs):
+        """Target the robot referenced by the key arguments, lock it if it isn't
+        the default node, and return it; must be used with "with".
+        """
+
+        class Robot:
+            """Utility class to be used with "with", to get the node referenced by
+            the key arguments, lock it if it isn't the default node, and return it.
+            """
+
+            def __init__(self,
+                         client,
+                         default_node,
+                         robot_id=None, robot_name=None,
+                         robot_index=None):
+                self.default_node = default_node
+                self.node = default_node
+                if robot_index is not None:
+                    # could be another node we lock just for one action
+                    self.node = client.nodes[robot_index]
+                elif robot_id is not None or robot_name is not None:
+                    # could be another node we lock just for this call
+                    self.node = client.first_node(node_id=robot_id,
+                                                       node_name=robot_name)
+                if self.node != default_node:
+                    ClientAsync.aw(self.node.lock())
+
+            def __enter__(self):
+                return self.node
+
+            def __exit__(self, type, value, traceback):
+                if self.node != self.default_node:
+                    self.node.unlock()
+
+        return Robot(self.client, self.node, **kwargs)
+
+
     def run_program(self, src,
                     language="aseba", wait=False, import_thymio=True,
-                    node_id=None, node_name=None,
-                    node_index=None):
-        node = self.node
-        if node_index is not None:
-            # could be another node we lock just for this call
-            node = self.client.nodes[node_index]
-        elif node_id is not None or node_name is not None:
-            # could be another node we lock just for this call
-            node = self.client.first_node(node_id=node_id, node_name=node_name)
-        if node != self.node:
-            ClientAsync.aw(node.lock())
-
-        try:
+                    **kwargs):
+        with self.target_robot(**kwargs) as node:
             print_statements = []
             events = []
             if language == "python":
@@ -441,32 +470,17 @@ class TDMConsole(code.InteractiveConsole):
                         print(f"Exit, status={exit_received}")
                 finally:
                     self.client.clear_event_received_listeners()
-        finally:
-            if node != self.node:
-                node.unlock()
 
-    def stop_program(self, discard_output=False,
-                     node_id=None, node_name=None, node_index=None):
-        node = self.node
-        if node_index is not None:
-            # could be another node we lock just for this call
-            node = self.client.nodes[node_index]
-        elif node_id is not None or node_name is not None:
-            # could be another node we lock just for this call
-            node = self.client.first_node(node_id=node_id, node_name=node_name)
-        if node != self.node:
-            ClientAsync.aw(node.lock())
-
-        output_enabled_orig = self.output_enabled
-        self.output_enabled = not discard_output
-        try:
-            error = ClientAsync.aw(node.stop())
-            if error is not None:
-                raise Exception(f"Error {error['error_code']}")
-        finally:
-            self.output_enabled = output_enabled_orig
-            if node != self.node:
-                node.unlock()
+    def stop_program(self, discard_output=False, **kwargs):
+        with self.target_robot(**kwargs) as node:
+            output_enabled_orig = self.output_enabled
+            self.output_enabled = not discard_output
+            try:
+                error = ClientAsync.aw(node.stop())
+                if error is not None:
+                    raise Exception(f"Error {error['error_code']}")
+            finally:
+                self.output_enabled = output_enabled_orig
 
     def from_python_name(self, name_py):
         # replace underscores with dots, except first underscore, for node variables
