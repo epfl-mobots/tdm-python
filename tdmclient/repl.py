@@ -119,7 +119,8 @@ class TDMConsole(code.InteractiveConsole):
         def run(src=None, *,
                 language="python",
                 wait=None,
-                robot_id=None, robot_name=None):
+                robot_id=None, robot_name=None,
+                robot_index=None):
             """Run program obtained by robot_code on the robot. By default, wait
             to process events until "_exit" is received (call to "exit()" in the
             robot's program), or return immediately if the program doesn't send
@@ -133,6 +134,7 @@ class TDMConsole(code.InteractiveConsole):
                 source code is passed in a string)
                 robot_id: robot id, to run the program on a specific robot
                 robot_name: robot name, to run the program on a specific robot
+                robot_index: robot index (0=first=default, 1=second etc.)
             """
 
             if src is None and language != "python":
@@ -142,20 +144,23 @@ class TDMConsole(code.InteractiveConsole):
             # compile, load, run, and set scratchpad without checking the result
             try:
                 self.run_program(src, language=language, wait=wait,
-                                 node_id=robot_id, node_name=robot_name)
+                                 node_id=robot_id, node_name=robot_name,
+                                 node_index=robot_index)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace
                 print("Interrupted")
 
-        def stop(robot_id=None, robot_name=None):
+        def stop(robot_id=None, robot_name=None, robot_index=None):
             """Stop the program running on the robot.
 
             Keyword arguments:
                 robot_id: robot id, to run the program on a specific robot
                 robot_name: robot name, to run the program on a specific robot
+                robot_index: robot index (0=first=default, 1=second etc.)
             """
             self.stop_program(discard_output=True,
-                              node_id=robot_id, node_name=robot_name)
+                              node_id=robot_id, node_name=robot_name,
+                              node_index=robot_index)
 
         def get_var(*args):
             """Get robot variables passed as a set or list of names and
@@ -352,13 +357,17 @@ class TDMConsole(code.InteractiveConsole):
 
     def run_program(self, src,
                     language="aseba", wait=False, import_thymio=True,
-                    node_id=None, node_name=None):
+                    node_id=None, node_name=None,
+                    node_index=None):
         node = self.node
-        if node_id is not None or node_name is not None:
+        if node_index is not None:
+            # could be another node we lock just for this call
+            node = self.client.nodes[node_index]
+        elif node_id is not None or node_name is not None:
             # could be another node we lock just for this call
             node = self.client.first_node(node_id=node_id, node_name=node_name)
-            if node != self.node:
-                ClientAsync.aw(node.lock())
+        if node != self.node:
+            ClientAsync.aw(node.lock())
 
         try:
             print_statements = []
@@ -437,13 +446,16 @@ class TDMConsole(code.InteractiveConsole):
                 node.unlock()
 
     def stop_program(self, discard_output=False,
-                     node_id=None, node_name=None):
+                     node_id=None, node_name=None, node_index=None):
         node = self.node
-        if node_id is not None or node_name is not None:
+        if node_index is not None:
+            # could be another node we lock just for this call
+            node = self.client.nodes[node_index]
+        elif node_id is not None or node_name is not None:
             # could be another node we lock just for this call
             node = self.client.first_node(node_id=node_id, node_name=node_name)
-            if node != self.node:
-                ClientAsync.aw(node.lock())
+        if node != self.node:
+            ClientAsync.aw(node.lock())
 
         output_enabled_orig = self.output_enabled
         self.output_enabled = not discard_output

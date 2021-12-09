@@ -57,7 +57,7 @@ async def list(zeroconf=None, tdm_addr=None, tdm_port=None,
         zeroconf - True to use find TDM with zeroconf (default: automatic)
     """
 
-    with (ClientAsync(zeroconf=zeroconf or False,
+    with (ClientAsync(zeroconf=zeroconf,
                       tdm_addr=tdm_addr, tdm_port=tdm_port)
           if zeroconf is not None or
              tdm_addr is not None or
@@ -281,6 +281,9 @@ def run_python(line, cell):
 
         --robotname NAME: run on robot specified by name.
 
+        --robotindex I: run on robot specified by index
+                        (0=first=default, 1=second etc.)
+
         --wait: continue running to receive events from the robot and display
         print output until exit() is called in the program or the execution
         is interrupted. Other events are stored and can be obtained with
@@ -293,6 +296,7 @@ def run_python(line, cell):
     import_thymio = True
     robot_id = None
     robot_name = None
+    robot_index = None
     try:
         arguments, values = getopt.getopt(args,
                                           "",
@@ -300,6 +304,7 @@ def run_python(line, cell):
                                               "clear-event-data",
                                               "nothymio",
                                               "robotid=",
+                                              "robotindex=",
                                               "robotname=",
                                               "wait",
                                           ])
@@ -313,6 +318,8 @@ def run_python(line, cell):
             import_thymio = False
         elif arg == "--robotid":
             robot_id = val
+        elif arg == "--robotindex":
+            robot_index = int(val)
         elif arg == "--robotname":
             robot_name = val
         elif arg == "--wait":
@@ -326,7 +333,8 @@ def run_python(line, cell):
     try:
         _interactive_console.run_program(cell, "python",
                                          wait=wait, import_thymio=import_thymio,
-                                         node_id=robot_id, node_name=robot_name)
+                                         node_id=robot_id, node_name=robot_name,
+                                         node_index=robot_index)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")
@@ -334,16 +342,27 @@ def run_python(line, cell):
 @register_cell_magic
 def run_aseba(line, cell):
     """Send to the robot the whole cell as an Aseba program and run it.
+
+    Options:
+
+        --robotid ID: run on robot specified by id.
+
+        --robotname NAME: run on robot specified by name.
+
+        --robotindex I: run on robot specified by index
+                        (0=first=default, 1=second etc.)
     """
 
     args = shlex.split(line)
     robot_id = None
     robot_name = None
+    robot_index = None
     try:
         arguments, values = getopt.getopt(args,
                                           "",
                                           [
                                               "robotid=",
+                                              "robotindex=",
                                               "robotname=",
                                           ])
     except getopt.error as err:
@@ -352,6 +371,8 @@ def run_aseba(line, cell):
     for arg, val in arguments:
         if arg == "--robotid":
             robot_id = val
+        elif arg == "--robotindex":
+            robot_index = int(val)
         elif arg == "--robotname":
             robot_name = val
     if len(values) > 0:
@@ -359,7 +380,8 @@ def run_aseba(line, cell):
         return
 
     _interactive_console.run_program(cell, "aseba",
-                                     node_id=robot_id, node_name=robot_name)
+                                     node_id=robot_id, node_name=robot_name,
+                                     node_index=robot_index)
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
