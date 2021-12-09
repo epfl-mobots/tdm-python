@@ -20,6 +20,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - Method `Client.create_node()` referred to a symbol which wasn't imported
+- Watch flag changes sent by methods `ClientAsyncNode.watch` and `ClientAsyncNode.unwatch`
 
 ## [0.1.12] - 2021-12-07
 

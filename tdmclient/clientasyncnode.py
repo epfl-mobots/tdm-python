@@ -148,7 +148,7 @@ class ClientAsyncNode(ClientNode):
             self.watch_flags |= flags
             result = yield from self.thymio.send_msg_and_get_result(
                 lambda notify:
-                    self.watch_node(flags, request_id_notify=notify)
+                    self.watch_node(self.watch_flags, request_id_notify=notify)
             )
             return result
 
@@ -160,6 +160,6 @@ class ClientAsyncNode(ClientNode):
             self.watch_flags &= ~flags
             result = yield from self.thymio.send_msg_and_get_result(
                 lambda notify:
-                    self.watch_node(flags, request_id_notify=notify)
+                    self.watch_node(self.watch_flags, request_id_notify=notify)
             )
             return result
