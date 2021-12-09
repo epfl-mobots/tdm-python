@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from tdmclient import ThymioFB, ClientNode
+from tdmclient.clientasync import NodeLockError
 import types
 
 
@@ -57,7 +58,7 @@ class ClientAsyncNode(ClientNode):
 
         result = yield from self.lock_node()
         if result is not None:
-            raise Exception("Node lock error")
+            raise NodeLockError(self.status)
         return self
 
     def __enter__(self):

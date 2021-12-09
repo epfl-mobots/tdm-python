@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, `get_nodes()`, and `watch()`
+- Class `NodeLockError` with the current node status raised when a node cannot be locked
 
 ### Fixed
 

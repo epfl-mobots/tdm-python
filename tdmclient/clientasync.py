@@ -10,6 +10,30 @@ import tdmclient
 import types
 
 
+class NodeLockError(Exception):
+    """Attempt to lock a node which is not available.
+    """
+
+    def __init__(self, node_status):
+        super().__init__()
+        status_str = {
+            tdmclient.ThymioFB.NODE_STATUS_UNKNOWN: "unknown",
+            tdmclient.ThymioFB.NODE_STATUS_CONNECTED: "connected",
+            tdmclient.ThymioFB.NODE_STATUS_AVAILABLE: "available",
+            tdmclient.ThymioFB.NODE_STATUS_BUSY: "busy",
+            tdmclient.ThymioFB.NODE_STATUS_READY: "ready",
+            tdmclient.ThymioFB.NODE_STATUS_DISCONNECTED: "disconnected",
+        }
+        try:
+            self.message = f"Node lock error (current status: {status_str[node_status]})"
+        except:
+            self.message = "Node lock error"
+        self.node_status = node_status
+
+    def __str__(self):
+        return self.message
+
+
 class ClientAsync(tdmclient.Client):
 
     DEFAULT_SLEEP = 0.1
@@ -105,7 +129,7 @@ class ClientAsync(tdmclient.Client):
         node = self.first_node(**kwargs)
         result = yield from node.lock_node()
         if result is not None:
-            raise Exception("Node lock error")
+            raise NodeLockError(node.status)
         return node
 
     @types.coroutine
