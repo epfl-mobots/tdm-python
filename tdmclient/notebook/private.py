@@ -13,7 +13,8 @@ def _pre_run_cell(info):
 def _post_run_cell(_):
     _interactive_console.post_run()
 
-async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None,
+                    robot_id=None, robot_name=None):
     """Get a list of all the robots.
 
     Arguments:
@@ -21,10 +22,13 @@ async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None
         tdm_port - TDM TCP port number (default: as in start())
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
+        zeroconf - True to find TDM with zeroconf (default: automatic)
     """
 
-    with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
-          if tdm_addr is not None or
+    with (ClientAsync(zeroconf=zeroconf,
+                      tdm_addr=tdm_addr, tdm_port=tdm_port)
+          if zeroconf is not None or
+             tdm_addr is not None or
              tdm_port is not None or
              _interactive_console is None
           else _interactive_console.client) as client:
@@ -41,7 +45,8 @@ async def get_nodes(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None
 
     return nodes
 
-async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+async def list(zeroconf=None, tdm_addr=None, tdm_port=None,
+               robot_id=None, robot_name=None):
     """Display a list of all the robots.
 
     Arguments:
@@ -49,10 +54,13 @@ async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
         tdm_port - TDM TCP port number (default: as in start())
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
+        zeroconf - True to use find TDM with zeroconf (default: automatic)
     """
 
-    with (ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
-          if tdm_addr is not None or
+    with (ClientAsync(zeroconf=zeroconf or False,
+                      tdm_addr=tdm_addr, tdm_port=tdm_port)
+          if zeroconf is not None or
+             tdm_addr is not None or
              tdm_port is not None or
              _interactive_console is None
           else _interactive_console.client) as client:
@@ -86,17 +94,20 @@ async def list(tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
                 print(f"firmware: {node.props['fw_version']}")
             print()
 
-async def start(tdm_addr=None, tdm_port=None, **kwargs):
+async def start(zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
     """Start the connection with the Thymio and variable synchronization.
 
     Arguments:
         tdm_addr - TDM address as a string (default: localhost)
-        tdm_port - TDM TCP port number (default: provided by zeroconf)
+        tdm_port - TDM TCP port number
+                   (default: standard or provided by zeroconf)
         node_id - robot node id (default: any)
         node_name - robot name (default: any)
+        zeroconf - True to use find TDM with zeroconf (default: automatic)
     """
 
-    client = ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port)
+    client = ClientAsync(zeroconf=zeroconf,
+                         tdm_addr=tdm_addr, tdm_port=tdm_port)
     node = await client.wait_for_node(**kwargs)
     await node.lock()
 
@@ -190,12 +201,15 @@ def process_events(on_event_data=None):
         # avoid long exception message with stack trace
         print("Interrupted")
 
-async def watch(timeout=-1, tdm_addr=None, tdm_port=None, robot_id=None, robot_name=None):
+async def watch(timeout=-1,
+                zeroconf=None, tdm_addr=None, tdm_port=None,
+                robot_id=None, robot_name=None):
     """Display the robot variables with live updates until the timeout elapses
     or the execution is interrupted.
 
     Arguments:
         timeout -- amount of time until updates stop
+        zeroconf -- True to use find TDM with zeroconf (default: automatic)
         tdm_addr -- address of the tdm
         tdm_port -- port of the tdm
             (default: connection established by start(), or from zeroconf)
@@ -225,7 +239,7 @@ async def watch(timeout=-1, tdm_addr=None, tdm_port=None, robot_id=None, robot_n
             IPython.display.display(IPython.display.Markdown(md))
 
         node.add_variables_changed_listener(variables_changed_listener)
-        variables_changed_listener(node, node.var)  # !!!
+        variables_changed_listener(node, node.var)
         try:
             await client.sleep()
         except:
@@ -238,7 +252,8 @@ async def watch(timeout=-1, tdm_addr=None, tdm_port=None, robot_id=None, robot_n
     if _interactive_console is not None:
         await watch_node(_interactive_console.client, _interactive_console.node)
     else:
-        with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+        with ClientAsync(zeroconf=zeroconf,
+                         tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
             await client.wait_for_status_set({ClientAsync.NODE_STATUS_AVAILABLE, ClientAsync.NODE_STATUS_BUSY})
             node = client.first_node(node_id=robot_id, node_name=robot_name)
             await node.watch(variables=True)

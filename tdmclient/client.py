@@ -18,20 +18,27 @@ class DisconnectedError(Exception):
 
 class Client(ThymioFB):
 
-    def __init__(self, tdm_addr=None, tdm_port=None, **kwargs):
+    DEFAULT_TDM_PORT = 8596
+
+    def __init__(self, zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
 
         super(Client, self).__init__(**kwargs)
 
+        if zeroconf is None:
+            # use zeroconf if tdm_port isn't specified
+            zeroconf = tdm_port is None
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
         self.tdm = None
 
-        def on_change(is_added, addr, port, ws_port):
+        def on_zc_change(is_added, addr, port, ws_port):
             if is_added and self.tdm_addr is None:
                 if self.debug >= 1:
                     print(f"Zeroconf: TDM {addr}:{port} on")
-                self.tdm_addr = addr
-                self.tdm_port = port
+                if tdm_addr is None:
+                    self.tdm_addr = addr
+                if tdm_port is None:
+                    self.tdm_port = port
                 self.connect()
                 self.send_handshake()
             elif not is_added and addr == self.tdm_addr and port == self.tdm_port:
@@ -41,12 +48,12 @@ class Client(ThymioFB):
                 self.tdm_addr = None
                 self.tdm_port = None
 
-        if tdm_port is None:
-            # no port provided: rely on zeroconf
-            self.zc = TDMZeroconfBrowser(on_change)
+        if zeroconf:
+            self.zc = TDMZeroconfBrowser(on_zc_change)
         else:
-            # port provided: use it without zeroconf
             self.zc = None
+            if self.tdm_port is None:
+                self.tdm_port = self.DEFAULT_TDM_PORT
             if tdm_addr is None:
                 # localhost by default
                 self.tdm_addr = "127.0.0.1"
