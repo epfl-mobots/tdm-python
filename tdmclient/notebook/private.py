@@ -189,16 +189,21 @@ def sync_var(func):
     functools.update_wrapper(w, func)
     return w
 
-def process_events(on_event_data=None):
+def process_events(on_event_data, *, all_nodes):
     """Listen to events sent by the program running on the robot and process
     them until _exit is received.
 
     Argument:
         on_event_data -- func(event_name) called when new data is received
+
+    Key argument:
+        all_nodes -- True to get events from all robots,
+                     False (default) to get events from default robot
     """
 
     try:
-        _interactive_console.process_events(on_event_data=on_event_data)
+        _interactive_console.process_events(on_event_data=on_event_data,
+                                            all_nodes=all_nodes)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")

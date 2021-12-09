@@ -315,7 +315,7 @@ class TDMConsole(code.InteractiveConsole):
         for name in self.node.var:
             self.sync_var.add(name)
 
-    def process_events(self, on_event_data=None):
+    def process_events(self, on_event_data=None, all_nodes=False):
         """Listen to events sent by the program running on the robot and process
         them until _exit is received.
 
@@ -350,12 +350,21 @@ class TDMConsole(code.InteractiveConsole):
         self.client.clear_event_received_listeners()
         self.client.add_event_received_listener(on_event_received)
         try:
-            ClientAsync.aw(self.node.watch(events=True))
+            if all_nodes:
+                for node in self.client.nodes:
+                    ClientAsync.aw(node.watch(events=True))
+            else:
+                ClientAsync.aw(self.node.watch(events=True))
             ClientAsync.aw(self.client.sleep(wake=wake))
             self.stop_program(discard_output=True)
             if exit_received:
                 print(f"Exit, status={exit_received}")
         finally:
+            if all_nodes:
+                for node in self.client.nodes:
+                    ClientAsync.aw(node.watch(events=False))
+            else:
+                ClientAsync.aw(self.node.watch(events=False))
             self.client.clear_event_received_listeners()
 
     def target_robot(self, **kwargs):
