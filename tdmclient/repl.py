@@ -669,6 +669,8 @@ class TDMConsole(code.InteractiveConsole):
                 do_node(node.lower)
                 do_node(node.upper)
                 do_node(node.step)
+            elif isinstance(node, ast.Starred):
+                do_node(node.value)
             elif isinstance(node, ast.Subscript):
                 do_node(node.value)
                 do_node(node.slice)
