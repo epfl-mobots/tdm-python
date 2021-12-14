@@ -418,7 +418,29 @@ class ThymioFB(Listener):
                 )
             )
             // NodeAsebaVMDescription
-            T(iT(*u)iii*T(2si)*T(2ss)*T(2ss*T(si)))
+            T(
+                // request_id
+                i
+                // node_id
+                T(*u)
+                // bytecode_size
+                i
+                // data_size
+                i
+                // stack_size
+                i
+                // variables
+                *T(2si)
+                // events
+                *T(2ss)
+                // functions
+                *T(
+                    2
+                    s
+                    s
+                    *T(si)
+                )
+            )
             // RequestCompleted
             T(i)
             // Error

@@ -51,7 +51,9 @@ class InputThread(threading.Thread):
                 if not self.running:
                     raise Exception("closing")
                 packet_len = self.read_uint32()
-                packet = self.io.read(packet_len)
+                packet = b""
+                while len(packet) < packet_len:
+                    packet += self.io.read(packet_len - len(packet))
             return packet
         except Exception as error:
             self.comm_error = error
