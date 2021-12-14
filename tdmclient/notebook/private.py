@@ -94,7 +94,8 @@ async def list(zeroconf=None, tdm_addr=None, tdm_port=None,
                 print(f"firmware: {node.props['fw_version']}")
             print()
 
-async def start(zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
+async def start(zeroconf=None, tdm_addr=None, tdm_port=None,
+                debug=0, **kwargs):
     """Start the connection with the Thymio and variable synchronization.
 
     Arguments:
@@ -107,7 +108,8 @@ async def start(zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
     """
 
     client = ClientAsync(zeroconf=zeroconf,
-                         tdm_addr=tdm_addr, tdm_port=tdm_port)
+                         tdm_addr=tdm_addr, tdm_port=tdm_port,
+                         debug=debug)
     node = await client.wait_for_node(**kwargs)
     await node.lock()
 

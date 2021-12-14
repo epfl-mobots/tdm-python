@@ -12,6 +12,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- Key argument `robot_index` in functions and option `--robotindex` in Jupyter magic commands to specify the robot by index
 	- Optional robot specification in `send_event`
 	- Optional argument `all_nodes` in function `process_events`
+- In notebooks:
+	- Optional `debug` argument in `start`
 
 ### Changed
 
