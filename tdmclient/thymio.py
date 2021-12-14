@@ -380,7 +380,24 @@ class ThymioFB(Listener):
         // root object: union AnyMessage
         U(
             // ConnectionHandshake
-            T(iiibb)
+            T(
+                // minProtocolVersion: uint
+                i
+                // protocolVersion: uint
+                i
+                // maxMessageSize: uint
+                i
+                // token: [ubyte]
+                *u
+                // localhostPeer: bool
+                b
+                // ws_port: uint2
+                2
+                // uuid: NodeId
+                T(*u)
+                // password: string
+                s
+            )
             // DeviceManagerShutdownRequest
             T(i)
             // RequestListOfNodes
