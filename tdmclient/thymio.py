@@ -522,10 +522,19 @@ class ThymioFB(Listener):
 
         return encoded_fb
 
-    def create_msg_handshake(self):
+    def create_msg_handshake(self, password=None):
         return self.create_message((
             ThymioFB.MESSAGE_TYPE_CONNECTION_HANDSHAKE,
-            ()
+            (
+                1,  # default minProtocolVersion
+                1,  # default protocolVersion
+                102400,  # default maxMessageSize
+                None,  # default token
+                False,  # default localhostPeer
+                0,  # default ws_port
+                None,  # default NodeId
+                password,
+            ) if password is not None else ()
         ), ThymioFB.SCHEMA)
 
     def create_msg_device_manager_shutdown_request(self, **kwargs):

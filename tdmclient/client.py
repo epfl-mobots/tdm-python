@@ -20,7 +20,9 @@ class Client(ThymioFB):
 
     DEFAULT_TDM_PORT = 8596
 
-    def __init__(self, zeroconf=None, tdm_addr=None, tdm_port=None, **kwargs):
+    def __init__(self,
+                 zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
+                 **kwargs):
 
         super(Client, self).__init__(**kwargs)
 
@@ -40,7 +42,7 @@ class Client(ThymioFB):
                 if tdm_port is None:
                     self.tdm_port = port
                 self.connect()
-                self.send_handshake()
+                self.send_handshake(password)
             elif not is_added and addr == self.tdm_addr and port == self.tdm_port:
                 if self.debug >= 1:
                     print(f"Zeroconf: TDM {addr}:{port} off")
@@ -60,7 +62,7 @@ class Client(ThymioFB):
             if self.debug >= 1:
                 print(f"TDM {self.tdm_addr}:{self.tdm_port}")
             self.connect()
-            self.send_handshake()
+            self.send_handshake(password)
 
     def close(self):
         if self.zc is not None:
@@ -108,10 +110,10 @@ class Client(ThymioFB):
 
         self.send_packet(encoded_fb)
 
-    def send_handshake(self):
+    def send_handshake(self, password=None):
         if self.debug >= 1:
             print("send handshake")
-        self.send_packet(self.create_msg_handshake())
+        self.send_packet(self.create_msg_handshake(password))
 
     def shutdown_tdm(self, **kwargs):
         """Send a shutdown request. No reply should be expected.
