@@ -345,6 +345,9 @@ class FlatBuffer:
             enc += bytes([0 for i in range(4 - len(enc) % 4)])
             return value, enc, False
         elif schema[0] == "*":
+            if value is None:
+                # default value
+                return value, None, False
             enc = FlatBuffer.encode_32(len(value))
             if schema[1] == "u":
                 if type(value) is bytes:
