@@ -20,6 +20,7 @@ Run program on robot, from file or stdin
 Options:
   --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help         display this help message and exit
+  --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
@@ -32,6 +33,7 @@ if __name__ == "__main__":
     debug = 0
     tdm_addr = None
     tdm_port = None
+    password = None
     robot_id = None
     robot_name = None
 
@@ -41,6 +43,7 @@ if __name__ == "__main__":
                                           [
                                               "debug=",
                                               "help",
+                                              "password=",
                                               "robotid=",
                                               "robotname=",
                                               "tdmaddr=",
@@ -55,6 +58,8 @@ if __name__ == "__main__":
             sys.exit(0)
         elif arg == "--debug":
             debug = int(val)
+        elif arg == "--password":
+            password = val
         elif arg == "--robotid":
             robot_id = val
         elif arg == "--robotname":
@@ -64,7 +69,9 @@ if __name__ == "__main__":
         elif arg == "--tdmport":
             tdm_port = int(val)
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port,
+                     password=password,
+                     debug=debug) as client:
 
         for _ in range(50):
             client.process_waiting_messages()

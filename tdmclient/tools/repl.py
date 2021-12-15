@@ -26,6 +26,7 @@ Read-eval-print loop with link and synchronization with Thymio
 
 Options:
   --help         display this help message and exit
+  --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
@@ -36,6 +37,7 @@ Options:
 def main(argv=None):
     tdm_addr = None
     tdm_port = None
+    password = None
     robot_id = None
     robot_name = None
 
@@ -45,6 +47,7 @@ def main(argv=None):
                                               "",
                                               [
                                                   "help",
+                                                  "password=",
                                                   "robotid=",
                                                   "robotname=",
                                                   "tdmaddr=",
@@ -57,6 +60,8 @@ def main(argv=None):
             if arg == "--help":
                 help()
                 sys.exit(0)
+            elif arg == "--password":
+                password = val
             elif arg == "--robotid":
                 robot_id = val
             elif arg == "--robotname":
@@ -66,7 +71,8 @@ def main(argv=None):
             elif arg == "--tdmport":
                 tdm_port = int(val)
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port,
+                     password=password) as client:
 
         async def co_init():
             with await client.lock(node_id=robot_id, node_name=robot_name) as node:

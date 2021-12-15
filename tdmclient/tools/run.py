@@ -28,6 +28,7 @@ Options:
   --language=L   programming language (aseba or python); default=automatic
   --nosleep      exit immediately (default with no events, print() or exit())
   --nothymio     don't import the symbols of thymio library
+  --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --scratchpad   also store program into the TDM scratchpad
@@ -47,6 +48,7 @@ if __name__ == "__main__":
     scratchpad = 0  # 1=--scratchpad, 2=--sponly
     tdm_addr = None
     tdm_port = None
+    password = None
     robot_id = None
     robot_name = None
     events = []
@@ -87,6 +89,7 @@ if __name__ == "__main__":
                                               "language=",
                                               "nosleep",
                                               "nothymio",
+                                              "password=",
                                               "robotid=",
                                               "robotname=",
                                               "scratchpad",
@@ -120,6 +123,8 @@ if __name__ == "__main__":
             sleep = False
         elif arg == "--nothymio":
             import_thymio = False
+        elif arg == "--password":
+            password = val
         elif arg == "--robotid":
             robot_id = val
         elif arg == "--robotname":
@@ -194,7 +199,9 @@ if __name__ == "__main__":
         for event_name in transpiler.events_out:
             events.append((event_name, transpiler.events_out[event_name]))
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, debug=debug) as client:
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port,
+                     password=password,
+                     debug=debug) as client:
 
         async def prog():
             global status, events, sleep

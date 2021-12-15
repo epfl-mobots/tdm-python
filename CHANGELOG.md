@@ -8,12 +8,14 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, `get_nodes()`, and `watch()`
 - Class `NodeLockError` with the current node status raised when a node cannot be locked
+- Optional key argument `password` in the constructor of `ClientAsync` to connect to remote TDM
 - In repl:
 	- Key argument `robot_index` in functions and option `--robotindex` in Jupyter magic commands to specify the robot by index
 	- Optional robot specification in `send_event`
 	- Optional argument `all_nodes` in function `process_events`
 - In notebooks:
 	- Optional `debug` argument in `start`
+- Option `--password` in tools `tdmclient.tools.guy`, `tdmclient.tools.list`, `tdmclient.tools.repl`, `tdmclient.tools.run`, `tdmclient.tools.watch`
 
 ### Changed
 
