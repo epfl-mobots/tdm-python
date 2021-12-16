@@ -14,7 +14,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- Optional robot specification in `send_event`
 	- Optional argument `all_nodes` in function `process_events`
 - In notebooks:
-	- Optional `debug` argument in `start`
+	- Optional `debug` argument in `start()`
+	- Optional `password` argument in `start()` `get_nodes()`, `list()`, `watch()`
 - Option `--password` in tools `tdmclient.tools.guy`, `tdmclient.tools.list`, `tdmclient.tools.repl`, `tdmclient.tools.run`, `tdmclient.tools.watch`
 
 ### Changed

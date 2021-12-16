@@ -13,20 +13,21 @@ def _pre_run_cell(info):
 def _post_run_cell(_):
     _interactive_console.post_run()
 
-async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None,
+async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
                     robot_id=None, robot_name=None):
     """Get a list of all the robots.
 
     Arguments:
         tdm_addr - TDM address as a string (default: as in start())
         tdm_port - TDM TCP port number (default: as in start())
+        password - TDM password (default: None, not necessary for local TDM)
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
         zeroconf - True to find TDM with zeroconf (default: automatic)
     """
 
     with (ClientAsync(zeroconf=zeroconf,
-                      tdm_addr=tdm_addr, tdm_port=tdm_port)
+                      tdm_addr=tdm_addr, tdm_port=tdm_port, password=password)
           if zeroconf is not None or
              tdm_addr is not None or
              tdm_port is not None or
@@ -45,20 +46,21 @@ async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None,
 
     return nodes
 
-async def list(zeroconf=None, tdm_addr=None, tdm_port=None,
+async def list(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
                robot_id=None, robot_name=None):
     """Display a list of all the robots.
 
     Arguments:
         tdm_addr - TDM address as a string (default: as in start())
         tdm_port - TDM TCP port number (default: as in start())
+        password - TDM password (default: None, not necessary for local TDM)
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
         zeroconf - True to use find TDM with zeroconf (default: automatic)
     """
 
     with (ClientAsync(zeroconf=zeroconf,
-                      tdm_addr=tdm_addr, tdm_port=tdm_port)
+                      tdm_addr=tdm_addr, tdm_port=tdm_port, password=password)
           if zeroconf is not None or
              tdm_addr is not None or
              tdm_port is not None or
@@ -94,7 +96,7 @@ async def list(zeroconf=None, tdm_addr=None, tdm_port=None,
                 print(f"firmware: {node.props['fw_version']}")
             print()
 
-async def start(zeroconf=None, tdm_addr=None, tdm_port=None,
+async def start(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
                 debug=0, **kwargs):
     """Start the connection with the Thymio and variable synchronization.
 
@@ -102,6 +104,7 @@ async def start(zeroconf=None, tdm_addr=None, tdm_port=None,
         tdm_addr - TDM address as a string (default: localhost)
         tdm_port - TDM TCP port number
                    (default: standard or provided by zeroconf)
+        password - TDM password (default: None, not necessary for local TDM)
         robot_id - robot node id (default: any)
         robot_name - robot name (default: any)
         zeroconf - True to use find TDM with zeroconf (default: automatic)
@@ -109,6 +112,7 @@ async def start(zeroconf=None, tdm_addr=None, tdm_port=None,
 
     client = ClientAsync(zeroconf=zeroconf,
                          tdm_addr=tdm_addr, tdm_port=tdm_port,
+                         password=password,
                          debug=debug)
     node = await client.wait_for_node(**kwargs)
     await node.lock()
@@ -211,7 +215,7 @@ def process_events(on_event_data, *, all_nodes):
         print("Interrupted")
 
 async def watch(timeout=-1,
-                zeroconf=None, tdm_addr=None, tdm_port=None,
+                zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
                 robot_id=None, robot_name=None):
     """Display the robot variables with live updates until the timeout elapses
     or the execution is interrupted.
@@ -219,6 +223,7 @@ async def watch(timeout=-1,
     Arguments:
         timeout -- amount of time until updates stop
         zeroconf -- True to use find TDM with zeroconf (default: automatic)
+        password - TDM password (default: None, not necessary for local TDM)
         tdm_addr -- address of the tdm
         tdm_port -- port of the tdm
             (default: connection established by start(), or from zeroconf)
@@ -262,7 +267,8 @@ async def watch(timeout=-1,
         await watch_node(_interactive_console.client, _interactive_console.node)
     else:
         with ClientAsync(zeroconf=zeroconf,
-                         tdm_addr=tdm_addr, tdm_port=tdm_port) as client:
+                         tdm_addr=tdm_addr, tdm_port=tdm_port,
+                         password=password) as client:
             await client.wait_for_status_set({ClientAsync.NODE_STATUS_AVAILABLE,
                                               ClientAsync.NODE_STATUS_BUSY})
             node = client.first_node(node_id=robot_id, node_name=robot_name)
