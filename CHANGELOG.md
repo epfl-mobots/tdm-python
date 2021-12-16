@@ -16,6 +16,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In notebooks:
 	- Optional `debug` argument in `start()`
 	- Optional `password` argument in `start()` `get_nodes()`, `list()`, `watch()`
+	- Multiple targets in magic commands `%%run_python` and `%%run_aseba` with comma-separated list of robots
 - Option `--password` in tools `tdmclient.tools.guy`, `tdmclient.tools.list`, `tdmclient.tools.repl`, `tdmclient.tools.run`, `tdmclient.tools.watch`
 
 ### Changed

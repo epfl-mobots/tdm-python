@@ -333,11 +333,20 @@ def run_python(line, cell):
         elif arg == "--nothymio":
             import_thymio = False
         elif arg == "--robotid":
-            robot_id = val
+            robot_id = [
+                id
+                for id in val.split(",")
+            ]
         elif arg == "--robotindex":
-            robot_index = int(val)
+            robot_index = [
+                int(i)
+                for i in val.split(",")
+            ]
         elif arg == "--robotname":
-            robot_name = val
+            robot_name = [
+                name
+                for name in val.split(",")
+            ]
         elif arg == "--wait":
             wait = True
     if len(values) > 0:
@@ -347,10 +356,22 @@ def run_python(line, cell):
     if clear_event_data:
         _interactive_console.clear_event_data()
     try:
-        _interactive_console.run_program(cell, "python",
-                                         wait=wait, import_thymio=import_thymio,
-                                         robot_id=robot_id, robot_name=robot_name,
-                                         robot_index=robot_index)
+        if robot_id is None and robot_name is None and robot_index is None:
+            _interactive_console.run_program(cell, "python",
+                                             wait=wait, import_thymio=import_thymio)
+        else:
+            for id in robot_id or []:
+                _interactive_console.run_program(cell, "python",
+                                                 wait=wait, import_thymio=import_thymio,
+                                                 robot_id=id)
+            for name in robot_name or []:
+                _interactive_console.run_program(cell, "python",
+                                                 wait=wait, import_thymio=import_thymio,
+                                                 robot_name=name)
+            for ix in robot_index or []:
+                _interactive_console.run_program(cell, "python",
+                                                 wait=wait, import_thymio=import_thymio,
+                                                 robot_index=ix)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")
@@ -386,18 +407,33 @@ def run_aseba(line, cell):
         return
     for arg, val in arguments:
         if arg == "--robotid":
-            robot_id = val
+            robot_id = [
+                id
+                for id in val.split(",")
+            ]
         elif arg == "--robotindex":
-            robot_index = int(val)
+            robot_index = [
+                int(i)
+                for i in val.split(",")
+            ]
         elif arg == "--robotname":
-            robot_name = val
+            robot_name = [
+                name
+                for name in val.split(",")
+            ]
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    _interactive_console.run_program(cell, "aseba",
-                                     robot_id=robot_id, robot_name=robot_name,
-                                     robot_index=robot_index)
+    if robot_id is None and robot_name is None and robot_index is None:
+        _interactive_console.run_program(cell, "aseba")
+    else:
+        for id in robot_id or []:
+            _interactive_console.run_program(cell, "aseba", robot_id=id)
+        for name in robot_name or []:
+            _interactive_console.run_program(cell, "aseba", robot_name=name)
+        for ix in robot_index or []:
+            _interactive_console.run_program(cell, "aseba", robot_index=ix)
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
