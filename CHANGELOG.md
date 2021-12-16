@@ -6,7 +6,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
-- Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, `get_nodes()`, and `watch()`
+- Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, and `watch()`
 - Class `NodeLockError` with the current node status raised when a node cannot be locked
 - Optional key argument `password` in the constructor of `ClientAsync` to connect to remote TDM
 - In repl:
@@ -15,7 +15,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 	- Optional argument `all_nodes` in function `process_events`
 - In notebooks:
 	- Optional `debug` argument in `start()`
-	- Optional `password` argument in `start()` `get_nodes()`, `list()`, `watch()`
+	- Optional `password` argument in `start()`, `list()`, `watch()`
+	- Optional `timeout` argument in `list()` and `get_nodes()`
 	- Multiple targets in magic commands `%%run_python` and `%%run_aseba` with comma-separated list of robots
 - Option `--password` in tools `tdmclient.tools.guy`, `tdmclient.tools.list`, `tdmclient.tools.repl`, `tdmclient.tools.run`, `tdmclient.tools.watch`
 
@@ -29,6 +30,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - Watch flag changes sent by methods `ClientAsyncNode.watch` and `ClientAsyncNode.unwatch`
 - In repl, support for starred expressions
 - Support for fragmented packets
+- In notebooks, function `get_nodes()` must be called after `start()` and with its tdm connection to avoid returning orphan nodes
 
 ## [0.1.12] - 2021-12-07
 

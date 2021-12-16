@@ -13,9 +13,32 @@ def _pre_run_cell(info):
 def _post_run_cell(_):
     _interactive_console.post_run()
 
-async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
-                    robot_id=None, robot_name=None):
+async def get_nodes(robot_id=None, robot_name=None, timeout=5):
     """Get a list of all the robots.
+
+    Arguments:
+        robot_id - robot id to restrict the output (default: any)
+        robot_name - robot name to restrict the output (default: any)
+        timeout - time to obtain at least one node (default: 5s)
+    """
+
+    # try to get at least one node
+    client = _interactive_console.client
+    for _ in range(1 if timeout < 0.1 else int(timeout / 0.1)):
+        client.process_waiting_messages()
+        nodes = builtins.list(client.filter_nodes(client.nodes,
+                                                  node_id=robot_id,
+                                                  node_name=robot_name))
+        if len(nodes) > 0:
+            return nodes
+        await sleep(0.1)
+
+    return []
+
+async def list(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
+               robot_id=None, robot_name=None,
+               timeout=5):
+    """Display a list of all the robots.
 
     Arguments:
         tdm_addr - TDM address as a string (default: as in start())
@@ -23,6 +46,7 @@ async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
         password - TDM password (default: None, not necessary for local TDM)
         robot_id - robot id to restrict the output (default: any)
         robot_name - robot name to restrict the output (default: any)
+        timeout - time to obtain at least one node (default: 5s)
         zeroconf - True to find TDM with zeroconf (default: automatic)
     """
 
@@ -34,40 +58,7 @@ async def get_nodes(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
              _interactive_console is None
           else _interactive_console.client) as client:
 
-        for _ in range(50):
-            client.process_waiting_messages()
-            if len(client.nodes) > 0:
-                break
-            await client.sleep(0.1)
-
-        nodes = builtins.list(client.filter_nodes(client.nodes,
-                                                  node_id=robot_id,
-                                                  node_name=robot_name))
-
-    return nodes
-
-async def list(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
-               robot_id=None, robot_name=None):
-    """Display a list of all the robots.
-
-    Arguments:
-        tdm_addr - TDM address as a string (default: as in start())
-        tdm_port - TDM TCP port number (default: as in start())
-        password - TDM password (default: None, not necessary for local TDM)
-        robot_id - robot id to restrict the output (default: any)
-        robot_name - robot name to restrict the output (default: any)
-        zeroconf - True to use find TDM with zeroconf (default: automatic)
-    """
-
-    with (ClientAsync(zeroconf=zeroconf,
-                      tdm_addr=tdm_addr, tdm_port=tdm_port, password=password)
-          if zeroconf is not None or
-             tdm_addr is not None or
-             tdm_port is not None or
-             _interactive_console is None
-          else _interactive_console.client) as client:
-
-        for _ in range(50):
+        for _ in range(1 if timeout < 0.1 else int(timeout / 0.1)):
             client.process_waiting_messages()
             if len(client.nodes) > 0:
                 break
@@ -107,7 +98,7 @@ async def start(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
         password - TDM password (default: None, not necessary for local TDM)
         robot_id - robot node id (default: any)
         robot_name - robot name (default: any)
-        zeroconf - True to use find TDM with zeroconf (default: automatic)
+        zeroconf - True to find TDM with zeroconf (default: automatic)
     """
 
     client = ClientAsync(zeroconf=zeroconf,
