@@ -35,6 +35,7 @@ class TDMConsole(code.InteractiveConsole):
         self.client = None
         self.node = None
 
+        # self.event_data_dict[node_id][event_name] = list of event data
         self.event_data_dict = {}
 
         def onevent(fun):
@@ -175,15 +176,31 @@ class TDMConsole(code.InteractiveConsole):
                 self.send_variable(name_py, kwargs[name_py])
             self.flush_variables()
 
-        def clear_event_data(event_name=None):
+        def clear_event_data(event_name=None, **kwargs):
             """Clear all or named event data.
-            """
-            self.clear_event_data(event_name)
 
-        def get_event_data(event_name=None):
-            """Get list of event data received until now.
+            Argument:
+                event_name: event name (default: all events)
+            Keyword argument:
+                robot_id: robot id, to run the program on a specific robot
+                robot_name: robot name, to run the program on a specific robot
+                robot_index: robot index (0=first=default, 1=second etc.)
             """
-            return self.get_event_data(event_name)
+            with self.target_robot(lock=False, **kwargs) as node:
+                self.clear_event_data(event_name, node=node)
+
+        def get_event_data(event_name=None, **kwargs):
+            """Get list of event data received until now.
+
+            Argument:
+                event_name: event name (default: dict of all event lists)
+            Keyword argument:
+                robot_id: robot id, to run the program on a specific robot
+                robot_name: robot name, to run the program on a specific robot
+                robot_index: robot index (0=first=default, 1=second etc.)
+            """
+            with self.target_robot(lock=False, **kwargs) as node:
+                return self.get_event_data(event_name, node=node)
 
         def send_event(event_name, *args, **kwargs):
             """Send a custom event to the robot. Arguments can be numbers,
@@ -202,7 +219,7 @@ class TDMConsole(code.InteractiveConsole):
                 for item in (arg if isinstance(arg, list) else [arg])
             ]
 
-            with self.target_robot(**kwargs) as node:
+            with self.target_robot(lock=False, **kwargs) as node:
                 node.send_send_events({event_name: data})
 
         self.functions = {
@@ -297,17 +314,23 @@ class TDMConsole(code.InteractiveConsole):
         transpiler.transpile()
         return transpiler
 
-    def clear_event_data(self, event_name=None):
-        if event_name is None:
-            self.event_data_dict = {}
-        elif event_name in self.event_data_dict:
-            del self.event_data_dict[event_name]
+    def clear_event_data(self, event_name=None, node=None):
+        node_id = (self.node if node is None else node).id_str
+        if node_id in self.event_data_dict:
+            if event_name is None:
+                del self.event_data_dict[node_id]
+            elif event_name in self.event_data_dict[node_id]:
+                del self.event_data_dict[node_id][event_name]
 
-    def get_event_data(self, event_name=None):
-        if event_name is None:
-            return self.event_data_dict
+    def get_event_data(self, event_name=None, node=None):
+        node_id = (self.node if node is None else node).id_str
+        if node_id in self.event_data_dict:
+            if event_name is None:
+                return self.event_data_dict[node_id]
+            else:
+                return self.event_data_dict[node_id][event_name] if event_name in self.event_data_dict[node_id] else []
         else:
-            return self.event_data_dict[event_name] if event_name in self.event_data_dict else []
+            return {} if event_name is None else []
 
     def reset_sync_var(self):
         self.sync_var = self.sync_var_vm.copy()
@@ -338,9 +361,11 @@ class TDMConsole(code.InteractiveConsole):
                     print(print_str)
                 else:
                     if len(event_data) > 0:
-                        if event_name not in self.event_data_dict:
-                            self.event_data_dict[event_name] = []
-                        self.event_data_dict[event_name].append(event_data)
+                        if node.id_str not in self.event_data_dict:
+                            self.event_data_dict[node.id_str] = {}
+                        if event_name not in self.event_data_dict[node.id_str]:
+                            self.event_data_dict[node.id_str][event_name] = []
+                        self.event_data_dict[node.id_str][event_name].append(event_data)
                         if on_event_data is not None:
                             on_event_data(node, event_name)
 
@@ -367,9 +392,10 @@ class TDMConsole(code.InteractiveConsole):
                 ClientAsync.aw(self.node.watch(events=False))
             self.client.clear_event_received_listeners()
 
-    def target_robot(self, **kwargs):
-        """Target the robot referenced by the key arguments, lock it if it isn't
-        the default node, and return it; must be used with "with".
+    def target_robot(self, lock=True, **kwargs):
+        """Target the robot referenced by the key arguments, lock it if
+        requested (default) and it isn't the default node, and return it; must
+        be used with "with".
         """
 
         class Robot:
@@ -391,14 +417,14 @@ class TDMConsole(code.InteractiveConsole):
                     # could be another node we lock just for this call
                     self.node = client.first_node(node_id=robot_id,
                                                        node_name=robot_name)
-                if self.node != default_node:
+                if lock and self.node != default_node:
                     ClientAsync.aw(self.node.lock())
 
             def __enter__(self):
                 return self.node
 
             def __exit__(self, type, value, traceback):
-                if self.node != self.default_node:
+                if lock and self.node != self.default_node:
                     self.node.unlock()
 
         return Robot(self.client, self.node, **kwargs)
