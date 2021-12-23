@@ -186,7 +186,7 @@ def sync_var(func):
     functools.update_wrapper(w, func)
     return w
 
-def process_events(on_event_data, *, all_nodes):
+def process_events(on_event_data, *, all_nodes=False):
     """Listen to events sent by the program running on the robot and process
     them until _exit is received.
 
