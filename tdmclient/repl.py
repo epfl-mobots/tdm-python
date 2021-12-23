@@ -143,7 +143,8 @@ class TDMConsole(code.InteractiveConsole):
                 src = robot_code()
             # compile, load, run, and set scratchpad without checking the result
             try:
-                self.run_program(src, language=language, wait=wait, **kwargs)
+                node = self.find_robot(**kwargs) or self.node
+                self.run_program(src, [node], language=language, wait=wait)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace
                 print("Interrupted")
@@ -156,7 +157,8 @@ class TDMConsole(code.InteractiveConsole):
                 robot_name: robot name, to run the program on a specific robot
                 robot_index: robot index (0=first=default, 1=second etc.)
             """
-            self.stop_program(discard_output=True, **kwargs)
+            node = self.find_robot(**kwargs) or self.node
+            self.stop_program(node, discard_output=True)
 
         def get_var(*args):
             """Get robot variables passed as a set or list of names and
@@ -186,8 +188,8 @@ class TDMConsole(code.InteractiveConsole):
                 robot_name: robot name, to run the program on a specific robot
                 robot_index: robot index (0=first=default, 1=second etc.)
             """
-            with self.target_robot(lock=False, **kwargs) as node:
-                self.clear_event_data(event_name, node=node)
+            node = self.find_robot(**kwargs)
+            self.clear_event_data(event_name, node=node)
 
         def get_event_data(event_name=None, **kwargs):
             """Get list of event data received until now.
@@ -199,8 +201,8 @@ class TDMConsole(code.InteractiveConsole):
                 robot_name: robot name, to run the program on a specific robot
                 robot_index: robot index (0=first=default, 1=second etc.)
             """
-            with self.target_robot(lock=False, **kwargs) as node:
-                return self.get_event_data(event_name, node=node)
+            node = self.find_robot(**kwargs)
+            return self.get_event_data(event_name, node=node)
 
         def send_event(event_name, *args, **kwargs):
             """Send a custom event to the robot. Arguments can be numbers,
@@ -219,8 +221,8 @@ class TDMConsole(code.InteractiveConsole):
                 for item in (arg if isinstance(arg, list) else [arg])
             ]
 
-            with self.target_robot(lock=False, **kwargs) as node:
-                node.send_send_events({event_name: data})
+            node = self.find_robot(**kwargs) or self.node
+            node.send_send_events({event_name: data})
 
         self.functions = {
             "onevent": onevent,
@@ -381,7 +383,7 @@ class TDMConsole(code.InteractiveConsole):
             else:
                 ClientAsync.aw(self.node.watch(events=True))
             ClientAsync.aw(self.client.sleep(wake=wake))
-            self.stop_program(discard_output=True)
+            self.stop_program(self.node, discard_output=True)
             if exit_received:
                 print(f"Exit, status={exit_received}")
         finally:
@@ -392,56 +394,108 @@ class TDMConsole(code.InteractiveConsole):
                 ClientAsync.aw(self.node.watch(events=False))
             self.client.clear_event_received_listeners()
 
-    def target_robot(self, lock=True, **kwargs):
-        """Target the robot referenced by the key arguments, lock it if
-        requested (default) and it isn't the default node, and return it; must
-        be used with "with".
+    def find_robot(self,
+                  robot_id=None, robot_name=None,
+                  robot_index=None):
+        """Find the node specified by id, name or index.
+        """
+        if robot_index is not None:
+            return self.client.nodes[robot_index]
+        elif robot_id is not None or robot_name is not None:
+            return self.client.first_node(node_id=robot_id,
+                                          node_name=robot_name)
+
+    def lock_robots(self, nodes):
+        """Target the robot referenced by the key arguments, lock them if
+        they aren't the default node, and return them; must be used with "with".
         """
 
         class Robot:
-            """Utility class to be used with "with", to get the node referenced by
-            the key arguments, lock it if it isn't the default node, and return it.
+            """Utility class to be used with "with", to lock the nodes which
+            aren't the default one and return them.
             """
 
             def __init__(self,
-                         client,
+                         console,
                          default_node,
-                         robot_id=None, robot_name=None,
-                         robot_index=None):
+                         nodes):
                 self.default_node = default_node
-                self.node = default_node
-                if robot_index is not None:
-                    # could be another node we lock just for one action
-                    self.node = client.nodes[robot_index]
-                elif robot_id is not None or robot_name is not None:
-                    # could be another node we lock just for this call
-                    self.node = client.first_node(node_id=robot_id,
-                                                       node_name=robot_name)
-                if lock and self.node != default_node:
-                    ClientAsync.aw(self.node.lock())
+                self.nodes = nodes
+                for node in nodes:
+                    if node != default_node:
+                        ClientAsync.aw(node.lock())
 
             def __enter__(self):
-                return self.node
+                return self.nodes
 
             def __exit__(self, type, value, traceback):
-                if lock and self.node != self.default_node:
-                    self.node.unlock()
+                for node in nodes:
+                    if node != self.default_node:
+                        node.unlock()
 
-        return Robot(self.client, self.node, **kwargs)
+        return Robot(self, self.node, nodes)
 
 
     def run_program(self, src,
-                    language="aseba", wait=False, import_thymio=True,
-                    **kwargs):
-        with self.target_robot(**kwargs) as node:
-            print_statements = []
+                    nodes=None,
+                    language="aseba", wait=False, import_thymio=True):
+        if nodes is None:
+            nodes = [self.node]
+
+        running_nodes = set()
+
+        # exit_received[node] = exit code once received
+        exit_received = {}
+        # print_statements[node][print_id] = (print_format, print_num_args)
+        print_statements = {}
+
+        def on_event_received(node, event_name, event_data):
+            if self.output_enabled:
+                if event_name == "_exit":
+                    exit_received[node] = event_data[0]
+                    if event_data[0]:
+                        exit_str = f"Exit, status={event_data[0]}"
+                        if len(nodes) > 1:
+                            # multiple nodes: add prefix
+                            exit_str = f"[R{nodes.index(node)}] " + exit_str
+                        print(exit_str)
+                    self.stop_program(node, discard_output=True)
+                    running_nodes.remove(node)
+                elif event_name == "_print":
+                    print_id = event_data[0]
+                    print_format, print_num_args = print_statements[node][print_id]
+                    print_args = tuple(event_data[1 : 1 + print_num_args])
+                    print_str = print_format % print_args
+                    if len(nodes) > 1:
+                        # multiple nodes: add prefix
+                        print_str = f"[R{nodes.index(node)}] " + print_str
+                    print(print_str)
+                else:
+                    if len(event_data) > 0:
+                        if node.id_str not in self.event_data_dict:
+                            self.event_data_dict[node.id_str] = {}
+                        if event_name not in self.event_data_dict[node.id_str]:
+                            self.event_data_dict[node.id_str][event_name] = []
+                        self.event_data_dict[node.id_str][event_name].append(event_data)
+
+        def on_vm_state_changed(node, state, line, error, error_msg):
+            if error != ClientAsync.ERROR_NO_ERROR:
+                exit_received[node] = f"vm error {error}"
+            if error_msg:
+                print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
+
+        def run_node(node):
+            """Compile, configure node, load and start program on a node.
+            Return True if the node requires waiting.
+            """
+            print_statements[node] = []
             events = []
             if language == "python":
                 # transpile from Python to Aseba
                 transpiler = self.transpile(src, import_thymio)
-                src = transpiler.get_output()
-                print_statements = transpiler.print_format_strings
-                if len(print_statements) > 0:
+                src_aseba = transpiler.get_output()
+                print_statements[node] = transpiler.print_format_strings
+                if len(print_statements[node]) > 0:
                     events.append(("_print", 1 + transpiler.print_max_num_args))
                 if transpiler.has_exit_event:
                     events.append(("_exit", 1))
@@ -451,63 +505,55 @@ class TDMConsole(code.InteractiveConsole):
                     events.append((event_name, transpiler.events_out[event_name]))
                 if len(events) > 0:
                     events = ClientAsync.aw(node.filter_out_vm_events(events))
+                if len(events) > 0:
                     ClientAsync.aw(node.register_events(events))
-            elif language != "aseba":
+            elif language == "aseba":
+                src_aseba = src
+            else:
                 raise Exception(f"Unsupported language {language}")
-            # compile, load, run, and set scratchpad without checking the result
-            error = ClientAsync.aw(node.compile(src))
+            error = ClientAsync.aw(node.compile(src_aseba))
             if error is not None:
                 raise Exception(error["error_msg"])
-            self.client.clear_event_received_listeners()
-            exit_received = None  # or exit code once received
+            node.send_set_scratchpad(src_aseba)
+            wait_for_node = wait
             if wait is None:
-                # wait if there are events to receive
-                wait = len(events) > 0
-            if wait:
-                if len(events) > 0:
-                    def on_event_received(node, event_name, event_data):
-                        if self.output_enabled:
-                            if event_name == "_exit":
-                                nonlocal exit_received
-                                exit_received = event_data[0]
-                            elif event_name == "_print":
-                                print_id = event_data[0]
-                                print_format, print_num_args = print_statements[print_id]
-                                print_args = tuple(event_data[1 : 1 + print_num_args])
-                                print_str = print_format % print_args
-                                print(print_str)
-                            else:
-                                if len(event_data) > 0:
-                                    if event_name not in self.event_data_dict:
-                                        self.event_data_dict[event_name] = []
-                                    self.event_data_dict[event_name].append(event_data)
-                    self.client.add_event_received_listener(on_event_received)
-                def on_vm_state_changed(node, state, line, error, error_msg):
-                    if error != ClientAsync.ERROR_NO_ERROR:
-                        nonlocal exit_received
-                        exit_received = f"vm error {error}"
-                    if error_msg:
-                        print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
-                self.client.add_vm_state_changed_listener(on_vm_state_changed)
+                # default: wait if there are events to receive
+                wait_for_node = len(events) > 0
+            if wait_for_node:
                 ClientAsync.aw(node.watch(events=True, vm_state=True))
-            self.reset_sync_var()
             error = ClientAsync.aw(node.run())
             if error is not None:
                 raise Exception(f"Error {error['error_code']}")
-            node.send_set_scratchpad(src)
-            if wait:
-                try:
-                    def wake():
-                        return exit_received is not None
-                    ClientAsync.aw(self.client.sleep(wake=wake))
-                    self.stop_program(discard_output=True)
-                    if exit_received:
-                        print(f"Exit, status={exit_received}")
-                finally:
-                    self.client.clear_event_received_listeners()
+            return wait_for_node
 
-    def stop_program(self, discard_output=False, **kwargs):
-        with self.target_robot(**kwargs) as node:
+        self.reset_sync_var()
+        self.client.clear_event_received_listeners()
+        self.client.add_event_received_listener(on_event_received)
+        self.client.add_vm_state_changed_listener(on_vm_state_changed)
+        wait_for_nodes = False
+        with self.lock_robots(nodes) as nodes_l:
+            # transpile, compile, load, set scratchpad, and run
+            for node in nodes_l:
+                wait_for_node = run_node(node)
+                wait_for_nodes = wait_for_nodes or wait_for_node
+                running_nodes.add(node)
+
+        # wait until all nodes have exited
+        if wait_for_nodes:
+            try:
+                def wake():
+                    # True when all nodes have exited
+                    return len(exit_received) >= len(nodes)
+                ClientAsync.aw(self.client.sleep(wake=wake))
+            finally:
+                # stop nodes still running
+                for node in running_nodes:
+                    self.stop_program(node, discard_output=True)
+                self.client.clear_event_received_listeners()
+                self.client.clear_vm_state_changed_listener()
+
+    def stop_program(self, node, discard_output=False):
+        with self.lock_robots({node}) as nodes_l:
             output_enabled_orig = self.output_enabled
             self.output_enabled = not discard_output
             try:

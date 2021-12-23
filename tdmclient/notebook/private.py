@@ -301,9 +301,7 @@ def run_python(line, cell):
     wait = False
     clear_event_data = False
     import_thymio = True
-    robot_id = None
-    robot_name = None
-    robot_index = None
+    nodes = []
     try:
         arguments, values = getopt.getopt(args,
                                           "",
@@ -324,20 +322,20 @@ def run_python(line, cell):
         elif arg == "--nothymio":
             import_thymio = False
         elif arg == "--robotid":
-            robot_id = [
-                id
-                for id in val.split(",")
-            ]
+            for id in val.split(","):
+                node = _interactive_console.find_robot(robot_id=id)
+                if node not in nodes:
+                    nodes.append(node)
         elif arg == "--robotindex":
-            robot_index = [
-                int(i)
-                for i in val.split(",")
-            ]
+            for i in val.split(","):
+                node = _interactive_console.find_robot(robot_index=int(i))
+                if node not in nodes:
+                    nodes.append(node)
         elif arg == "--robotname":
-            robot_name = [
-                name
-                for name in val.split(",")
-            ]
+            for name in val.split(","):
+                node = _interactive_console.find_robot(robot_name=name)
+                if node not in nodes:
+                    nodes.append(node)
         elif arg == "--wait":
             wait = True
     if len(values) > 0:
@@ -346,23 +344,12 @@ def run_python(line, cell):
 
     if clear_event_data:
         _interactive_console.clear_event_data()
+
     try:
-        if robot_id is None and robot_name is None and robot_index is None:
-            _interactive_console.run_program(cell, "python",
-                                             wait=wait, import_thymio=import_thymio)
-        else:
-            for id in robot_id or []:
-                _interactive_console.run_program(cell, "python",
-                                                 wait=wait, import_thymio=import_thymio,
-                                                 robot_id=id)
-            for name in robot_name or []:
-                _interactive_console.run_program(cell, "python",
-                                                 wait=wait, import_thymio=import_thymio,
-                                                 robot_name=name)
-            for ix in robot_index or []:
-                _interactive_console.run_program(cell, "python",
-                                                 wait=wait, import_thymio=import_thymio,
-                                                 robot_index=ix)
+        _interactive_console.run_program(cell,
+                                         nodes=nodes if len(nodes) > 0 else None,
+                                         language="python",
+                                         wait=wait, import_thymio=import_thymio)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
         print("Interrupted")
@@ -382,9 +369,7 @@ def run_aseba(line, cell):
     """
 
     args = shlex.split(line)
-    robot_id = None
-    robot_name = None
-    robot_index = None
+    nodes = []
     try:
         arguments, values = getopt.getopt(args,
                                           "",
@@ -398,33 +383,27 @@ def run_aseba(line, cell):
         return
     for arg, val in arguments:
         if arg == "--robotid":
-            robot_id = [
-                id
-                for id in val.split(",")
-            ]
+            for id in val.split(","):
+                node = _interactive_console.find_robot(robot_id=id)
+                if node not in nodes:
+                    nodes.append(node)
         elif arg == "--robotindex":
-            robot_index = [
-                int(i)
-                for i in val.split(",")
-            ]
+            for i in val.split(","):
+                node = _interactive_console.find_robot(robot_index=int(i))
+                if node not in nodes:
+                    nodes.append(node)
         elif arg == "--robotname":
-            robot_name = [
-                name
-                for name in val.split(",")
-            ]
+            for name in val.split(","):
+                node = _interactive_console.find_robot(robot_name=name)
+                if node not in nodes:
+                    nodes.append(node)
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    if robot_id is None and robot_name is None and robot_index is None:
-        _interactive_console.run_program(cell, "aseba")
-    else:
-        for id in robot_id or []:
-            _interactive_console.run_program(cell, "aseba", robot_id=id)
-        for name in robot_name or []:
-            _interactive_console.run_program(cell, "aseba", robot_name=name)
-        for ix in robot_index or []:
-            _interactive_console.run_program(cell, "aseba", robot_index=ix)
+    _interactive_console.run_program(cell,
+                                     nodes = nodes if len(nodes) > 0 else None,
+                                     language="aseba")
 
 @register_cell_magic
 def transpile_to_aseba(line, cell):
