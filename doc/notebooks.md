@@ -217,6 +217,162 @@ Now the robot is available again.
 await tdmclient.notebook.start(node_name=name_first_node)
 ```
 
+### Addressing robots
+
+When several robots are connected to the computer, access to the default (first or specified in `start()`) robot's variables, running or stopping a program is done as if there was no other robot connected to the TDM. To refer to another robot, you have to specify it, with options in magic commands `%%run_python` or `%%run_aseba`, and with key arguments in functions `run()` or `stop()`. In all cases, you can do it with the node id, the node name, or the node index, a number which is 0 for the first robot (the default robot used by `tdmclient.notebook.start()`), 1 for the second robot and so on.
+
+| Robot specification | Magic command option | Function key argument |
+| --- | --- | --- |
+| id | `--robotid ...` | `robot_id="..."` |
+| name | `--robotname ...` | `robot_name="..."` |
+| index | `--robotindex ...` | `robot_index="..."` |
+
+If the robot name contains spaces, enclose it between double-quotes also for the magic command option:
+
+```
+%%run_python --robotname "my Thymio"
+...
+```
+
+Since we want this notebook to work with your own robots whose name or id we don't know, we'll use the robot index. We'll also include it for the default robot (`robot_index=0`) to make clear it's one among a group of two robots.
+
+To illustrate running programs on specific robots, here is how to change the color of the top led to blue on robot 0 and green on robot 1:
+```
+%%run_python --robotindex 0
+leds_top = [0, 0, 32]
+```
+```
+%%run_python --robotindex 1
+leds_top = [0, 20, 0]
+```
+
+If you want to run the same program on multiple robots, you can do it with a single `%%run_python` or `%%run_aseba` cell by specifying the id, name or index of all the target robots separated with commas, without additional spaces. If the robot names contain spaces, enclose the whole list of names between double-quotes, keeping exactly the spaces in the names but without additional spaces around the commas.
+```
+%%run_aseba --robotindex 0,1
+leds.bottom.right = [32, 0, 32]  # purple
+leds.bottom.left = [32, 16, 0]   # orange
+```
+
+When the option `--wait` is specified, the cell execution proceeds until each program has called `exit()` (in Python), or the execution is interrupted. The output of `print()` functions, and `exit(status)` functions with a non-zero status, is prefixed with the index of the robot among those the program run on. (In the following program, since `exit()` just sends an `_exit` event to the computer without terminating immediately itself its own execution on the robot, `print()` is executed one more time).
+```
+%%run_python --robotindex 0,1 --wait
+
+timer_period[0] = 250
+i = 0
+
+@onevent
+def timer0():
+    global i
+    i += 1
+    if i > 3:
+        exit(1)
+    print(i)
+```
+```
+[R0] 1
+[R0] 2
+[R0] 3
+[R1] 1
+[R0] Exit, status=1
+[R1] 3
+[R1] Exit, status=1
+[R1] 4
+```
+
+### Controlling multiple robots with events from Jupyter
+
+Function `get_event_data()` retrieves the events sent by a robot. It can take a key argument `robot_id`, `robot_name` or `robot_index` to specify which robot is concerned.
+
+To illustrate this, here is a program which emits an event `"b"` with data suitable for `leds_circle`. It accepts an event `"c"` to set `leds_circle`. We run it on both robots (`--robotindex 0,1`).
+```
+%%run_python --robotindex 0,1 --clear-event-data
+
+@onevent
+def button_center():
+    emit("b", 0, 0, 0, 0, 0, 0, 0, 0)
+@onevent
+def button_forward():
+    emit("b", 32, 32, 0, 0, 0, 0, 0, 32)
+@onevent
+def button_right():
+    emit("b", 0, 32, 32, 32, 0, 0, 0, 0)
+@onevent
+def button_backward():
+    emit("b", 0, 0, 0, 32, 32, 32, 0, 0)
+@onevent
+def button_left():
+    emit("b", 0, 0, 0, 0, 0, 32, 32, 32)
+
+@onevent
+def c(l0, l1, l2, l3, l4, l5, l6, l7):
+    global leds_circle
+    leds_circle = [l0, l1, l2, l3, l4, l5, l6, l7]
+```
+
+We make the robot communicate by forwarding the messages in Jupyter. When Jupyter receives events, the robot sender is identified by a node object. In order to deduce which is the receiver robot, we first get the list of all nodes.
+```
+nodes = await tdmclient.notebook.get_nodes()
+```
+
+If the sender is `node` then its index is `nodes.index(node)` and the index of the receiver (the other among the first two robots) is `1-nodes.index(node)`.
+
+Here is a program to forward the events. Touch the buttons on one robot to switch corresponding leds on the other one. The loop runs until you interrupt it with the Interrupt button (little black square).
+```
+def on_event_data(node, event_name):
+    src_index = nodes.index(node)
+    dest_index = 1 - src_index
+    event_data_list = get_event_data("b", robot_index=src_index)
+    for data in event_data_list:
+        send_event("c", *data, robot_index=dest_index)
+    clear_event_data("b", robot_index=src_index)
+
+tdmclient.notebook.process_events(all_nodes=True, on_event_data=on_event_data)
+```
+
+### Infrared communication between robots
+
+Simple messages made of a single number can be sent between robots via the same infrared leds and sensors as those used as active proximity sensors. The program below reproduces the same behavior as the robot and computer programs in the previous section, where touching a button switches on the corresponding yellow leds of the other robot. Once the robot programs are launched, the computer isn't involved anymore.
+```
+%%run_python --robotindex 0,1
+
+nf_prox_comm_enable(True)
+
+def send_msg(code):
+    global prox_comm_tx
+    prox_comm_tx = code
+
+@onevent
+def button_center():
+    send_msg(99)
+@onevent
+def button_forward():
+    send_msg(1)
+@onevent
+def button_right():
+    send_msg(2)
+@onevent
+def button_backward():
+    send_msg(3)
+@onevent
+def button_left():
+    send_msg(4)
+
+@onevent
+def prox_comm():
+    global prox_comm_rx, leds_circle
+    msg = prox_comm_rx
+    if msg == 99:
+        leds_circle = [0, 0, 0, 0, 0, 0, 0, 0]
+    elif msg == 1:
+        leds_circle = [32, 32, 0, 0, 0, 0, 0, 32]
+    elif msg == 2:
+        leds_circle = [0, 32, 32, 32, 0, 0, 0, 0]
+    elif msg == 3:
+        leds_circle = [0, 0, 0, 32, 32, 32, 0, 0]
+    elif msg == 4:
+        leds_circle = [0, 0, 0, 0, 0, 32, 32, 32]
+```
+
 ### Direct use of node objects
 
 Once connected, the node object used to communicate with the robot can be obtained with `get_node()`:
