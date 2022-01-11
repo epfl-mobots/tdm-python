@@ -11,7 +11,7 @@ Author: Yves Piguet, EPFL
 """
 
 
-from tdmclient import FlatBuffer, Union, Table
+from tdmclient import FlatBuffer, Union
 
 
 class Listener:

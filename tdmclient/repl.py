@@ -7,7 +7,6 @@
 
 import code
 import ast
-import sys
 import re
 
 from tdmclient import ClientAsync, ArrayCache

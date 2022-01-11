@@ -14,8 +14,6 @@ import socket
 import io
 import threading
 import queue
-import time
-from typing import Awaitable, Callable, List, Optional, Set, Tuple
 
 
 class InputThread(threading.Thread):

@@ -9,7 +9,6 @@
 Python-to-Aseba transpiler (actually a tiny, yet useful subset of Python)
 """
 
-import sys
 import ast
 
 
