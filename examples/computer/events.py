@@ -35,15 +35,18 @@ onevent timer0
                     ("e0", 0),
                     ("e2", 2),
                 ])
-                error = await node.compile(thymio_program)
                 if error is not None:
-                    print(f"Compilation error: {error['error_msg']}")
+                    print(f"Event registration error: {error}")
                 else:
-                    await node.watch(events=True)
-                    error = await node.run()
+                    error = await node.compile(thymio_program)
                     if error is not None:
-                        print(f"Error {error['error_code']}")
-                await client.sleep(10)
-            print("done")
+                        print(f"Compilation error: {error['error_msg']}")
+                    else:
+                        await node.watch(events=True)
+                        error = await node.run()
+                        if error is not None:
+                            print(f"Error {error['error_code']}")
+                    await client.sleep(10)
+                    print("done")
 
         client.run_async_program(prog)
