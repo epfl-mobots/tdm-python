@@ -228,13 +228,12 @@ When several robots are connected to the computer, access to the default (first 
 | index | `--robotindex ...` | `robot_index="..."` |
 
 If the robot name contains spaces, enclose it between double-quotes also for the magic command option:
-
 ```
 %%run_python --robotname "my Thymio"
 ...
 ```
 
-Since we want this notebook to work with your own robots whose name or id we don't know, we'll use the robot index. We'll also include it for the default robot (`robot_index=0`) to make clear it's one among a group of two robots.
+To have a notebook which works unmodified with any robots, not only those of its author, we'll use the robot index. We'll also include it for the default robot (`robot_index=0`) to make clear it's one among a group of two robots.
 
 To illustrate running programs on specific robots, here is how to change the color of the top led to blue on robot 0 and green on robot 1:
 ```

@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.13] - 2022-01-11
+
 ### Added
 
 - Optional boolean argument `zeroconf` in `Client` constructor and Jupyter functions `start()`, `list()`, and `watch()`
