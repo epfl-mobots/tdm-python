@@ -18,7 +18,8 @@ from tdmclient.atranspiler import ATranspiler
 class VariableTableWindow(tk.Tk):
 
     def __init__(self,
-                 tdm_addr=None, tdm_port=None,
+                 zeroconf=None,
+                 tdm_addr=None, tdm_port=None, password=None,
                  node_id=None, node_name=None,
                  language=None, debug=0):
         super(VariableTableWindow, self).__init__()
@@ -27,8 +28,10 @@ class VariableTableWindow(tk.Tk):
         self.program_path = None
         self.program_src = ""
         self.language = language or "aseba"
+        self.zeroconf = zeroconf
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
+        self.password = password
         self.node_id = node_id
         self.node_name = node_name
         self.debug = debug
@@ -476,7 +479,11 @@ class VariableTableWindow(tk.Tk):
                     if variables[name] is not None:
                         self.add_variable(name, variables[name])
 
-        self.client = ClientAsync(tdm_addr=self.tdm_addr, tdm_port=self.tdm_port, debug=self.debug)
+        self.client = ClientAsync(zeroconf=self.zeroconf,
+                                  tdm_addr=self.tdm_addr,
+                                  tdm_port=self.tdm_port,
+                                  password=self.password,
+                                  debug=self.debug)
         self.client.on_nodes_changed = on_nodes_changed
         self.client.add_variables_changed_listener(on_variables_changed)
         # schedule communication
@@ -500,11 +507,13 @@ Options:
   --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help         display this help message and exit
   --language=L   programming language (aseba or python); default=automatic
+  --nozeroconf   don't use zeroconf (default: automatic)
   --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
   --tdmport=P    tdm port (default: from zeroconf)
+  --zeroconf     use zeroconf (default: automatic)
 """)
 
 
@@ -512,6 +521,7 @@ if __name__ == "__main__":
 
     debug = 0
     language = None  # auto
+    zeroconf = None  # auto
     tdm_addr = None
     tdm_port = None
     password = None
@@ -525,11 +535,13 @@ if __name__ == "__main__":
                                               "debug=",
                                               "help",
                                               "language=",
+                                              "nozeroconf",
                                               "password=",
                                               "robotid=",
                                               "robotname=",
                                               "tdmaddr=",
                                               "tdmport=",
+                                              "zeroconf",
                                           ])
     except getopt.error as err:
         print(str(err))
@@ -542,6 +554,8 @@ if __name__ == "__main__":
             debug = int(val)
         elif arg == "--language":
             language = val
+        elif arg == "--nozeroconf":
+            zeroconf = False
         elif arg == "--password":
             password = val
         elif arg == "--robotid":
@@ -552,8 +566,11 @@ if __name__ == "__main__":
             tdm_addr = val
         elif arg == "--tdmport":
             tdm_port = int(val)
+        elif arg == "--zeroconf":
+            zeroconf = True
 
-    win = VariableTableWindow(tdm_addr=tdm_addr, tdm_port=tdm_port,
+    win = VariableTableWindow(zeroconf=zeroconf,
+                              tdm_addr=tdm_addr, tdm_port=tdm_port,
                               password=password,
                               node_id=robot_id, node_name=robot_name,
                               language=language, debug=debug)

@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Options of tool `tdmclient.tools.gui` 
+
 ## [0.1.13] - 2022-01-11
 
 ### Added
