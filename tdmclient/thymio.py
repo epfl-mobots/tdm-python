@@ -632,7 +632,7 @@ class ThymioFB(Listener):
         fb = FlatBuffer()
         fb.parse(msg, ThymioFB.SCHEMA)
         if self.debug >= 2:
-            fb.dump()
+            fb.dump("Receive")
         if type(fb.root) is Union:
             if fb.root.union_type == self.MESSAGE_TYPE_PING:
                 pass

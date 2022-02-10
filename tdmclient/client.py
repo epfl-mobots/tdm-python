@@ -91,7 +91,7 @@ class Client(ThymioFB):
             # check decoding
             fb2 = FlatBuffer()
             fb2.parse(b, self.SCHEMA)
-            fb2.dump()
+            fb2.dump("Send")
 
         if self.tdm is None:
             if ignore_disconnected_error:

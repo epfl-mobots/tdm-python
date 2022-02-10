@@ -462,7 +462,7 @@ class FlatBuffer:
         else:
             raise TypeError("unsupported type in FlatBuffer")
 
-    def dump(self):
+    def dump(self, msg=None):
 
         def dump_value(value):
             if type(value) == int:
@@ -495,6 +495,8 @@ class FlatBuffer:
             else:
                 print("unknown", value)
 
+        if msg is not None:
+            print(f"{msg}:")
         dump_value(self.root)
 
 
