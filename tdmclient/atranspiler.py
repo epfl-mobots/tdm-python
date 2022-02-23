@@ -112,12 +112,10 @@ class Context:
 
         module_value = context.get_module_value(name, not is_target)
         if module_value:
-            print(f"*** module_value {module_value}")
             return module_value
         if self.function_name is None or is_global:
             return name.replace("_", ".") if name in ATranspiler.PREDEFINED_VARIABLES else name
         else:
-            print(f"*** _{self.function_name}_{name}")
             return f"_{self.function_name}_{name}"
 
     def tmp_var_str(self, index):
@@ -1144,12 +1142,22 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
 """
             body = self.compile_node_array(node.body, context)
             code += body
+            end_count = 1  # number of final "end", which depends on nested else if
             while len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
                 # "if" node as single element of orelse: elif
                 node = node.orelse[0]
                 test_value, aux_statements, is_boolean = self.compile_expr(node.test, context, self.PRI_LOW)
-                code += aux_statements
-                code += f"""elseif {test_value}{"" if is_boolean else " != 0"} then
+                if aux_statements:
+                    # computation of condition in separate statements between else and if
+                    code += f"""else
+"""
+                    code += aux_statements
+                    code += f"""if {test_value}{"" if is_boolean else " != 0"} then
+"""
+                    end_count += 1
+                else:
+                    # no separate statement to compute condition between else and if: elseif is fine
+                    code += f"""elseif {test_value}{"" if is_boolean else " != 0"} then
 """
                 body = self.compile_node_array(node.body, context)
                 code += body
@@ -1159,7 +1167,7 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
 """
                 body = self.compile_node_array(node.orelse, context)
                 code += body
-            code += """end
+            code += end_count * """end
 """
             return code
         if isinstance(node, ast.Import):
