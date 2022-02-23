@@ -10,7 +10,7 @@ To select the Python 3 mode, click the Mode button (the leftmost button) and sel
 %pip install --upgrade --quiet tdmclient
 ```
 
-You can just type the Return key to execute the command; no need to hold down the Shift key. Then restart the Python kernel by typing twice the REPL button, once to close the panel and once to reopen it.
+You can just hit the Return key to execute the command; no need to hold down the Shift key. Then restart the Python kernel by clicking twice the REPL button, once to close the panel and once to reopen it.
 
 Once tdmclient is installed, you can import the notebook methods and connect to a robot:
 ```
