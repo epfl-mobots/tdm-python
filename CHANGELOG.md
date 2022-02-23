@@ -4,9 +4,13 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Transpiler exception for unsupported operators such as `/`, `**` and `@`
+
 ### Fixed
 
-- Options of tool `tdmclient.tools.gui` 
+- Options of tool `tdmclient.tools.gui`
 
 ## [0.1.13] - 2022-01-11
 

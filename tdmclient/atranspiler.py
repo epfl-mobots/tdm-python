@@ -563,18 +563,32 @@ class ATranspiler:
         elif isinstance(node, ast.Num):
             code = f"{node.n:d}"
         elif isinstance(node, ast.BinOp):
-            op_str, priority = {
-                ast.Add: ("+", self.PRI_ADD),
-                ast.BitAnd: ("&", self.PRI_BINARY_AND),
-                ast.BitOr: ("|", self.PRI_BINARY_OR),
-                ast.BitXor: ("^", self.PRI_BINARY_XOR),
-                ast.FloorDiv: ("/", self.PRI_MULT),
-                ast.LShift: ("<<", self.PRI_SHIFT),
-                ast.Mod: ("%", self.PRI_MOD),
-                ast.Mult: ("*", self.PRI_MULT),
-                ast.RShift: (">>", self.PRI_SHIFT),
-                ast.Sub: ("-", self.PRI_ADD),
-            }[type(node.op)]
+            try:
+                op_str, priority = {
+                    ast.Add: ("+", self.PRI_ADD),
+                    ast.BitAnd: ("&", self.PRI_BINARY_AND),
+                    ast.BitOr: ("|", self.PRI_BINARY_OR),
+                    ast.BitXor: ("^", self.PRI_BINARY_XOR),
+                    ast.FloorDiv: ("/", self.PRI_MULT),
+                    ast.LShift: ("<<", self.PRI_SHIFT),
+                    ast.Mod: ("%", self.PRI_MOD),
+                    ast.Mult: ("*", self.PRI_MULT),
+                    ast.RShift: (">>", self.PRI_SHIFT),
+                    ast.Sub: ("-", self.PRI_ADD),
+                }[type(node.op)]
+            except KeyError:
+                try:
+                    if isinstance(node.op, ast.Div):
+                        # special case for common error
+                        raise TranspilerError("unsupported operator / (use // for integer division)", ast_node=node)
+                    op_str = {
+                        ast.MatMult: "@",
+                        ast.Div: "/",
+                        ast.Pow: "**"
+                    }[type(node.op)]
+                    raise TranspilerError(f"unsupported binary operator {op_str}", ast_node=node)
+                except KeyError:
+                    raise TranspilerError("unknown binary operator", ast_node=node)
             left, aux_st, _ = self.compile_expr(node.left, context, priority)
             aux_statements += aux_st
             right, aux_st, _ = self.compile_expr(node.right, context, priority)
