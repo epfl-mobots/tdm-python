@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -59,6 +59,9 @@ class Context:
         # set of variables declared as global
         self.global_var = set()
 
+        # whether compiling to collect local variables, or final phase where all variables are known
+        self.collect_local_variables = False
+
         # function definitions indexed by function name (nodes ast.FunctionDef)
         self.functions = {}
 
@@ -87,18 +90,34 @@ class Context:
         """
         return name not in self.var
 
-    def var_str(self, name, is_target=False):
+    def var_str(self, name, is_target=False, ast_node=None):
         """Convert a variable name to its string representation in output
         source code.
         """
         is_global = self.is_global(name)
         context = self.parent_context if is_global and self.parent_context is not None else self
+
+        # check that constant is not assigned to
+        if not self.collect_local_variables and is_target:
+            if "." in name:
+                module_name, symbol = name.split(".", 1)
+                module_and_name = context.get_module(module_name), symbol
+            else:
+                module_and_name = context.get_module_for_symbol(name)
+            if module_and_name is not None:
+                module, local_name = module_and_name
+                if local_name in module.constants:
+                    raise TranspilerError(f"assignment to constant {name}",
+                                          ast_node=ast_node)
+
         module_value = context.get_module_value(name, not is_target)
         if module_value:
+            print(f"*** module_value {module_value}")
             return module_value
         if self.function_name is None or is_global:
             return name.replace("_", ".") if name in ATranspiler.PREDEFINED_VARIABLES else name
         else:
+            print(f"*** _{self.function_name}_{name}")
             return f"_{self.function_name}_{name}"
 
     def tmp_var_str(self, index):
@@ -195,8 +214,8 @@ class Context:
             if module_and_name is not None:
                 module, name = module_and_name
                 return (module.constants[name][1] if name in module.constants
-                    else module.variables[name][1] if name in module.variables
-                    else False)
+                        else module.variables[name][1] if name in module.variables
+                        else False)
             var = (ATranspiler.PREDEFINED_VARIABLES if name in ATranspiler.PREDEFINED_VARIABLES
                    else self.parent_context.var if (name in self.global_var or not is_target and name not in self.var) and self.parent_context is not None
                    else self.var)
@@ -636,7 +655,7 @@ end
                     arg = node.args[i]
                     code, aux_st, is_boolean = self.compile_expr(arg, context, self.PRI_COMMA)
                     aux_statements += aux_st
-                    aux_statements += f"""{function_def.var_str(arg_def.arg)} = {code}
+                    aux_statements += f"""{function_def.var_str(arg_def.arg, ast_node=arg)} = {code}
 """
                 # call
                 aux_statements += f"""callsub {fun_name}
@@ -773,7 +792,7 @@ end
                 raise TranspilerError(f"unknown variable '{node.id}'", node)
             if isinstance(var_array_size, int):
                 raise TranspilerError(f"list variable '{node.id}' used in expression", node)
-            code = context.var_str(node.id)
+            code = context.var_str(node.id, ast_node=node)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
             var_array_size = context.var_array_size(name)
@@ -793,7 +812,7 @@ end
 """
                 index_value = context.tmp_var_str(tmp_offset)
             aux_statements += aux_st
-            code = f"{context.var_str(name)}[{index_value}]"
+            code = f"{context.var_str(name, ast_node=node)}[{index_value}]"
         elif isinstance(node, ast.UnaryOp):
             op = node.op
             if isinstance(op, ast.UAdd):
@@ -859,7 +878,7 @@ end
             if len(node.targets) != 1:
                 raise TranspilerError("unsupported assignment to multiple targets", node)
             target, index = self.decode_target(node.targets[0])
-            target_str = context.var_str(target, True)
+            target_str = context.var_str(target, True, ast_node=node.targets[0])
             if index is None:
                 # declare target
                 list_len = context.list_length(node.value)
@@ -880,7 +899,7 @@ end
                         return f"""{target_str} = {module_value}
 """
                     else:
-                        return f"""{target_str} = {context.var_str(name_right)}
+                        return f"""{target_str} = {context.var_str(name_right, ast_node=node)}
 """
                 else:
                     context.declare_var(target, ast_node=node)
@@ -932,7 +951,7 @@ end
                 ast.Sub: "-",
             }[type(node.op)]
             target, index = self.decode_target(node.target)
-            target_str = context.var_str(target)
+            target_str = context.var_str(target, ast_node=node)
             value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             code += aux_statements
             if index is not None:
@@ -1054,7 +1073,7 @@ end
                 raise TranspilerError("for loop with unsupported iterator (not range)", node)
             range_args = node.iter.args
             target = self.decode_attr(node.target)
-            target_str = context.var_str(target)
+            target_str = context.var_str(target, ast_node=node.target)
             context.declare_var(target, ast_node=node)
             if len(range_args) == 1:
                 # for var in range(a): ...
@@ -1249,7 +1268,9 @@ return
         # function return type isn't known yet (context.has_ret_value = None doesn't raise exceptions)
         for fun_name in context_top.functions:
             fun_print_format_string_next_id = self.print_format_string_next_id
+            context_top.functions[fun_name].collect_local_variables = True
             _ = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
+            context_top.functions[fun_name].collect_local_variables = False
             # set functions without return statements to void
             context_top.functions[fun_name].freeze_return_type()
             self.reset_transpile_phase(fun_print_format_string_next_id)

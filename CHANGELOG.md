@@ -10,6 +10,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Fixed
 
+- In transpiler, check that constants such as `RED` are not assigned to (clean error from transpiler instead of incorrect transpiled code)
+
+### Fixed
+
 - Options of tool `tdmclient.tools.gui`
 
 ## [0.1.13] - 2022-01-11
