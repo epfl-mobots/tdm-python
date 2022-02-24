@@ -8,11 +8,13 @@
 import code
 import ast
 import re
+import sys
 
 from tdmclient import ClientAsync, ArrayCache
 from tdmclient.atranspiler import ATranspiler
 from tdmclient.module_thymio import ModuleThymio
 from tdmclient.module_clock import ModuleClock
+from tdmclient.atranspiler_warnings import missing_global_decl
 
 
 class TDMConsole(code.InteractiveConsole):
@@ -118,6 +120,7 @@ class TDMConsole(code.InteractiveConsole):
 
         def run(src=None, *,
                 language="python",
+                warning_missing_global=False,
                 wait=None,
                 **kwargs):
             """Run program obtained by robot_code on the robot. By default, wait
@@ -131,6 +134,9 @@ class TDMConsole(code.InteractiveConsole):
             Other keyword arguments:
                 language: "python" (default) or "aseba" (valid only if the
                 source code is passed in a string)
+                warning_missing_global: if True, display warnings for local
+                                        variables which hide global variables
+                                        with the same name (default: False)
                 robot_id: robot id, to run the program on a specific robot
                 robot_name: robot name, to run the program on a specific robot
                 robot_index: robot index (0=first=default, 1=second etc.)
@@ -143,7 +149,10 @@ class TDMConsole(code.InteractiveConsole):
             # compile, load, run, and set scratchpad without checking the result
             try:
                 node = self.find_robot(**kwargs) or self.node
-                self.run_program(src, [node], language=language, wait=wait)
+                self.run_program(src, [node],
+                                 language=language,
+                                 warning_missing_global=warning_missing_global,
+                                 wait=wait)
             except KeyboardInterrupt:
                 # avoid long exception message with stack trace
                 print("Interrupted")
@@ -295,12 +304,15 @@ class TDMConsole(code.InteractiveConsole):
         self.node.add_variables_changed_listener(update_sync_var)
 
     @staticmethod
-    def transpile(src, import_thymio=True):
+    def transpile(src, import_thymio=True, warning_missing_global=False):
         """Transpile Python source code to Aseba and returns transpiler.
 
         Argument:
             src -- Python source code
             import_thymio -- if True (default), predefine all Thymio symbols
+            warning_missing_global -- if True, display warnings for local
+                                      variables which hide global variables
+                                      with the same name (default: False)
         """
         transpiler = ATranspiler()
         modules = {
@@ -313,6 +325,12 @@ class TDMConsole(code.InteractiveConsole):
 """)
         transpiler.set_source(src)
         transpiler.transpile()
+        if warning_missing_global:
+            w = missing_global_decl(transpiler)
+            for function_name in w:
+                for var_name in w[function_name]:
+                    print(f"Warning: in function '{function_name}', '{var_name}' hides global variable.",
+                          file=sys.stderr)
         return transpiler
 
     def clear_event_data(self, event_name=None, node=None):
@@ -437,7 +455,10 @@ class TDMConsole(code.InteractiveConsole):
 
     def run_program(self, src,
                     nodes=None,
-                    language="aseba", wait=False, import_thymio=True):
+                    language="aseba",
+                    warning_missing_global=False,
+                    wait=False,
+                    import_thymio=True):
         if nodes is None:
             nodes = [self.node]
 
@@ -491,7 +512,9 @@ class TDMConsole(code.InteractiveConsole):
             events = []
             if language == "python":
                 # transpile from Python to Aseba
-                transpiler = self.transpile(src, import_thymio)
+                transpiler = self.transpile(src,
+                                            import_thymio=import_thymio,
+                                            warning_missing_global=warning_missing_global)
                 src_aseba = transpiler.get_output()
                 print_statements[node] = transpiler.print_format_strings
                 if len(print_statements[node]) > 0:

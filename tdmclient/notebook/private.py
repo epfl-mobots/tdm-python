@@ -292,6 +292,8 @@ def run_python(line, cell):
                         (0=first=default, 1=second etc.)
 
         --wait: continue running to receive events from the robot and display
+        --warning-missing-global: display warnings for local variables which
+                                  hide global variables with the same name
         print output until exit() is called in the program or the execution
         is interrupted. Other events are stored and can be obtained with
         function get_event_data().
@@ -301,7 +303,9 @@ def run_python(line, cell):
     wait = False
     clear_event_data = False
     import_thymio = True
+    warning_missing_global = False
     nodes = []
+
     try:
         arguments, values = getopt.getopt(args,
                                           "",
@@ -312,6 +316,7 @@ def run_python(line, cell):
                                               "robotindex=",
                                               "robotname=",
                                               "wait",
+                                              "warning-missing-global",
                                           ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
@@ -338,6 +343,8 @@ def run_python(line, cell):
                     nodes.append(node)
         elif arg == "--wait":
             wait = True
+        elif arg == "--warning-missing-global":
+            warning_missing_global = True
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
@@ -349,6 +356,7 @@ def run_python(line, cell):
         _interactive_console.run_program(cell,
                                          nodes=nodes if len(nodes) > 0 else None,
                                          language="python",
+                                         warning_missing_global=warning_missing_global,
                                          wait=wait, import_thymio=import_thymio)
     except KeyboardInterrupt:
         # avoid long exception message with stack trace
@@ -413,15 +421,20 @@ def transpile_to_aseba(line, cell):
 
         --nothymio: don't import Thymio symbols (module "thymio" should be
         imported explicitly if needed).
+        --warning-missing-global: display warnings for local variables which
+                                  hide global variables with the same name
     """
 
     args = shlex.split(line)
     import_thymio = True
+    warning_missing_global = False
+
     try:
         arguments, values = getopt.getopt(args,
                                           "",
                                           [
                                               "nothymio",
+                                              "warning-missing-global",
                                           ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
@@ -429,10 +442,15 @@ def transpile_to_aseba(line, cell):
     for arg, val in arguments:
         if arg == "--nothymio":
             import_thymio = False
+        elif arg == "--warning-missing-global":
+            warning_missing_global = True
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    transpiler = _interactive_console.transpile(cell, import_thymio=import_thymio)
+    transpiler = _interactive_console.transpile(cell,
+                                                import_thymio=import_thymio,
+                                                warning_missing_global=warning_missing_global)
+
     src_a = transpiler.get_output()
     print(src_a)
