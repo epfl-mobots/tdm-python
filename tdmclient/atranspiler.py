@@ -439,6 +439,7 @@ class ATranspiler:
         self.src = None
         self.ast_preamble = None
         self.ast = None
+        self.context_top = None
         self.output_src = None
 
         # fun_name: AFunction (empty, moved to thymio module)
@@ -475,6 +476,7 @@ class ATranspiler:
         """
         self.src = source
         self.ast = None
+        self.context_top = None
         self.output_src = None
         self.print_format_strings = {}
         self.print_format_string_next_id = 0
@@ -1253,7 +1255,7 @@ return
         """
 
         # top-level context
-        context_top = Context()
+        self.context_top = Context()
 
         # parse and split into top code and function definitions
         try:
@@ -1261,11 +1263,11 @@ return
             self.ast = ast.parse(self.src)
         except SyntaxError as error:
             raise TranspilerError(error.args[0], syntax_error=error) from None
-        top_code = self.split(context_top)
+        top_code = self.split(self.context_top)
 
         # compile top-level code (first pass for global variable sizes)
         self.reset_transpile_phase()
-        self.output_src = self.compile_node_array(top_code, context_top)
+        self.output_src = self.compile_node_array(top_code, self.context_top)
 
         # reset for next phase
         self.reset_transpile_phase()
@@ -1274,17 +1276,17 @@ return
         function_src = ""
         # first pass to gather local variables into context_fun[.] (not declared global, but assigned to)
         # function return type isn't known yet (context.has_ret_value = None doesn't raise exceptions)
-        for fun_name in context_top.functions:
+        for fun_name in self.context_top.functions:
             fun_print_format_string_next_id = self.print_format_string_next_id
-            context_top.functions[fun_name].collect_local_variables = True
-            _ = self.compile_node_array(context_top.functions[fun_name].function_def.body, context_top.functions[fun_name])
-            context_top.functions[fun_name].collect_local_variables = False
+            self.context_top.functions[fun_name].collect_local_variables = True
+            _ = self.compile_node_array(self.context_top.functions[fun_name].function_def.body, self.context_top.functions[fun_name])
+            self.context_top.functions[fun_name].collect_local_variables = False
             # set functions without return statements to void
-            context_top.functions[fun_name].freeze_return_type()
+            self.context_top.functions[fun_name].freeze_return_type()
             self.reset_transpile_phase(fun_print_format_string_next_id)
         # second pass to produce transpiled code with correct local variable names
-        for fun_name in context_top.functions:
-            function = context_top.functions[fun_name]
+        for fun_name in self.context_top.functions:
+            function = self.context_top.functions[fun_name]
             fun_output_src = self.compile_node_array(function.function_def.body, function)
             if function.is_onevent:
                 self.events_in[fun_name] = len(function.function_def.args.args)
@@ -1303,25 +1305,25 @@ sub {fun_name}
             function_src += fun_output_src
         # onevent_preamble for functions not defined in Python source code
         for fun_name in self.onevent_preamble:
-            if fun_name not in context_top.functions:
+            if fun_name not in self.context_top.functions:
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
 """
                 function_src += "".join(self.onevent_preamble[fun_name])
 
         # compile top-level code again, now that function return types are known
-        self.output_src = self.compile_node_array(top_code, context_top) + function_src
+        self.output_src = self.compile_node_array(top_code, self.context_top) + function_src
 
         # check recursivity
-        for fun_name in context_top.functions:
-            if context_top.functions[fun_name].is_recursive(context_top.functions):
-                raise TranspilerError(f"recursive function '{fun_name}'", context_top.functions[fun_name].function_def)
+        for fun_name in self.context_top.functions:
+            if self.context_top.functions[fun_name].is_recursive(self.context_top.functions):
+                raise TranspilerError(f"recursive function '{fun_name}'", self.context_top.functions[fun_name].function_def)
 
         # variable declarations
-        var_decl = context_top.var_declarations()
+        var_decl = self.context_top.var_declarations()
         var_decl += "".join([
-            context_top.functions[fun_name].var_declarations()
-            for fun_name in context_top.functions
+            self.context_top.functions[fun_name].var_declarations()
+            for fun_name in self.context_top.functions
         ])
         for var_name in self.additional_var_declarations:
             var_decl += f"""var {var_name} = {self.additional_var_declarations[var_name]}
