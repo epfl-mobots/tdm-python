@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In `tdmclient.tools.transpile`, option `--warning-missing-global` to display warnings for local variables which hide global variables (a declaration as global could be missing)
+
 ## [0.1.14] - 2022-01-23
 
 ### Added

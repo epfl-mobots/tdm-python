@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -11,15 +11,18 @@ import getopt
 from tdmclient.atranspiler import ATranspiler
 import tdmclient.module_thymio
 import tdmclient.module_clock
+from tdmclient.atranspiler_warnings import missing_global_decl
 
 def help():
     print("""Usage: python3 -m tdmclient.tools.transpile [options] [filename]
 Run program on robot, from file or stdin
 
 Options:
-  --help         display this help message and exit
-  --nothymio     don't import the symbols of thymio library
-  --print        display the client-side print statements
+  --help                    display this help message and exit
+  --nothymio                don't import the symbols of thymio library
+  --print                   display the client-side print statements
+  --warning-missing-global  display warnings for local variables which hide
+                            global variables with the same name
 """)
 
 
@@ -29,6 +32,7 @@ if __name__ == "__main__":
     show_exit = False
     show_events = False
     import_thymio = True
+    warning_missing_global = False
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -39,6 +43,7 @@ if __name__ == "__main__":
                                               "help",
                                               "nothymio",
                                               "print",
+                                              "warning-missing-global",
                                           ])
     except getopt.error as err:
         print(str(err))
@@ -55,6 +60,8 @@ if __name__ == "__main__":
             import_thymio = False
         elif arg == "--print":
             show_print = True
+        elif arg == "--warning-missing-global":
+            warning_missing_global = True
 
     src = None
     if len(values) > 0:
@@ -74,6 +81,13 @@ if __name__ == "__main__":
 """)
     transpiler.set_source(src)
     transpiler.transpile()
+
+    if warning_missing_global:
+        w = missing_global_decl(transpiler)
+        for function_name in w:
+            for var_name in w[function_name]:
+                print(f"Warning: in function '{function_name}', '{var_name}' hides global variable.",
+                      file=sys.stderr)
     if show_events:
         if len(transpiler.events_in) + len(transpiler.events_out) > 0:
             print({**transpiler.events_in, **transpiler.events_out})
