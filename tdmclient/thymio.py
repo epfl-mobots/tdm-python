@@ -511,6 +511,16 @@ class ThymioFB(Listener):
         )
     """
 
+    ERROR_MSG_DICT = {
+        0: "no error",
+        1: "unknown error",
+        2: "unknown node",
+        3: "node busy",
+        4: "unsupported variable type",
+        5: "Thmyio II pairing write dongle failed",
+        6: "Thymio II pairing write robot failed",
+    }
+
     @staticmethod
     def create_message(msg, schema=None):
         fb = FlatBuffer()
