@@ -101,7 +101,7 @@ class Context:
         if not self.collect_local_variables and is_target:
             if "." in name:
                 module_name, symbol = name.split(".", 1)
-                module_and_name = context.get_module(module_name), symbol
+                module_and_name = context.get_module(module_name, ast_node=ast_node), symbol
             else:
                 module_and_name = context.get_module_for_symbol(name)
             if module_and_name is not None:
@@ -110,7 +110,7 @@ class Context:
                     raise TranspilerError(f"assignment to constant {name}",
                                           ast_node=ast_node)
 
-        module_value = context.get_module_value(name, not is_target)
+        module_value = context.get_module_value(name, not is_target, ast_node=ast_node)
         if module_value:
             return module_value
         if self.function_name is None or is_global:
@@ -153,12 +153,12 @@ class Context:
             else:
                 context.var[name] = size
 
-    def get_module_value(self, name, ancestors=False):
+    def get_module_value(self, name, ancestors=False, ast_node=None):
         """Get the value of a variable or constant defined in an imported module.
         """
         if "." in name:
             module_name, name = name.split(".", 1)
-            module = self.get_module(module_name)
+            module = self.get_module(module_name, ast_node=ast_node)
         else:
             module_and_name = self.get_module_for_symbol(name, ancestors)
             if module_and_name is None:
@@ -166,12 +166,12 @@ class Context:
             module, name = module_and_name
         return module.constants[name][0] if name in module.constants else module.variables[name][0] if name in module.variables else None
 
-    def get_module_function(self, name):
+    def get_module_function(self, name, ast_node=None):
         """Get a function defined in an imported module.
         """
         if "." in name:
             module_name, name = name.split(".", 1)
-            module = self.get_module(module_name)
+            module = self.get_module(module_name, ast_node=ast_node)
         else:
             module_and_name = self.get_module_for_symbol(name, True)
             if module_and_name is None:
@@ -179,15 +179,16 @@ class Context:
             module, name = module_and_name
         return module.functions[name] if name in module.functions else None
 
-    def get_module(self, module_name):
+    def get_module(self, module_name, ast_node=None):
         """Return module in current context or ancestor.
         """
         if module_name in self.modules:
             return self.modules[module_name]
         elif self.parent_context is not None:
-            return self.parent_context.get_module(module_name)
+            return self.parent_context.get_module(module_name, ast_node)
         else:
-            raise NameError(f"name '{module_name}' is not defined")
+            raise TranspilerError(f"name '{module_name}' is not defined",
+                                  ast_node=ast_node)
 
     def get_module_for_symbol(self, symbol, ancestors=False):
         """Return module and name where symbol is defined in current context, and
@@ -197,13 +198,13 @@ class Context:
                 else self.parent_context.get_module_for_symbol(symbol, True) if ancestors and self.parent_context is not None
                 else None)
 
-    def var_array_size(self, name, is_target=False):
+    def var_array_size(self, name, is_target=False, ast_node=None):
         """Return size if name is a local or global array variable,
         None if it is a local or global scalar, or False if unknown.
         """
         if "." in name:
             module_name, name = name.split(".", 1)
-            module = self.get_module(module_name)
+            module = self.get_module(module_name, ast_node=ast_node)
             return (module.constants[name][1] if name in module.constants
                     else module.variables[name][1] if name in module.variables
                     else False)
@@ -314,7 +315,7 @@ class Context:
             if len(node.args) != 1:
                 return None
             if isinstance(node.args[0], ast.Name):
-                return self.var_array_size(node.args[0].id)
+                return self.var_array_size(node.args[0].id, ast_node=node)
             else:
                 return self.list_length(node.args[0])
 
@@ -671,7 +672,7 @@ end
                     if priority_container != self.PRI_EXPR:
                         raise TranspilerError("function without return value called in an expression", ast_node=node)
                 return code, aux_statements, False
-            a_function = context.get_module_function(fun_name)
+            a_function = context.get_module_function(fun_name, ast_node=node)
             if a_function is None and fun_name in self.predefined_function_dict:
                 a_function = self.predefined_function_dict[fun_name]
             if a_function is not None:
@@ -697,7 +698,7 @@ end
                 if len(node.args) != 1:
                     raise TranspilerError("wrong number of arguments for len", ast_node=node)
                 if isinstance(node.args[0], ast.Name):
-                    len_arg_size = context.var_array_size(node.args[0].id)
+                    len_arg_size = context.var_array_size(node.args[0].id, ast_node=node)
                     code = f"{len_arg_size}" if len_arg_size is not None else "0"
                 else:
                     list_len = context.list_length(node.args[0])
@@ -788,7 +789,7 @@ end
             aux_statements += aux_st
             return code, aux_statements, False
         elif isinstance(node, ast.Name):
-            var_array_size = context.var_array_size(node.id)
+            var_array_size = context.var_array_size(node.id, ast_node=node)
             if var_array_size is False:
                 raise TranspilerError(f"unknown variable '{node.id}'", node)
             if isinstance(var_array_size, int):
@@ -796,7 +797,7 @@ end
             code = context.var_str(node.id, ast_node=node)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
-            var_array_size = context.var_array_size(name)
+            var_array_size = context.var_array_size(name, ast_node=node)
             if var_array_size is False:
                 raise TranspilerError(f"unknown variable '{name}'", node)
             if var_array_size is None:
@@ -890,12 +891,12 @@ end
                 elif isinstance(node.value, (ast.Name, ast.Attribute)):
                     # var1 = var2: inherit size
                     name_right = self.decode_attr(node.value)
-                    target_size = context.var_array_size(name_right, is_target=False)
+                    target_size = context.var_array_size(name_right, is_target=False, ast_node=node)
                     if target_size is False:
                         raise TranspilerError(f"unknown variable '{name_right}'", node)
                     context.declare_var(target, target_size, ast_node=node)
                     # code special case (parsing of var2 as an expression would fail)
-                    module_value = context.get_module_value(name_right, True)
+                    module_value = context.get_module_value(name_right, True, ast_node=node)
                     if module_value:
                         return f"""{target_str} = {module_value}
 """
