@@ -385,7 +385,8 @@ class AFunction:
             if self.argin[i]:
                 # array arg
                 if isinstance(arg, ast.Name):
-                    arg_code.append(arg.id)
+                    value = context.var_str(arg.id, False, arg)
+                    arg_code.append(value)
                 elif context.list_length(arg) is not None:
                     value, aux_st, _ = atranspiler.compile_expr(arg, context, atranspiler.PRI_ASSIGN)
                     aux_statements += aux_st
