@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Python-to-Aseba transpiler (actually a tiny, yet useful subset of Python)
+Warnings for ATranspiler
 """
 
 from tdmclient.atranspiler import ATranspiler
