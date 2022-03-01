@@ -21,14 +21,15 @@ def missing_global_decl(transpiler):
         undecl_var_set = set()
         fun = transpiler.context_top.functions[fun_name]
         for var_name in fun.var:
-            module_and_name = fun.get_module_for_symbol(var_name, True)
-            if module_and_name is not None:
-                module, name = module_and_name
-                hidden = name in module.constants or name in module.variables
-            else:
-                hidden = var_name in ATranspiler.PREDEFINED_VARIABLES or var_name in fun.parent_context.var
-            if hidden:
-                undecl_var_set.add(var_name)
+            if var_name != "_tmp":
+                module_and_name = fun.get_module_for_symbol(var_name, True)
+                if module_and_name is not None:
+                    module, name = module_and_name
+                    hidden = name in module.constants or name in module.variables
+                else:
+                    hidden = var_name in ATranspiler.PREDEFINED_VARIABLES or var_name in fun.parent_context.var
+                if hidden:
+                    undecl_var_set.add(var_name)
         if len(undecl_var_set) > 0:
             r[fun_name] = undecl_var_set
 
