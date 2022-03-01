@@ -13,6 +13,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In transpiler:
     - Name of local list variables passed to native functions wasn't converted
 	- Exception `NameError` replaced by `TranspilerError` with node context to display the line number in the error message
+    - User functions called in arguments of `emit`, `exit` and `print` caused an exception
 
 ## [0.1.14] - 2022-01-23
 

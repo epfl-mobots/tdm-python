@@ -671,6 +671,9 @@ end
                     # no return value: must not be called in a subexpression
                     if priority_container != self.PRI_EXPR:
                         raise TranspilerError("function without return value called in an expression", ast_node=node)
+                else:
+                    # has_return_val unknown yet (first compiler phase)
+                    code = "?"  # dummy generated code
                 return code, aux_statements, False
             a_function = context.get_module_function(fun_name, ast_node=node)
             if a_function is None and fun_name in self.predefined_function_dict:
