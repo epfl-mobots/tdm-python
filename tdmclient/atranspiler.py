@@ -966,6 +966,13 @@ end
                 raise TranspilerError(f"unsupported augmented assignment '{op_str}='", node)
             op_str = op_dict[type(node.op)]
             target, index = self.decode_target(node.target)
+            var_array_size = context.var_array_size(target, ast_node=node)
+            if var_array_size is False:
+                raise TranspilerError(f"unknown variable '{target}' in augmented assignment", node)
+            elif var_array_size is None and index is not None:
+                raise TranspilerError(f"indexing of scalar variable '{target}' in augmented assignment", node)
+            elif var_array_size is not None and index is None:
+                raise TranspilerError(f"list variable '{target}' in augmented assignment", node)
             target_str = context.var_str(target, ast_node=node)
             value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             code += aux_statements
