@@ -73,14 +73,16 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
-    def wait_for_node(self, **kwargs):
-        while True:
+    def wait_for_node(self, timeout=None, **kwargs):
+        time = 0
+        while timeout is None or time < timeout:
             if self.process_waiting_messages():
                 node = self.first_node(**kwargs)
                 if node is not None:
                     return node
             else:
                 sleep(self.DEFAULT_SLEEP)
+                time += self.DEFAULT_SLEEP
             yield
 
     @types.coroutine

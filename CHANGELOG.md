@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - In `tdmclient.tools.transpile` and notebooks, option `--warning-missing-global` to display warnings for local variables which hide global variables (a declaration as global could be missing)
+- In function `ClientAsync.wait_for_node`, optional argument `timeout`
 
 ### Fixed
 
