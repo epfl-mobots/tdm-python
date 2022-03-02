@@ -21,13 +21,14 @@ class TranspilerError(Exception):
         self.message = message
         self.ast_node = ast_node
         self.syntax_error = syntax_error
+        self.lineno = (self.ast_node.lineno if ast_node is not None
+                       else self.syntax_error.args[1][1] if self.syntax_error
+                       else None)
 
     def __str__(self):
         output = self.message
-        if self.ast_node is not None:
-            output += f" (line {self.ast_node.lineno})"
-        elif self.syntax_error is not None:
-            output += f" (line {self.syntax_error.args[1][1]})"
+        if self.lineno is not None:
+            output += f" (line {self.lineno})"
         return output
 
 
