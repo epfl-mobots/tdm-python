@@ -944,7 +944,7 @@ end
 """
             return code
         if isinstance(node, ast.AugAssign):
-            op_str = {
+            op_dict = {
                 ast.Add: "+",
                 ast.BitAnd: "&",
                 ast.BitOr: "|",
@@ -955,7 +955,16 @@ end
                 ast.Mult: "*",
                 ast.RShift: ">>",
                 ast.Sub: "-",
-            }[type(node.op)]
+            }
+            if type(node.op) not in op_dict:
+                print(type(node.op))
+                op_str = {
+                    ast.MatMult: "@",
+                    ast.Div: "/",
+                    ast.Pow: "**"
+                }[type(node.op)]
+                raise TranspilerError(f"unsupported augmented assignment '{op_str}='", node)
+            op_str = op_dict[type(node.op)]
             target, index = self.decode_target(node.target)
             target_str = context.var_str(target, ast_node=node)
             value, aux_statements, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)

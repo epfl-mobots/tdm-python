@@ -9,6 +9,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In `tdmclient.tools.transpile` and notebooks, option `--warning-missing-global` to display warnings for local variables which hide global variables (a declaration as global could be missing)
 - In function `ClientAsync.wait_for_node`, optional argument `timeout`
 - Property `lineno` in transpiler exception class `TranspilerError`
+- Transpiler exception for unsupported augmented assignments `/=`, `**=` and `@=`
 
 ### Fixed
 
