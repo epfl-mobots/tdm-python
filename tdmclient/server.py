@@ -316,7 +316,7 @@ class ServerThread(threading.Thread):
                                 print("Set vm execution state: stop")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RUN:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
-                                print("Set vm execution state: run")
+                                y("Set vm execution state: run")
                             elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP:
                                 node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
                                 print("Set vm execution state: step")
@@ -367,6 +367,8 @@ class ServerThread(threading.Thread):
 
             except TimeoutError:
                 pass
+            except ConnectionResetError:
+                break
 
 
 class Server:

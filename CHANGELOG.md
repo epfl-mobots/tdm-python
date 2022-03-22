@@ -19,6 +19,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In transpiler:
     - Name of local list variables passed to native functions wasn't converted
     - User functions called in arguments of `emit`, `exit` and `print` caused an exception
+- In server:
+	- Clean shutdown of connection thread
 
 ## [0.1.14] - 2022-01-23
 
