@@ -21,6 +21,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - User functions called in arguments of `emit`, `exit` and `print` caused an exception
 - In server:
 	- Clean shutdown of connection thread
+	- Socket address reused
 
 ## [0.1.14] - 2022-01-23
 

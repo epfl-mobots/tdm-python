@@ -383,6 +383,7 @@ class Server:
     def start(self):
         self.stop()
         self.socket_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket_listener.bind(('', self.port))
         self.socket_listener.listen(5)
 
