@@ -20,10 +20,12 @@ class ServerNode:
 
     def __init__(self,
                  id=None,
+                 group_id=None,
                  type=ThymioFB.NODE_TYPE_DUMMY_NODE,
                  name=None,
                  variables=None):
         self.id = id or str(uuid.uuid4())
+        self.group_id = group_id or str(uuid.uuid4())
         if name is None:
             self.robot_count += 1
             self.name = f"Robot {self.robot_count}"
@@ -86,7 +88,7 @@ class ServerThread(threading.Thread):
                         ),
                         # group id
                         (
-                            ThymioFB.id_str_to_bytes(node.id),
+                            ThymioFB.id_str_to_bytes(node.group_id),
                         ),
                         node.status,
                         node.type,
@@ -172,7 +174,9 @@ class ServerThread(threading.Thread):
                                     [],
                                 )
                             ), ThymioFB.SCHEMA)
-                            print(f"-> {node.id} locked")
+                            print(f"-> vm description {node.id}: bc_s={node.bytecode_size}, data_s={node.data_size}, stack_s={node.stack_size}")
+                            for i, name in enumerate(node.variables):
+                                print(f"var {name}[{len(node.variables[name])}]")
                         else:
                             msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                             print(f"-> unknown {node.id}")

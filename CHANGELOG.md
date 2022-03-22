@@ -22,6 +22,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In server:
 	- Clean shutdown of connection thread
 	- Socket address reused
+	- Separate group id
 
 ## [0.1.14] - 2022-01-23
 
