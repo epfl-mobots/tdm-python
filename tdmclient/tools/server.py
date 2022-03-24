@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from tdmclient import Server, ServerNode, ThymioFB
+from tdmclient.serverws import ServerWS
 import sys
 import getopt
 
@@ -16,13 +17,15 @@ Run a dummy tdm server
 
 Options:
   --help         display this help message and exit
-  --port=P       port (default: {Server.PORT})
+  --port=P       port (default: {Server.PORT} for TCP, {ServerWS.PORT} for WebSocket)
+  --ws           WebSocket instead of plain TCP
 """)
 
 
 if __name__ == "__main__":
 
     tdm_port = None
+    ws = False
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -30,6 +33,7 @@ if __name__ == "__main__":
                                           [
                                               "help",
                                               "port=",
+                                              "ws",
                                           ])
     except getopt.error as err:
         print(str(err))
@@ -40,13 +44,22 @@ if __name__ == "__main__":
             sys.exit(0)
         elif arg == "--port":
             tdm_port = int(val)
+        elif arg == "--ws":
+            ws = True
 
-    server = Server(port=tdm_port)
-    server.nodes.add(ServerNode(type=ThymioFB.NODE_TYPE_THYMIO2,
-                                variables={
-                                    "a": [123],
-                                    "b": [4, 5, 6],
-                                }))
-    server.start()
-    while True:
-        server.accept()
+    node = ServerNode(type=ThymioFB.NODE_TYPE_THYMIO2,
+                      variables={
+                          "a": [123],
+                          "b": [4, 5, 6],
+                      })
+
+    if ws:
+        server = ServerWS(port=tdm_port)
+        server.nodes.add(node)
+        server.run()
+    else:
+        server = Server(port=tdm_port)
+        server.nodes.add(node)
+        server.start()
+        while True:
+            server.accept()
