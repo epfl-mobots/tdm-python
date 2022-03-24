@@ -23,7 +23,6 @@ Options:
 if __name__ == "__main__":
 
     tdm_port = None
-    debug = False
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
@@ -42,7 +41,7 @@ if __name__ == "__main__":
         elif arg == "--port":
             tdm_port = int(val)
 
-    server = Server()
+    server = Server(port=tdm_port)
     server.nodes.add(ServerNode(type=ThymioFB.NODE_TYPE_THYMIO2,
                                 variables={
                                     "a": [123],
