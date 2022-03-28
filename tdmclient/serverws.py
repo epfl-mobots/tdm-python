@@ -15,7 +15,7 @@ class ServerWS:
 
     PORT = 8597
 
-    def __init__(self, port=None):
+    def __init__(self, port=None, debug=False):
         self.port = port or ServerWS.PORT
         self.nodes = set()
         self.instances = set()
@@ -24,7 +24,8 @@ class ServerWS:
             self.instances.add(websocket)
             msg_queue = []
             server_handler = ServerHandler(self.nodes,
-                                           lambda data: msg_queue.append(data))
+                                           lambda data: msg_queue.append(data),
+                                           debug=debug)
             try:
                 async for message in websocket:
                     server_handler.process_message(message)

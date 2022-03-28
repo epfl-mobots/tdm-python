@@ -47,10 +47,12 @@ class ServerNode:
 
 class ServerHandler():
 
-    def __init__(self, nodes, send_packet_fun):
+    def __init__(self, nodes, send_packet_fun, debug=False):
         self.nodes = nodes
         self.send_packet_fun = send_packet_fun
         self.thymio = ThymioFB()
+        self.debug = debug
+        print("ServerHandler.debug", self.debug)
 
     def findNode(self, node_id_str):
         for node in self.nodes:
@@ -82,9 +84,10 @@ class ServerHandler():
             ),
         ), ThymioFB.SCHEMA)
         self.send_packet_fun(msg)
-        print(f"-> {len(self.nodes)} node(s) changed")
-        for node in self.nodes:
-            print(f"   {node.id}: status={node.status}, type={node.type}, name={node.name}, cap={node.capabilities}")
+        if self.debug:
+            print(f"-> {len(self.nodes)} node(s) changed")
+            for node in self.nodes:
+                print(f"   {node.id}: status={node.status}, type={node.type}, name={node.name}, cap={node.capabilities}")
 
     def send_variables_changed(self, node):
         msg = self.thymio.create_message((
@@ -104,20 +107,23 @@ class ServerHandler():
             ),
         ), ThymioFB.SCHEMA)
         self.send_packet_fun(msg)
-        print(f"-> var of {node.id} changed")
+        if self.debug:
+            print(f"-> var of {node.id} changed")
 
     def process_message(self, msg) -> None:
         fb = FlatBuffer()
         fb.parse(msg, ThymioFB.SCHEMA)
         if type(fb.root) is Union:
-            print(f"<- type={fb.root.union_type}")
+            if self.debug:
+                print(f"<- type={fb.root.union_type}")
             if fb.root.union_type == ThymioFB.MESSAGE_TYPE_CONNECTION_HANDSHAKE:
                 # send back handshake
                 msg = self.thymio.create_message((
                     ThymioFB.MESSAGE_TYPE_CONNECTION_HANDSHAKE,
                     ()
                 ), ThymioFB.SCHEMA)
-                print("-> handshake")
+                if self.debug:
+                    print("-> handshake")
                 self.send_packet_fun(msg)
                 # send node changed for all nodes
                 self.send_nodes_changed()
@@ -151,12 +157,14 @@ class ServerHandler():
                             [],
                         )
                     ), ThymioFB.SCHEMA)
-                    print(f"-> vm description {node.id}: bc_s={node.bytecode_size}, data_s={node.data_size}, stack_s={node.stack_size}")
-                    for i, name in enumerate(node.variables):
-                        print(f"var {name}[{len(node.variables[name])}]")
+                    if self.debug:
+                        print(f"-> vm description {node.id}: bc_s={node.bytecode_size}, data_s={node.data_size}, stack_s={node.stack_size}")
+                        for i, name in enumerate(node.variables):
+                            print(f"var {name}[{len(node.variables[name])}]")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
-                    print(f"-> unknown {node.id}")
+                    if self.debug:
+                        print(f"-> unknown {node.id}")
                 self.send_packet_fun(msg)
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_LOCK_NODE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
@@ -166,14 +174,17 @@ class ServerHandler():
                     if node.status == ThymioFB.NODE_STATUS_AVAILABLE:
                         node.status = ThymioFB.NODE_STATUS_READY
                         msg = self.thymio.create_msg_request_completed(request_id)
-                        print(f"-> {node.id} locked")
+                        if self.debug:
+                            print(f"-> {node.id} locked")
                         self.send_nodes_changed()
                     else:
                         msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_NODE_BUSY)
-                        print(f"-> lock error: {node.id} busy")
+                        if self.debug:
+                            print(f"-> lock error: {node.id} busy")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
-                    print(f"-> unknown {node.id}")
+                    if self.debug:
+                        print(f"-> unknown {node.id}")
                 self.send_packet_fun(msg)
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_UNLOCK_NODE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
@@ -184,16 +195,19 @@ class ServerHandler():
                         node.status = ThymioFB.NODE_STATUS_AVAILABLE
                         msg = self.thymio.create_msg_request_completed(request_id)
                         self.send_packet_fun(msg)
-                        print(f"-> {node.id} unlocked")
+                        if self.debug:
+                            print(f"-> {node.id} unlocked")
                         self.send_nodes_changed()
                     else:
                         msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN)
                         self.send_packet_fun(msg)
-                        print(f"-> unlock error: {node.id} not locked")
+                        if self.debug:
+                            print(f"-> unlock error: {node.id} not locked")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -202,16 +216,19 @@ class ServerHandler():
                     language = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.PROGRAMMING_LANGUAGE_ASEBA)
                     program = FlatBuffer.field_val(fb.root.union_data[0].fields[3], "")
                     options = FlatBuffer.field_val(fb.root.union_data[0].fields[4], 0)
-                    print(f"Source code:\n{program}")
+                    if self.debug:
+                        print(f"Source code:\n{program}")
                     msg = self.thymio.create_msg_compilation_result_success(request_id,
                                                                             0, node.bytecode_size,
                                                                             0, node.data_size)
                     self.send_packet_fun(msg)
-                    print(f"-> compilation ok")
+                    if self.debug:
+                        print(f"-> compilation ok")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_WATCH_NODE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -219,13 +236,15 @@ class ServerHandler():
                 node = self.findNode(node_id_str)
                 if node is not None:
                     node.watch_flags = flags
-                    print(f"Node {node_id_str}: watch flags := 0x{flags:x}")
+                    if self.debug:
+                        print(f"Node {node_id_str}: watch flags := 0x{flags:x}")
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node_id_str}")
+                    if self.debug:
+                        print(f"-> unknown node {node_id_str}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SET_VARIABLES:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -239,10 +258,14 @@ class ServerHandler():
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
                     self.send_variables_changed(node)
+                    if self.debug:
+                        for variable in variables:
+                            print(f"set variable {variable}")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_REGISTER_EVENTS:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -255,10 +278,14 @@ class ServerHandler():
                     node.events = events
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
+                    if self.debug:
+                        for event in events:
+                            print(f"register event {event}")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SEND_EVENTS:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -270,12 +297,14 @@ class ServerHandler():
                 if node is not None:
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
-                    for event in events:
-                        print(f"emit {event[0]} {event[1]}")
+                    if self.debug:
+                        for event in events:
+                            print(f"emit {event[0]} {event[1]}")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SET_BREAKPOINTS:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -299,10 +328,14 @@ class ServerHandler():
                         )
                     ), ThymioFB.SCHEMA)
                     self.send_packet_fun(msg)
+                    if self.debug:
+                        for bp in breakpoints:
+                            print(f"set breakpoint {bp}")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SET_VM_EXECUTION_STATE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -311,44 +344,53 @@ class ServerHandler():
                     command = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP)
                     if command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
-                        print("Set vm execution state: stop")
+                        if self.debug:
+                            print("Set vm execution state: stop")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RUN:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
-                        print("Set vm execution state: run")
+                        if self.debug:
+                            print("Set vm execution state: run")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
-                        print("Set vm execution state: step")
+                        if self.debug:
+                            print("Set vm execution state: step")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP_TO_NEXT_LINE:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
-                        print("Set vm execution state: step to next line")
+                        if self.debug:
+                            print("Set vm execution state: step to next line")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_PAUSE:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
-                        print("Set vm execution state: pause")
+                        if self.debug:
+                            print("Set vm execution state: pause")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RESET:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
-                        print("Set vm execution state: reset")
+                        if self.debug:
+                            print("Set vm execution state: reset")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_REBOOT:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
-                        print("Set vm execution state: reboot")
+                        if self.debug:
+                            print("Set vm execution state: reboot")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_SUSPEND:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
-                        print("Set vm execution state: suspend")
+                        if self.debug:
+                            print("Set vm execution state: suspend")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_WRITE_PROGRAM_TO_DEVICE_MEMORY:
                         node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
-                        print("Set vm execution state: write program to device memory")
+                        if self.debug:
+                            print("Set vm execution state: write program to device memory")
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
-                    print(f"-> ok")
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
-                    print(f"-> ok")
                     msg = self.thymio.create_msg_vm_execution_state_changed(node_id_str, node.execution_state, 1, ThymioFB.ERROR_NO_ERROR, "")
                     self.send_packet_fun(msg)
-                    print(f"-> state = {node.execution_state}")
+                    if self.debug:
+                        print(f"-> state = {node.execution_state}")
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
-                    print(f"-> unknown node {node.id}")
+                    if self.debug:
+                        print(f"-> unknown node {node.id}")
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SCRATCHPAD_UPDATE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 scratchpad_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
@@ -358,20 +400,23 @@ class ServerHandler():
                 text = FlatBuffer.field_val(fb.root.union_data[0].fields[5], "")
                 name = FlatBuffer.field_val(fb.root.union_data[0].fields[6], "")
                 deleted = FlatBuffer.field_val(fb.root.union_data[0].fields[7], False)
-                print(f"Scratchpad language={language} name={name} deleted={deleted}:\n{text}")
+                if self.debug:
+                    print(f"Scratchpad language={language} name={name} deleted={deleted}:\n{text}")
             else:
-                print("Not handled")
+                if self.debug:
+                    print("Not handled")
 
 
 class ServerThread(threading.Thread):
 
-    def __init__(self, server, socket, address_client):
+    def __init__(self, server, socket, address_client, debug=False):
         threading.Thread.__init__(self)
         self.server = server
         self.socket = socket
         self.address_client = address_client
         self.server_handler = ServerHandler(self.server.nodes,
-                                            lambda p: self.send_packet(p))
+                                            lambda p: self.send_packet(p),
+                                            debug=debug)
 
     def read_uint32(self) -> int:
         """Read an unsigned 32-bit number.
@@ -412,8 +457,9 @@ class Server:
 
     PORT = 10000
 
-    def __init__(self, port=None):
+    def __init__(self, port=None, debug=False):
         self.port = port or Server.PORT
+        self.debug = debug
         self.socket_listener = None
         self.nodes = set()
 
@@ -426,7 +472,7 @@ class Server:
 
     def accept(self):
         socket_client, address = self.socket_listener.accept()
-        thr = ServerThread(self, socket_client, address)
+        thr = ServerThread(self, socket_client, address, debug=self.debug)
         thr.start()
 
     def stop(self):

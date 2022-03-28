@@ -16,6 +16,7 @@ def help():
 Run a dummy tdm server
 
 Options:
+  --debug        display debugging information
   --help         display this help message and exit
   --port=P       port (default: {Server.PORT} for TCP, {ServerWS.PORT} for WebSocket)
   --ws           WebSocket instead of plain TCP
@@ -26,11 +27,13 @@ if __name__ == "__main__":
 
     tdm_port = None
     ws = False
+    debug = False
 
     try:
         arguments, values = getopt.getopt(sys.argv[1:],
                                           "",
                                           [
+                                              "debug",
                                               "help",
                                               "port=",
                                               "ws",
@@ -39,7 +42,9 @@ if __name__ == "__main__":
         print(str(err))
         sys.exit(1)
     for arg, val in arguments:
-        if arg == "--help":
+        if arg == "--debug":
+            debug = True
+        elif arg == "--help":
             help()
             sys.exit(0)
         elif arg == "--port":
@@ -54,11 +59,11 @@ if __name__ == "__main__":
                       })
 
     if ws:
-        server = ServerWS(port=tdm_port)
+        server = ServerWS(port=tdm_port, debug=debug)
         server.nodes.add(node)
         server.run()
     else:
-        server = Server(port=tdm_port)
+        server = Server(port=tdm_port, debug=debug)
         server.nodes.add(node)
         server.start()
         while True:
