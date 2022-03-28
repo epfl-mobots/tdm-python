@@ -44,6 +44,36 @@ class ServerNode:
     def __repr__(self):
         return f"Node {self.id}"
 
+    def compile_and_load(self, language, program, options):
+        return None  # or (error_msg, character, line, column) on failure
+
+    def stop(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+
+    def run(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+
+    def step(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+
+    def step_to_next_line(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+
+    def pause(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+
+    def reset(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+
+    def reboot(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+
+    def suspend(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+
+    def write_program_to_device_memory(self):
+        self.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+
 
 class ServerHandler():
 
@@ -216,14 +246,19 @@ class ServerHandler():
                     language = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.PROGRAMMING_LANGUAGE_ASEBA)
                     program = FlatBuffer.field_val(fb.root.union_data[0].fields[3], "")
                     options = FlatBuffer.field_val(fb.root.union_data[0].fields[4], 0)
+                    error = node.compile_and_load(language, program, options)
                     if self.debug:
                         print(f"Source code:\n{program}")
-                    msg = self.thymio.create_msg_compilation_result_success(request_id,
-                                                                            0, node.bytecode_size,
-                                                                            0, node.data_size)
-                    self.send_packet_fun(msg)
-                    if self.debug:
-                        print(f"-> compilation ok")
+                    if error is None:
+                        msg = self.thymio.create_msg_compilation_result_success(request_id,
+                                                                                0, node.bytecode_size,
+                                                                                0, node.data_size)
+                        self.send_packet_fun(msg)
+                        if self.debug:
+                            print(f"-> compilation ok")
+                    else:
+                        msg = self.thymio.create_msg_compilation_result_failure(request_id,
+                                                                                *error)
                 else:
                     msg = self.thymio.create_msg_error(request_id, ThymioFB.ERROR_UNKNOWN_NODE)
                     self.send_packet_fun(msg)
@@ -343,39 +378,39 @@ class ServerHandler():
                 if node is not None:
                     command = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP)
                     if command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                        node.stop()
                         if self.debug:
                             print("Set vm execution state: stop")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RUN:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+                        node.run()
                         if self.debug:
                             print("Set vm execution state: run")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                        node.step()
                         if self.debug:
                             print("Set vm execution state: step")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STEP_TO_NEXT_LINE:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                        node.step_to_next_line()
                         if self.debug:
                             print("Set vm execution state: step to next line")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_PAUSE:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                        node.pause()
                         if self.debug:
                             print("Set vm execution state: pause")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_RESET:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_RUNNING
+                        node.reset()
                         if self.debug:
                             print("Set vm execution state: reset")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_REBOOT:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                        node.reboot()
                         if self.debug:
                             print("Set vm execution state: reboot")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_SUSPEND:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_PAUSED
+                        node.suspend()
                         if self.debug:
                             print("Set vm execution state: suspend")
                     elif command == ThymioFB.VM_EXECUTION_STATE_COMMAND_WRITE_PROGRAM_TO_DEVICE_MEMORY:
-                        node.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+                        node.write_program_to_device_memory()
                         if self.debug:
                             print("Set vm execution state: write program to device memory")
                     msg = self.thymio.create_msg_request_completed(request_id)
