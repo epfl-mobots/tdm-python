@@ -84,9 +84,9 @@ class ServerHandler():
         self.debug = debug
         print("ServerHandler.debug", self.debug)
 
-    def findNode(self, node_id_str):
+    def find_node(self, node_id_str):
         for node in self.nodes:
-            if node.id == node_id_str:
+            if node.id == node_id_str or node.group_id == node_id_str:
                 return node
 
     def send_nodes_changed(self):
@@ -117,7 +117,8 @@ class ServerHandler():
         if self.debug:
             print(f"-> {len(self.nodes)} node(s) changed")
             for node in self.nodes:
-                print(f"   {node.id}: status={node.status}, type={node.type}, name={node.name}, cap={node.capabilities}")
+                print(f"   {node.id} gr={node.group_id}:")
+                print(f"   status={node.status}, type={node.type}, name={node.name}, cap={node.capabilities}")
 
     def send_variables_changed(self, node):
         msg = self.thymio.create_message((
@@ -163,7 +164,7 @@ class ServerHandler():
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_REQUEST_NODE_ASEBA_VM_DESCRIPTION:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     msg = self.thymio.create_message((
                         ThymioFB.MESSAGE_TYPE_NODE_ASEBA_VM_DESCRIPTION,
@@ -199,7 +200,7 @@ class ServerHandler():
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_LOCK_NODE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     if node.status == ThymioFB.NODE_STATUS_AVAILABLE:
                         node.status = ThymioFB.NODE_STATUS_READY
@@ -219,7 +220,7 @@ class ServerHandler():
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_UNLOCK_NODE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     if node.status == ThymioFB.NODE_STATUS_READY:
                         node.status = ThymioFB.NODE_STATUS_AVAILABLE
@@ -241,7 +242,7 @@ class ServerHandler():
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_COMPILE_AND_LOAD_CODE_ON_VM:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     language = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.PROGRAMMING_LANGUAGE_ASEBA)
                     program = FlatBuffer.field_val(fb.root.union_data[0].fields[3], "")
@@ -268,7 +269,7 @@ class ServerHandler():
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
                 flags = FlatBuffer.field_val(fb.root.union_data[0].fields[2], 0)
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     node.watch_flags = flags
                     if self.debug:
@@ -287,7 +288,7 @@ class ServerHandler():
                     v.fields[0][0]: v.fields[1][0] if isinstance(v.fields[1][0], list) else [v.fields[1][0]]
                     for v in fb.root.union_data[0].fields[2][0]
                 }
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     node.variables = {**node.variables, **variables}
                     msg = self.thymio.create_msg_request_completed(request_id)
@@ -308,7 +309,7 @@ class ServerHandler():
                     e.fields[0]: e.fields[1]
                     for e in fb.root.union_data[0].fields[2][0]
                 }
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     node.events = events
                     msg = self.thymio.create_msg_request_completed(request_id)
@@ -328,7 +329,7 @@ class ServerHandler():
                     (v.fields[0][0], v.fields[1][0] if isinstance(v.fields[1][0], list) else [v.fields[1][0]])
                     for v in fb.root.union_data[0].fields[2][0]
                 ]
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     msg = self.thymio.create_msg_request_completed(request_id)
                     self.send_packet_fun(msg)
@@ -347,7 +348,7 @@ class ServerHandler():
                     bp.fields[0][0]
                     for bp in fb.root.union_data[0].fields[2][0]
                 ]
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     msg = self.thymio.create_message((
                         ThymioFB.MESSAGE_TYPE_SET_BREAKPOINTS_RESPONSE,
@@ -374,7 +375,7 @@ class ServerHandler():
             elif fb.root.union_type == ThymioFB.MESSAGE_TYPE_SET_VM_EXECUTION_STATE:
                 request_id = FlatBuffer.field_val(fb.root.union_data[0].fields[0], 0)
                 node_id_str = ThymioFB.bytes_to_id_str(fb.root.union_data[0].fields[1])
-                node = self.findNode(node_id_str)
+                node = self.find_node(node_id_str)
                 if node is not None:
                     command = FlatBuffer.field_val(fb.root.union_data[0].fields[2], ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP)
                     if command == ThymioFB.VM_EXECUTION_STATE_COMMAND_STOP:
