@@ -14,7 +14,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
     - Errors on undefined variables or invalid use of list variables or indexing in augmented assignments
 - In function `ClientAsync.wait_for_node`, optional argument `timeout`
 - In server:
-    - options `--port` and `--debug`
+    - options `--port`, `--debug`, `--zeroconf`
     - support for WebSocket
 
 ### Fixed
