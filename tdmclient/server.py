@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -12,6 +12,14 @@ import socket
 import threading
 import uuid
 from tdmclient import ThymioFB, FlatBuffer, Union
+
+
+class ServerRawTDMHandler:
+    """Base class to handle raw TDM packets.
+    """
+
+    def handle_packet(self, b):
+        pass
 
 
 class ServerNode:
@@ -40,6 +48,7 @@ class ServerNode:
         self.variables = variables or {}
         self.events = {}
         self.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
+        self.watch_flags = 0
 
     def __repr__(self):
         return f"Node {self.id}"
@@ -74,15 +83,18 @@ class ServerNode:
     def write_program_to_device_memory(self):
         self.execution_state = ThymioFB.VM_EXECUTION_STATE_STOPPED
 
+    def set_watch_flags(self, flags):
+        self.watch_flags = flags
 
-class ServerHandler():
 
-    def __init__(self, nodes, send_packet_fun, debug=False):
+class ServerHandler:
+
+    def __init__(self, raw_packet_handler, nodes, send_packet_fun, debug=False):
+        self.raw_packet_handler = raw_packet_handler
         self.nodes = nodes
         self.send_packet_fun = send_packet_fun
         self.thymio = ThymioFB()
         self.debug = debug
-        print("ServerHandler.debug", self.debug)
 
     def find_node(self, node_id_str):
         for node in self.nodes:
@@ -142,6 +154,10 @@ class ServerHandler():
             print(f"-> var of {node.id} changed")
 
     def process_message(self, msg) -> None:
+        if self.raw_packet_handler is not None:
+            self.raw_packet_handler.handle_packet(msg)
+            return
+
         fb = FlatBuffer()
         fb.parse(msg, ThymioFB.SCHEMA)
         if type(fb.root) is Union:
@@ -271,7 +287,7 @@ class ServerHandler():
                 flags = FlatBuffer.field_val(fb.root.union_data[0].fields[2], 0)
                 node = self.find_node(node_id_str)
                 if node is not None:
-                    node.watch_flags = flags
+                    node.set_watch_flags(flags)
                     if self.debug:
                         print(f"Node {node_id_str}: watch flags := 0x{flags:x}")
                     msg = self.thymio.create_msg_request_completed(request_id)
@@ -450,7 +466,8 @@ class ServerThread(threading.Thread):
         self.server = server
         self.socket = socket
         self.address_client = address_client
-        self.server_handler = ServerHandler(self.server.nodes,
+        self.server_handler = ServerHandler(self.server.raw_packet_handler,
+                                            self.server.nodes,
                                             lambda p: self.send_packet(p),
                                             debug=debug)
 
@@ -491,13 +508,21 @@ class ServerThread(threading.Thread):
 
 class Server:
 
-    PORT = 10000
+    PORT = 8596
 
     def __init__(self, port=None, debug=False):
         self.port = port or Server.PORT
         self.debug = debug
         self.socket_listener = None
+        self.raw_packet_handler = None
         self.nodes = set()
+
+    def set_raw_packet_handler(self, raw_packet_handler):
+        """Set the ServerRawTDMHandler object (optional; alternative consists
+        in adding one or more ServerNode objects to self.nodes).
+        """
+
+        self.raw_packet_handler = raw_packet_handler
 
     def start(self):
         self.stop()

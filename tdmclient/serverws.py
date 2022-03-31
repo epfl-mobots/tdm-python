@@ -16,6 +16,7 @@ class ServerWS:
     PORT = 8597
 
     def __init__(self, port=None, debug=False):
+        self.raw_packet_handler = None
         self.port = port or ServerWS.PORT
         self.nodes = set()
         self.instances = set()
@@ -23,7 +24,8 @@ class ServerWS:
         async def ws_handler(websocket, path):
             self.instances.add(websocket)
             msg_queue = []
-            server_handler = ServerHandler(self.nodes,
+            server_handler = ServerHandler(self.raw_packet_handler,
+                                           self.nodes,
                                            lambda data: msg_queue.append(data),
                                            debug=debug)
             try:
@@ -37,6 +39,13 @@ class ServerWS:
 
         self.ws_server = websockets.serve(ws_handler, port=self.port)
         self.loop = asyncio.get_event_loop()
+
+    def set_raw_packet_handler(self, raw_packet_handler):
+        """Set the ServerRawTDMHandler object (optional; alternative consists
+        in adding one or more ServerNode objects to self.nodes).
+        """
+
+        self.raw_packet_handler = raw_packet_handler
 
     def run(self):
         self.loop.run_until_complete(self.ws_server)
