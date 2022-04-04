@@ -33,6 +33,11 @@ class Client(ThymioFB):
         self.tdm_port = tdm_port
         self.tdm = None
 
+        # if not None, function which gets raw tdm incoming messages and
+        # returns either a (possibly modified) raw tdm message for normal
+        # processing, or None to stop there
+        self.intercept_incoming_message = None
+
         def on_zc_change(is_added, addr, port, ws_port):
             if is_added and self.tdm_addr is None:
                 if self.debug >= 1:
@@ -138,6 +143,9 @@ class Client(ThymioFB):
                     break
                 if self.debug >= 3:
                     print("recv", msg)
-                self.process_message(msg)
+                if self.intercept_incoming_message:
+                    msg = self.intercept_incoming_message(msg)
+                if msg:
+                    self.process_message(msg)
                 at_least_one = True
         return at_least_one
