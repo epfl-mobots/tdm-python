@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.15] - 2022-04-05
+
 ### Added
 
 - In transpiler:
@@ -16,6 +18,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In server:
     - options `--port`, `--debug`, `--zeroconf`
     - support for WebSocket
+    - code easier to use in other programs
 
 ### Fixed
 

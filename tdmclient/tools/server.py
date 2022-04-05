@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
