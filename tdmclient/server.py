@@ -10,6 +10,7 @@
 
 import socket
 import threading
+import queue
 import uuid
 from tdmclient import ThymioFB, FlatBuffer, Union
 
@@ -461,11 +462,15 @@ class ServerHandler:
 
 class ServerThread(threading.Thread):
 
-    def __init__(self, server, socket, address_client, debug=False):
+    def __init__(self, server, socket, address_client,
+                 output_packet_queue=None,
+                 debug=False):
         threading.Thread.__init__(self)
         self.server = server
         self.socket = socket
+        self.socket.settimeout(0.1)
         self.address_client = address_client
+        self.output_packet_queue = output_packet_queue
         self.server_handler = ServerHandler(self.server.raw_packet_handler,
                                             self.server.nodes,
                                             lambda p: self.send_packet(p),
@@ -476,7 +481,7 @@ class ServerThread(threading.Thread):
         """
         b = self.socket.recv(4)
         if len(b) < 4:
-            raise TimeoutError()
+            raise socket.timeout()
         else:
             return b[0] + 256 * (b[1] + 256 * (b[2] + 256 * b[3]))
 
@@ -497,10 +502,20 @@ class ServerThread(threading.Thread):
     def run(self) -> None:
 
         while True:
+            if self.output_packet_queue is not None:
+                while True:
+                    try:
+                        packet = self.output_packet_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    if self.server.debug:
+                        print("sending packet in the queue")
+                    self.send_packet(packet)
+
             try:
                 msg = self.read_packet()
                 self.server_handler.process_message(msg)
-            except TimeoutError:
+            except socket.timeout:
                 pass
             except ConnectionResetError:
                 break
@@ -533,7 +548,13 @@ class Server:
 
     def accept(self):
         socket_client, address = self.socket_listener.accept()
-        thr = ServerThread(self, socket_client, address, debug=self.debug)
+        output_packet_queue = None
+        if self.on_accept is not None:
+            output_packet_queue = queue.Queue()
+            self.on_accept(output_packet_queue)
+        thr = ServerThread(self, socket_client, address,
+                           output_packet_queue=output_packet_queue,
+                           debug=self.debug)
         thr.start()
 
     def stop(self):
