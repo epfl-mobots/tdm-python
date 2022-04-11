@@ -12,6 +12,7 @@ import socket
 import threading
 import queue
 import uuid
+import time
 from tdmclient import ThymioFB, FlatBuffer, Union
 
 
@@ -154,9 +155,9 @@ class ServerHandler:
         if self.debug:
             print(f"-> var of {node.id} changed")
 
-    def process_message(self, msg) -> None:
+    def process_message(self, msg, connection_data=None) -> None:
         if self.raw_packet_handler is not None:
-            self.raw_packet_handler.handle_packet(msg)
+            self.raw_packet_handler.handle_packet(msg, connection_data=connection_data)
             return
 
         fb = FlatBuffer()
@@ -464,6 +465,7 @@ class ServerThread(threading.Thread):
 
     def __init__(self, server, socket, address_client,
                  output_packet_queue=None,
+                 connection_data=None,
                  debug=False):
         threading.Thread.__init__(self)
         self.server = server
@@ -471,6 +473,7 @@ class ServerThread(threading.Thread):
         self.socket.settimeout(0.1)
         self.address_client = address_client
         self.output_packet_queue = output_packet_queue
+        self.connection_data = connection_data
         self.server_handler = ServerHandler(self.server.raw_packet_handler,
                                             self.server.nodes,
                                             lambda p: self.send_packet(p),
@@ -514,7 +517,7 @@ class ServerThread(threading.Thread):
 
             try:
                 msg = self.read_packet()
-                self.server_handler.process_message(msg)
+                self.server_handler.process_message(msg, connection_data=self.connection_data)
             except socket.timeout:
                 pass
             except ConnectionResetError:
@@ -528,9 +531,12 @@ class Server:
     def __init__(self, port=None, debug=False):
         self.port = port or Server.PORT
         self.debug = debug
+        self.on_accept = None
         self.socket_listener = None
         self.raw_packet_handler = None
         self.nodes = set()
+        self.main_thread = None
+        self.main_thread_running = False
 
     def set_raw_packet_handler(self, raw_packet_handler):
         """Set the ServerRawTDMHandler object (optional; alternative consists
@@ -549,15 +555,37 @@ class Server:
     def accept(self):
         socket_client, address = self.socket_listener.accept()
         output_packet_queue = None
+        connection_data = None
         if self.on_accept is not None:
             output_packet_queue = queue.Queue()
-            self.on_accept(output_packet_queue)
+            connection_data = self.on_accept(output_packet_queue)
         thr = ServerThread(self, socket_client, address,
                            output_packet_queue=output_packet_queue,
+                           connection_data=connection_data,
                            debug=self.debug)
         thr.start()
 
+    def start_main_thread(self):
+        """Start a main thread to handle everything.
+        """
+
+        class MainThread(threading.Thread):
+
+            def run(self1):
+                while self.main_thread_running:
+                    self.accept()
+                    time.sleep(0.1)
+                self.main_thread = None
+                self.stop()
+
+        self.main_thread = MainThread()
+        self.main_thread_running = True
+        self.main_thread.start()
+
     def stop(self):
-        if self.socket_listener is not None:
-            self.socket_listener.close()
-            self.socket_listener = None
+        if self.main_thread is None:
+            if self.socket_listener is not None:
+                self.socket_listener.close()
+                self.socket_listener = None
+        else:
+            self.main_thread_running = False
