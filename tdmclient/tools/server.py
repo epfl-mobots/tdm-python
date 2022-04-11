@@ -19,8 +19,8 @@ Options:
   --debug        display debugging information
   --help         display this help message and exit
   --port=P       port (default: {Server.PORT} for TCP, {ServerWS.PORT} for WebSocket)
-  --ws           WebSocket instead of plain TCP
-  --zeroconf       advertise TCP TDM port via zeroconf
+  --ws           WebSocket in addition to plain TCP
+  --zeroconf     advertise TCP TDM port via zeroconf
 """)
 
 
@@ -86,13 +86,18 @@ if __name__ == "__main__":
                           "b": [4, 5, 6],
                       })
 
+    # prepare TCP server
+    server = Server(port=tdm_port, debug=debug)
+    server.nodes.add(node)
+    server.start()
+
     if ws:
-        server = ServerWS(port=tdm_port, debug=debug)
-        server.nodes.add(node)
-        server.run()
+        # run both TCP and WebSocket servers
+        server.start_main_thread()
+        server_ws = ServerWS(port=tdm_port, debug=debug)
+        server_ws.nodes.add(node)
+        server_ws.run()
     else:
-        server = Server(port=tdm_port, debug=debug)
-        server.nodes.add(node)
-        server.start()
+        # only TCP server: don't need a separate thread
         while True:
             server.accept()

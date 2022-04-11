@@ -4,6 +4,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+- In server:
+    - improved support to use in other programs
+
 ## [0.1.15] - 2022-04-05
 
 ### Added
