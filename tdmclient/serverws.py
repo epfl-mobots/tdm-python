@@ -21,6 +21,8 @@ class ServerWS:
         self.nodes = set()
         self.instances = set()
 
+        self.on_connect = None  # on_connect(msg_queue)
+
         async def ws_handler(websocket, path):
             self.instances.add(websocket)
             msg_queue = []
@@ -28,6 +30,8 @@ class ServerWS:
                                            self.nodes,
                                            lambda data: msg_queue.append(data),
                                            debug=debug)
+            if self.on_connect is not None:
+                self.on_connect(msg_queue)
             try:
                 async for message in websocket:
                     server_handler.process_message(message)

@@ -20,7 +20,8 @@ from tdmclient.clientasyncnode import ClientAsyncNode
 from tdmclient.clientasynccachenode import ClientAsyncCacheNode, ArrayCache
 from tdmclient.repl import TDMConsole
 
-from tdmclient.server import Server, ServerNode, ServerRawTDMHandler
+from tdmclient.server import (Server, ServerNode,
+                              ServerRawTDMHandler, ServerHandler)
 
 # shortcut
 aw = ClientAsync.aw
