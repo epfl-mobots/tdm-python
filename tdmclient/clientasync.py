@@ -73,6 +73,26 @@ class ClientAsync(tdmclient.Client):
             yield
 
     @types.coroutine
+    def wait_for_tdm(self, timeout=None):
+        """Wait until the connection to the tdm is established and
+        self.send_packet can be called. Return True for success, False for
+        timeout.
+        """
+
+        time = 0
+        while self.tdm is None and (timeout is None or time < timeout):
+            sleep(self.DEFAULT_SLEEP)
+            time += self.DEFAULT_SLEEP
+            yield
+        return self.tdm is not None
+
+    def is_tdm_connected(self):
+        """Check if the connection to the tdm is established and
+        self.send_packet can be called.
+        """
+        return self.tdm is not None
+
+    @types.coroutine
     def wait_for_node(self, timeout=None, **kwargs):
         time = 0
         while timeout is None or time < timeout:
