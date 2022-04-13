@@ -524,7 +524,7 @@ class ServerThread(threading.Thread):
                     break
         except BrokenPipeError:
             # cannot send in send_packet(), connection closed by client
-            break
+            pass
 
 
 class Server:
