@@ -13,5 +13,5 @@ python3 -m pip install --upgrade tdmclient
 
 To install the current development version from this github repository:
 ```
-python3 -m pip install git+https://github.com/epfl-mobots/tdm-python
+python3 -m pip install --force-reinstall git+https://github.com/epfl-mobots/tdm-python
 ```
