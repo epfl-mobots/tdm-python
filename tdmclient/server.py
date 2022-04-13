@@ -504,24 +504,27 @@ class ServerThread(threading.Thread):
 
     def run(self) -> None:
 
-        while True:
-            if self.output_packet_queue is not None:
-                while True:
-                    try:
-                        packet = self.output_packet_queue.get_nowait()
-                    except queue.Empty:
-                        break
-                    if self.server.debug:
-                        print("sending packet in the queue")
-                    self.send_packet(packet)
-
-            try:
-                msg = self.read_packet()
-                self.server_handler.process_message(msg, connection_data=self.connection_data)
-            except socket.timeout:
-                pass
-            except ConnectionResetError:
-                break
+        try:
+            while True:
+                if self.output_packet_queue is not None:
+                    while True:
+                        try:
+                            packet = self.output_packet_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                        if self.server.debug:
+                            print("sending packet in the queue")
+                        self.send_packet(packet)
+                try:
+                    msg = self.read_packet()
+                    self.server_handler.process_message(msg, connection_data=self.connection_data)
+                except socket.timeout:
+                    pass
+                except ConnectionResetError:
+                    break
+        except BrokenPipeError:
+            # cannot send in send_packet(), connection closed by client
+            break
 
 
 class Server:
