@@ -4,6 +4,9 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In tools `gui`, `list`, `repl`, `run`, and `watch`, option `--tdmport default` stands for the default TDM TCP port 8596
 - In server:
     - improved support to use in other programs
 

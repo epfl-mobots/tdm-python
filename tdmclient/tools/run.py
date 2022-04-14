@@ -17,7 +17,7 @@ from tdmclient.module_clock import ModuleClock
 
 
 def help(**kwargs):
-    print("""Usage: python3 -m tdmclient.tools.run [options] [filename]
+    print(f"""Usage: python3 -m tdmclient.tools.run [options] [filename]
 Run program on robot, from file or stdin
 
 Options:
@@ -36,7 +36,7 @@ Options:
   --sponly       store program into the TDM without running it
   --stop         stop program (no filename or stdin expected)
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port (default: from zeroconf)
+  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
 """, **kwargs)
 
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
-            tdm_port = int(val)
+            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
 
     if stop:
         if len(values) > 0:

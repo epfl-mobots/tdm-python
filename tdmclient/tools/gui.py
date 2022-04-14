@@ -500,7 +500,7 @@ class VariableTableWindow(tk.Tk):
 
 
 def help():
-    print("""Usage: python3 -m tdmclient.tools.variables [options]
+    print(f"""Usage: python3 -m tdmclient.tools.variables [options]
 Variable browser and code editor
 
 Options:
@@ -512,7 +512,7 @@ Options:
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port (default: from zeroconf)
+  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
   --zeroconf     use zeroconf (default: automatic)
 """)
 
@@ -565,7 +565,7 @@ if __name__ == "__main__":
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
-            tdm_port = int(val)
+            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
         elif arg == "--zeroconf":
             zeroconf = True
 

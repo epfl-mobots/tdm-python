@@ -13,7 +13,7 @@ from tdmclient import ClientAsync
 
 
 def help():
-    print("""Usage: python3 -m tdmclient.tools.list [options]
+    print(f"""Usage: python3 -m tdmclient.tools.list [options]
 Run program on robot, from file or stdin
 
 Options:
@@ -23,7 +23,7 @@ Options:
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port (default: from zeroconf)
+  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
 """)
 
 
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
-            tdm_port = int(val)
+            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port,
                      password=password,

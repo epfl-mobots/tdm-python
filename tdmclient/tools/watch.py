@@ -11,7 +11,7 @@ import getopt
 
 
 def help(**kwargs):
-    print("""Usage: python3 -m tdmclient.tools.watch [options]
+    print(f"""Usage: python3 -m tdmclient.tools.watch [options]
 Watch information on robot sent by tdm
 
 Options:
@@ -21,7 +21,7 @@ Options:
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port (default: from zeroconf)
+  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
 """, **kwargs)
 
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         elif arg == "--tdmaddr":
             tdm_addr = val
         elif arg == "--tdmport":
-            tdm_port = int(val)
+            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
 
     if len(values) > 0:
         help(file=sys.stderr)
