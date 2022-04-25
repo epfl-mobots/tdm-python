@@ -21,25 +21,29 @@ class ServerWS:
         self.nodes = set()
         self.instances = set()
 
-        self.on_connect = None  # on_connect(msg_queue)
+        # None or (connection_data, on_close) = on_connect(msg_queue)
+        self.on_connect = None
 
         async def ws_handler(websocket, path):
             self.instances.add(websocket)
             msg_queue = []
+            connection_data = None
+            on_close = None
             server_handler = ServerHandler(self.raw_packet_handler,
                                            self.nodes,
                                            lambda data: msg_queue.append(data),
                                            debug=debug)
             if self.on_connect is not None:
-                self.on_connect(msg_queue)
+                connection_data, on_close = self.on_connect(msg_queue)
             try:
                 async for message in websocket:
-                    server_handler.process_message(message)
+                    server_handler.process_message(message, connection_data)
                     while len(msg_queue) > 0:
                         reply = msg_queue.pop(0)
                         await websocket.send(reply)
             finally:
-                print("close")
+                if on_close is not None:
+                    on_close()
 
         self.ws_server = websockets.serve(ws_handler, port=self.port)
         self.loop = asyncio.get_event_loop()
