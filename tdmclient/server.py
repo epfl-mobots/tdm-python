@@ -466,6 +466,7 @@ class ServerThread(threading.Thread):
     def __init__(self, server, socket, address_client,
                  output_packet_queue=None,
                  connection_data=None,
+                 on_close=None,
                  debug=False):
         threading.Thread.__init__(self)
         self.server = server
@@ -474,6 +475,7 @@ class ServerThread(threading.Thread):
         self.address_client = address_client
         self.output_packet_queue = output_packet_queue
         self.connection_data = connection_data
+        self.on_close = on_close
         self.server_handler = ServerHandler(self.server.raw_packet_handler,
                                             self.server.nodes,
                                             lambda p: self.send_packet(p),
@@ -526,6 +528,9 @@ class ServerThread(threading.Thread):
             # cannot send in send_packet(), connection closed by client
             pass
 
+        if self.on_close is not None:
+            self.server.on_close_queue.put(self.on_close)
+
 
 class Server:
 
@@ -534,12 +539,19 @@ class Server:
     def __init__(self, port=None, debug=False):
         self.port = port or Server.PORT
         self.debug = debug
+
+        # None or (connection_data, on_close) = on_accept(output_packet_queue)
         self.on_accept = None
+
         self.socket_listener = None
         self.raw_packet_handler = None
         self.nodes = set()
         self.main_thread = None
-        self.main_thread_running = False
+        self.stop_requested = False
+
+        # functions returned by on_accept to clean up connections,
+        # to be called asap in the main thread
+        self.on_close_queue = queue.Queue()
 
     def set_raw_packet_handler(self, raw_packet_handler):
         """Set the ServerRawTDMHandler object (optional; alternative consists
@@ -559,14 +571,31 @@ class Server:
         socket_client, address = self.socket_listener.accept()
         output_packet_queue = None
         connection_data = None
+        on_close = None
         if self.on_accept is not None:
             output_packet_queue = queue.Queue()
-            connection_data = self.on_accept(output_packet_queue)
+            connection_data, on_close = self.on_accept(output_packet_queue)
         thr = ServerThread(self, socket_client, address,
                            output_packet_queue=output_packet_queue,
                            connection_data=connection_data,
+                           on_close=on_close,
                            debug=self.debug)
         thr.start()
+
+    def loop_forever(self):
+        while not self.stop_requested:
+            # handle pending on_close
+            while True:
+                try:
+                    on_close = self.on_close_queue.get_nowait()
+                except queue.Empty:
+                    break
+                on_close()
+
+            # accept next client
+            self.accept()
+
+            time.sleep(0.1)
 
     def start_main_thread(self):
         """Start a main thread to handle everything.
@@ -575,14 +604,12 @@ class Server:
         class MainThread(threading.Thread):
 
             def run(self1):
-                while self.main_thread_running:
-                    self.accept()
-                    time.sleep(0.1)
+                self.loop_forever()
                 self.main_thread = None
                 self.stop()
 
         self.main_thread = MainThread()
-        self.main_thread_running = True
+        self.stop_requested = False
         self.main_thread.start()
 
     def stop(self):
@@ -591,4 +618,4 @@ class Server:
                 self.socket_listener.close()
                 self.socket_listener = None
         else:
-            self.main_thread_running = False
+            self.stop_requested = True

@@ -99,5 +99,4 @@ if __name__ == "__main__":
         server_ws.run()
     else:
         # only TCP server: don't need a separate thread
-        while True:
-            server.accept()
+        server.loop_forever()
