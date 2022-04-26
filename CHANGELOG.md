@@ -10,6 +10,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In server:
     - improved support to use in other programs
 
+### Fixed
+
+- When closing the TCP connection, callback functions are all executed in turn when the connection is actually closed
+
 ## [0.1.15] - 2022-04-05
 
 ### Added

@@ -27,9 +27,17 @@ class InputThread(threading.Thread):
         self.io_lock = io_lock
         self.packet_queue = packet_queue
         self.comm_error = None
+        self.on_terminated = []
 
     def terminate(self, on_terminated=None) -> None:
-        self.on_terminated = on_terminated
+        if not self.running:
+            # already terminated
+            if on_terminated is not None:
+                on_terminated()
+            return
+
+        if on_terminated is not None:
+            self.on_terminated.append(on_terminated)
         self.running = False
 
     def read_uint32(self) -> int:
@@ -67,8 +75,10 @@ class InputThread(threading.Thread):
                     self.packet_queue.put(packet)
             except TimeoutError:
                 pass
-        if self.on_terminated:
-            self.on_terminated()
+
+        # executed all on_terminated callbacks in turn
+        while len(self.on_terminated) > 0:
+            self.on_terminated.pop(0)()
 
 
 class TDMConnection:
@@ -108,7 +118,6 @@ class TDMConnection:
         self.input_thread.start()
 
         self.output_lock = threading.Lock()
-        self.shutting_down = False
         self.tasks = set()
         self.refreshing_data_coverage = None    # or set of variables to fetch
         self.refreshing_data_span = None   # or (offset, length) (based on refreshing_data_coverage)
@@ -132,13 +141,6 @@ class TDMConnection:
         """Request a gentle shutdown of the input thread which will be followed
         by closing the connection and calling on_terminated (if not None).
         """
-        if self.shutting_down:
-            # once is enough
-            if on_terminated is not None:
-                on_terminated()
-            return
-
-        self.shutting_down = True
 
         def on_terminated1():
             self.close()
