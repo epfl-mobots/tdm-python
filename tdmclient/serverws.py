@@ -26,7 +26,7 @@ class ServerWS:
 
         async def ws_handler(websocket, path):
             self.instances.add(websocket)
-            msg_queue = []
+            msg_queue = []  # queue of outgoing messages
             connection_data = None
             on_close = None
             server_handler = ServerHandler(self.raw_packet_handler,
@@ -36,12 +36,18 @@ class ServerWS:
             if self.on_connect is not None:
                 connection_data, on_close = self.on_connect(msg_queue)
             try:
-                async for message in websocket:
-                    server_handler.process_message(message, connection_data)
+                while True:
+                    # get and process tdm messages from client
+                    try:
+                        message = await asyncio.wait_for(websocket.recv(), timeout=0.1)
+                        server_handler.process_message(message, connection_data)
+                    except asyncio.TimeoutError:
+                        pass
+                    # send queued messages to client
                     while len(msg_queue) > 0:
                         reply = msg_queue.pop(0)
                         await websocket.send(reply)
-            finally:
+            except websockets.ConnectionClosed:
                 if on_close is not None:
                     on_close()
 

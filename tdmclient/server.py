@@ -20,7 +20,7 @@ class ServerRawTDMHandler:
     """Base class to handle raw TDM packets.
     """
 
-    def handle_packet(self, b):
+    def handle_packet(self, b, connection_data):
         pass
 
 
