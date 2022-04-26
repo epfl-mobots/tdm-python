@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from tdmclient import TDMZeroconfBrowser, TDMConnection
+from tdmclient import TDMZeroconfBrowser, TDMConnection, TDMConnectionWS
 from tdmclient import FlatBuffer, ThymioFB
 from tdmclient.clientnode import ClientNode
 
@@ -19,9 +19,12 @@ class DisconnectedError(Exception):
 class Client(ThymioFB):
 
     DEFAULT_TDM_PORT = 8596
+    DEFAULT_TDM_WS_PORT = 8597
 
     def __init__(self,
-                 zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
+                 zeroconf=None,
+                 tdm_ws=False, tdm_addr=None, tdm_port=None,
+                 password=None,
                  **kwargs):
 
         super(Client, self).__init__(**kwargs)
@@ -29,8 +32,10 @@ class Client(ThymioFB):
         if zeroconf is None:
             # use zeroconf if tdm_port isn't specified
             zeroconf = tdm_port is None
+        self.tdm_ws = tdm_ws
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
+        self.tdm_ws_port = tdm_port
         self.tdm = None
 
         # if not None, function which gets raw tdm incoming messages and
@@ -46,6 +51,7 @@ class Client(ThymioFB):
                     self.tdm_addr = addr
                 if tdm_port is None:
                     self.tdm_port = port
+                    self.tdm_ws_port = ws_port
                 self.connect()
                 self.send_handshake(password)
             elif not is_added and addr == self.tdm_addr and port == self.tdm_port:
@@ -54,6 +60,7 @@ class Client(ThymioFB):
                 self.disconnect()
                 self.tdm_addr = None
                 self.tdm_port = None
+                self.tdm_ws_port = None
 
         if zeroconf:
             self.zc = TDMZeroconfBrowser(on_zc_change)
@@ -61,6 +68,8 @@ class Client(ThymioFB):
             self.zc = None
             if self.tdm_port is None:
                 self.tdm_port = self.DEFAULT_TDM_PORT
+            if self.tdm_ws_port is None:
+                self.tdm_ws_port = self.DEFAULT_TDM_WS_PORT
             if tdm_addr is None:
                 # localhost by default
                 self.tdm_addr = "127.0.0.1"
@@ -75,7 +84,10 @@ class Client(ThymioFB):
             self.zc = None
 
     def connect(self):
-        self.tdm = TDMConnection(self.tdm_addr, self.tdm_port)
+        if self.tdm_ws:
+            self.tdm = TDMConnectionWS(self.tdm_addr, self.tdm_ws_port)
+        else:
+            self.tdm = TDMConnection(self.tdm_addr, self.tdm_port)
 
     def disconnect(self):
         if self.tdm is not None:

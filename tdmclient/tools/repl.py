@@ -31,12 +31,14 @@ Options:
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
   --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
+  --tdmws        connect to tdm with WebSocket (default: plain TCP)
 """)
 
 
 def main(argv=None):
     tdm_addr = None
     tdm_port = None
+    tdm_ws = False
     password = None
     robot_id = None
     robot_name = None
@@ -52,6 +54,7 @@ def main(argv=None):
                                                   "robotname=",
                                                   "tdmaddr=",
                                                   "tdmport=",
+                                                  "tdmws",
                                               ])
         except getopt.error as err:
             print(str(err))
@@ -70,8 +73,10 @@ def main(argv=None):
                 tdm_addr = val
             elif arg == "--tdmport":
                 tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
+            elif arg == "--tdmws":
+                tdm_ws = True
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port,
+    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                      password=password) as client:
 
         async def co_init():

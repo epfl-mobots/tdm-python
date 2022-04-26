@@ -6,7 +6,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Added
 
-- In tools `gui`, `list`, `repl`, `run`, and `watch`, option `--tdmport default` stands for the default TDM TCP port 8596
+- Optional connection to the TDM using a WebSocket instead of plain TCP
+- In tools `gui`, `list`, `repl`, `run`, and `watch`:
+    - option `--tdmport default` stands for the default TDM TCP port 8596
+    - option `--tdmws` to connect to the TDM with a WebSocket
 - In server:
     - improved support to use in other programs
 
