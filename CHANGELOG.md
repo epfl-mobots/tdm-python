@@ -13,6 +13,18 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In server:
     - improved support to use in other programs
 
+### Changed
+
+- To make the tools easier to reuse from code, their entry point has been moved to the root of the module, and the tool name must be provided as the first argument. For example instead of
+    ```
+    python3 -m tdmclient.tools.run program.py
+    ```
+    you must now type
+    ```
+    python3 -m tdmclient run program.py
+    ```
+    To call the `main` function of a tool, import it with `import tdmclient.tools` instead of e.g. `import tdmclient.tools.run`; and call `tdmclient.tools.run.main([args...])` as before. Or use an alternative `import` or `from ... import` variant if you prefer.
+
 ### Fixed
 
 - When closing the TCP connection, callback functions are all executed in turn when the connection is actually closed

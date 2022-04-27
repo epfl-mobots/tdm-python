@@ -3,7 +3,7 @@
 
 ### Interactive Python
 
-This section will describe only the use of `ClientAsync`, the highest-level way to interact with a robot, with asynchronous methods which behave nicely in a non-blocking way if you need to perform other tasks such as running a user interface. All the tools described above use `ClientAsync`, except for `tdmclient.tools.tdmdiscovery` which doesn't communicate with the robots.
+This section describes only the use of `ClientAsync`, the highest-level way to interact with a robot, with asynchronous methods which behave nicely in a non-blocking way if you need to perform other tasks such as running a user interface. All the tools described above use `ClientAsync`, except for `tdmdiscovery` which doesn't communicate with the robots.
 
 First we'll type commands interactively by starting Python&nbsp;3 without argument. To start Python&nbsp;3, open a terminal window (Windows Terminal or Command Prompt in Windows, Terminal in macOS or Linux) and type `python3`. TDM replies should arrive quicker than typing at the keyboard. Next section shows how to interact with the TDM from a program where you wait for replies and use them immediately to run as fast as possible.
 
@@ -231,7 +231,7 @@ def prox():
     motor_right_target = speed
 ```
 
-You could save it as a .py file and run it with `tdmclient.tools.run` as explained above. If you want to do everything yourself, to understand precisely how tdmclient works or because you want to eventually combine processing on the Thymio and on your computer, here is a Python program running on the PC to convert it to Aseba, compile and load it, and run it.
+You could save it as a .py file and run it with `run` as explained above. If you want to do everything yourself, to understand precisely how tdmclient works or because you want to eventually combine processing on the Thymio and on your computer, here is a Python program running on the PC to convert it to Aseba, compile and load it, and run it.
 ```
 from tdmclient import ClientAsync
 from tdmclient.atranspiler import ATranspiler

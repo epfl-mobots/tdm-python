@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 
 
 def help():
-    print(f"""Usage: python3 -m tdmclient.tools.repl [options]
+    print(f"""Usage: python3 -m tdmclient repl [options]
 Read-eval-print loop with link and synchronization with Thymio
 
 Options:
@@ -35,7 +35,7 @@ Options:
 """)
 
 
-def main(argv=None):
+def main(argv=None, tdm_transport=None):
     tdm_addr = None
     tdm_port = None
     tdm_ws = False
@@ -77,6 +77,7 @@ def main(argv=None):
                 tdm_ws = True
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                     tdm_transport=tdm_transport,
                      password=password) as client:
 
         async def co_init():
@@ -89,7 +90,3 @@ def main(argv=None):
                 interactive_console.interact()
 
         client.run_async_program(co_init)
-
-
-if __name__ == "__main__":
-    main(sys.argv)

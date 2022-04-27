@@ -11,11 +11,11 @@ import getopt
 
 
 def help(**kwargs):
-    print(f"""Usage: python3 -m tdmclient.tools.watch [options]
+    print(f"""Usage: python3 -m tdmclient watch [options]
 Watch information on robot sent by tdm
 
 Options:
-  --debug=n      display diagnostic info (0=none, 1=basic, 2=more, 3=verbose)
+  --debug=n      display diagnostic info (0=none, 1=basic, 2=more (default), 3=verbose)
   --help         display this help message and exit
   --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
@@ -26,7 +26,7 @@ Options:
 """, **kwargs)
 
 
-def main(argv=None):
+def main(argv=None, tdm_transport=None):
     debug = 2  # display all messages received from the tdm by default
     tdm_addr = None
     tdm_port = None
@@ -37,7 +37,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "debug=",
@@ -76,6 +76,7 @@ def main(argv=None):
         sys.exit(1)
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                     tdm_transport=tdm_transport,
                      password=password,
                      debug=debug) as client:
 
@@ -85,7 +86,3 @@ def main(argv=None):
             await client.sleep()
 
         client.run_async_program(prog)
-
-
-if __name__ == "__main__":
-    main(sys.argv)

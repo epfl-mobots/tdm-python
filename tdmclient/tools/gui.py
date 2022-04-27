@@ -20,6 +20,7 @@ class VariableTableWindow(tk.Tk):
     def __init__(self,
                  zeroconf=None,
                  tdm_addr=None, tdm_port=None, tdm_ws=False,
+                 tdm_transport=None,
                  password=None,
                  node_id=None, node_name=None,
                  language=None, debug=0):
@@ -33,6 +34,7 @@ class VariableTableWindow(tk.Tk):
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
         self.tdm_ws = tdm_ws
+        self.tdm_transport = tdm_transport
         self.password = password
         self.node_id = node_id
         self.node_name = node_name
@@ -197,7 +199,10 @@ class VariableTableWindow(tk.Tk):
     def set_title(self):
         name = self.node.props["name"] if self.node is not None else "No robot"
         if self.client is not None and self.client.tdm_addr is not None:
-            name += f" (TDM: {'ws://' if self.tdm_ws else ''}{self.client.tdm_addr}:{self.client.tdm_port})"
+            if self.tdm_transport:
+                name += " (TDM: alternative transport)"
+            else:
+                name += f" (TDM: {'ws://' if self.tdm_ws else ''}{self.client.tdm_addr}:{self.client.tdm_port})"
         if self.text_program is not None:
             name += " - "
             name += os.path.basename(self.program_path) if self.program_path is not None else f"Untitled.{self.language}"
@@ -485,6 +490,7 @@ class VariableTableWindow(tk.Tk):
                                   tdm_addr=self.tdm_addr,
                                   tdm_port=self.tdm_port,
                                   tdm_ws=self.tdm_ws,
+                                  tdm_transport=self.tdm_transport,
                                   password=self.password,
                                   debug=self.debug)
         self.client.on_nodes_changed = on_nodes_changed
@@ -503,7 +509,7 @@ class VariableTableWindow(tk.Tk):
 
 
 def help():
-    print(f"""Usage: python3 -m tdmclient.tools.gui [options]
+    print(f"""Usage: python3 -m tdmclient gui [options]
 Variable browser and code editor
 
 Options:
@@ -521,7 +527,7 @@ Options:
 """)
 
 
-def main(argv=None):
+def main(argv=None, tdm_transport=None):
     debug = 0
     language = None  # auto
     zeroconf = None  # auto
@@ -534,7 +540,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "debug=",
@@ -579,12 +585,9 @@ def main(argv=None):
 
     win = VariableTableWindow(zeroconf=zeroconf,
                               tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                              tdm_transport=tdm_transport,
                               password=password,
                               node_id=robot_id, node_name=robot_name,
                               language=language, debug=debug)
     win.connect()
     win.mainloop()
-
-
-if __name__ == "__main__":
-    main(sys.argv)

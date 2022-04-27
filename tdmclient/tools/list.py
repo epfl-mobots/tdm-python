@@ -13,7 +13,7 @@ from tdmclient import ClientAsync
 
 
 def help():
-    print(f"""Usage: python3 -m tdmclient.tools.list [options]
+    print(f"""Usage: python3 -m tdmclient list [options]
 Run program on robot, from file or stdin
 
 Options:
@@ -28,7 +28,7 @@ Options:
 """)
 
 
-def main(argv=None):
+def main(argv=None, tdm_transport=None):
     debug = 0
     tdm_addr = None
     tdm_port = None
@@ -39,7 +39,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "debug=",
@@ -74,6 +74,7 @@ def main(argv=None):
                 tdm_ws = True
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                     tdm_transport=tdm_transport,
                      password=password,
                      debug=debug) as client:
 
@@ -105,7 +106,3 @@ def main(argv=None):
             if "fw_version" in node.props:
                 print(f"firmware: {node.props['fw_version']}")
             print()
-
-
-if __name__ == "__main__":
-    main(sys.argv)

@@ -17,7 +17,7 @@ from tdmclient.module_clock import ModuleClock
 
 
 def help(**kwargs):
-    print(f"""Usage: python3 -m tdmclient.tools.run [options] [filename]
+    print(f"""Usage: python3 -m tdmclient run [options] [filename]
 Run program on robot, from file or stdin
 
 Options:
@@ -41,7 +41,7 @@ Options:
 """, **kwargs)
 
 
-def main(argv=None):
+def main(argv=None, tdm_transport=None):
     debug = 0
     language = None  # auto
     stop = False
@@ -82,7 +82,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "debug=",
@@ -205,6 +205,7 @@ def main(argv=None):
             events.append((event_name, transpiler.events_out[event_name]))
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                     tdm_transport=tdm_transport,
                      password=password,
                      debug=debug) as client:
 
@@ -253,7 +254,3 @@ def main(argv=None):
         client.run_async_program(prog)
 
     sys.exit(status)
-
-
-if __name__ == "__main__":
-    main(sys.argv)

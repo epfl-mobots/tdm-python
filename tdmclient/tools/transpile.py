@@ -14,7 +14,7 @@ import tdmclient.module_clock
 from tdmclient.atranspiler_warnings import missing_global_decl
 
 def help():
-    print("""Usage: python3 -m tdmclient.tools.transpile [options] [filename]
+    print("""Usage: python3 -m tdmclient transpile [options] [filename]
 Run program on robot, from file or stdin
 
 Options:
@@ -35,7 +35,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "events",
@@ -99,7 +99,3 @@ def main(argv=None):
             print(transpiler.print_format_strings)
     if not show_events and not show_exit and not show_print:
         print(transpiler.get_output())
-
-
-if __name__ == "__main__":
-    main(sys.argv)

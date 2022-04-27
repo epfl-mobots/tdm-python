@@ -12,7 +12,7 @@ import getopt
 
 
 def help():
-    print(f"""Usage: python3 -m tdmclient.tools.server [options]
+    print(f"""Usage: python3 -m tdmclient server [options]
 Run a dummy tdm server
 
 Options:
@@ -32,7 +32,7 @@ def main(argv=None):
 
     if argv is not None:
         try:
-            arguments, values = getopt.getopt(sys.argv[1:],
+            arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "debug",
@@ -100,7 +100,3 @@ def main(argv=None):
     else:
         # only TCP server: don't need a separate thread
         server.loop_forever()
-
-
-if __name__ == "__main__":
-    main(sys.argv)

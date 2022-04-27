@@ -5,7 +5,7 @@ The easiest way to explore the Thymio from Python is to use a special version of
 
 To start the TDM repl, make sure that Thymio Suite is running and that a Thymio is connected. Then type the following command in your shell:
 ```
-python3 -m tdmclient.tools.repl
+python3 -m tdmclient repl
 ```
 
 A connection with the TDM will be established, the first robot will be found and locked, a message will be displayed to confirm that everything is fine, and you'll get the familiar Python prompt:

@@ -10,7 +10,7 @@ There are basically three ways to use tdmclient. From easy to more advanced:
 - If there is no need to communicate with the robot while the program runs, or if it's limited to messages and values displayed by the function `print()`, Python programs in .py files can be run on the Thymio with the following terminal command:
 
     ```
-    python3 -m tdmclient.tools.run program.py
+    python3 -m tdmclient run program.py
     ```
 
     The program is converted from Python to Aseba, the main programming language of the Thymio. The Thymio microcontroller has very limited processing power and memory; only a small part of Python is supported. For more information, see section [Python-to-Aseba transpiler](#Python-to-Aseba_transpiler).
@@ -25,4 +25,4 @@ There are basically three ways to use tdmclient. From easy to more advanced:
 
 - With `Client` and `Node` objects. `Client` is the base Python class for objects which manage the connection between your Python program and Thymio Suite, or more specifically the Thymio Device Manager (tdm), the part involved with the communication with the robots. `Node` is the base Python class for objects which are the counterpart of robots on the other side of the connection. Controlling robots with these objects is described in section [tdmclient classes and objects](#tdmclient_classes_and_objects).
 
-The package available on [pypi.org](https://pypi.org/project/tdmclient/), which can be installed with `pip`, contains just tdmclient and its documentation. The [Github code repository](https://github.com/epfl-mobots/tdm-python) also contains [Jupyter notebooks](https://github.com/epfl-mobots/tdm-python/tree/main/notebooks) (begin with [intro.ipynb](https://github.com/epfl-mobots/tdm-python/blob/main/notebooks/intro.ipynb)) and examples of [programs for the Thymio](https://github.com/epfl-mobots/tdm-python/tree/main/examples/robot) to run with `tdmclient.tools.run`.
+The package available on [pypi.org](https://pypi.org/project/tdmclient/), which can be installed with `pip`, contains just tdmclient and its documentation. The [Github code repository](https://github.com/epfl-mobots/tdm-python) also contains [Jupyter notebooks](https://github.com/epfl-mobots/tdm-python/tree/main/notebooks) (begin with [intro.ipynb](https://github.com/epfl-mobots/tdm-python/blob/main/notebooks/intro.ipynb)) and examples of [programs for the Thymio](https://github.com/epfl-mobots/tdm-python/tree/main/examples/robot) to run with `run`.

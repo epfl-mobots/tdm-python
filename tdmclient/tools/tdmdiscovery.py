@@ -12,7 +12,7 @@ from time import sleep
 from tdmclient import TDMZeroconfBrowser
 
 def help(**kwargs):
-    print(f"""Usage: python3 -m tdmclient.tools.tdmdiscovery [options]
+    print(f"""Usage: python3 -m tdmclient tdmdiscovery [options]
 Discover TDM information provided by zeroconf.
 
 Options:
@@ -44,7 +44,3 @@ def main(argv=None):
                 sleep(0.1)
     except KeyboardInterrupt:
         pass
-
-
-if __name__ == "__main__":
-    main(sys.argv)
