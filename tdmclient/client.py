@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -24,18 +24,33 @@ class Client(ThymioFB):
     def __init__(self,
                  zeroconf=None,
                  tdm_ws=False, tdm_addr=None, tdm_port=None,
+                 tdm_transport=None,
                  password=None,
                  **kwargs):
+        """Connection to TDM.
+
+        Arguments (all are optional):
+            tdm_addr - TDM address (default: provided by zeroconf or local)
+            tdm_port - TDM port (default: provided by zeroconf)
+            tdm_ws - True for WebSocket, else TCP (default: False)
+            tdm_transport - TDMConnection object (default: create)
+            password - TDM password for nonlocal connections (default: none)
+            zeroconf - True to use zeroconf (default: if tdm_port is unspec'ed)
+        """
 
         super(Client, self).__init__(**kwargs)
 
         if zeroconf is None:
             # use zeroconf if tdm_port isn't specified
             zeroconf = tdm_port is None
+        if tdm_transport is not None:
+            # addr and port are ignored anyway
+            zeroconf = False
         self.tdm_ws = tdm_ws
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
         self.tdm_ws_port = tdm_port
+        self.tdm_transport = tdm_transport
         self.tdm = None
 
         # if not None, function which gets raw tdm incoming messages and
@@ -73,8 +88,8 @@ class Client(ThymioFB):
             if tdm_addr is None:
                 # localhost by default
                 self.tdm_addr = "127.0.0.1"
-            if self.debug >= 1:
-                print(f"TDM {self.tdm_addr}:{self.tdm_port}")
+            if self.debug >= 1 and self.tdm_transport is None:
+                    print(f"TDM {self.tdm_addr}:{self.tdm_port}")
             self.connect()
             self.send_handshake(password)
 
@@ -84,7 +99,9 @@ class Client(ThymioFB):
             self.zc = None
 
     def connect(self):
-        if self.tdm_ws:
+        if self.tdm_transport:
+            self.tdm = self.tdm_transport
+        elif self.tdm_ws:
             self.tdm = TDMConnectionWS(self.tdm_addr, self.tdm_ws_port)
         else:
             self.tdm = TDMConnection(self.tdm_addr, self.tdm_port)
