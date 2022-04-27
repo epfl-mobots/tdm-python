@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -503,7 +503,7 @@ class VariableTableWindow(tk.Tk):
 
 
 def help():
-    print(f"""Usage: python3 -m tdmclient.tools.variables [options]
+    print(f"""Usage: python3 -m tdmclient.tools.gui [options]
 Variable browser and code editor
 
 Options:
@@ -521,8 +521,7 @@ Options:
 """)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     debug = 0
     language = None  # auto
     zeroconf = None  # auto
@@ -533,49 +532,50 @@ if __name__ == "__main__":
     robot_id = None
     robot_name = None
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "debug=",
-                                              "help",
-                                              "language=",
-                                              "nozeroconf",
-                                              "password=",
-                                              "robotid=",
-                                              "robotname=",
-                                              "tdmaddr=",
-                                              "tdmport=",
-                                              "tdmws",
-                                              "zeroconf",
-                                          ])
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--debug":
-            debug = int(val)
-        elif arg == "--language":
-            language = val
-        elif arg == "--nozeroconf":
-            zeroconf = False
-        elif arg == "--password":
-            password = val
-        elif arg == "--robotid":
-            robot_id = val
-        elif arg == "--robotname":
-            robot_name = val
-        elif arg == "--tdmaddr":
-            tdm_addr = val
-        elif arg == "--tdmport":
-            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
-        elif arg == "--tdmws":
-            tdm_ws = True
-        elif arg == "--zeroconf":
-            zeroconf = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "debug=",
+                                                  "help",
+                                                  "language=",
+                                                  "nozeroconf",
+                                                  "password=",
+                                                  "robotid=",
+                                                  "robotname=",
+                                                  "tdmaddr=",
+                                                  "tdmport=",
+                                                  "tdmws",
+                                                  "zeroconf",
+                                              ])
+        except getopt.error as err:
+            print(str(err))
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--debug":
+                debug = int(val)
+            elif arg == "--language":
+                language = val
+            elif arg == "--nozeroconf":
+                zeroconf = False
+            elif arg == "--password":
+                password = val
+            elif arg == "--robotid":
+                robot_id = val
+            elif arg == "--robotname":
+                robot_name = val
+            elif arg == "--tdmaddr":
+                tdm_addr = val
+            elif arg == "--tdmport":
+                tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
+            elif arg == "--tdmws":
+                tdm_ws = True
+            elif arg == "--zeroconf":
+                zeroconf = True
 
     win = VariableTableWindow(zeroconf=zeroconf,
                               tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
@@ -584,3 +584,7 @@ if __name__ == "__main__":
                               language=language, debug=debug)
     win.connect()
     win.mainloop()
+
+
+if __name__ == "__main__":
+    main(sys.argv)

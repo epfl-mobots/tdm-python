@@ -24,38 +24,38 @@ Options:
 """)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     tdm_port = None
     ws = False
     adv_zeroconf = False
     debug = False
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "debug",
-                                              "help",
-                                              "port=",
-                                              "ws",
-                                              "zeroconf",
-                                          ])
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--debug":
-            debug = True
-        elif arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--port":
-            tdm_port = int(val)
-        elif arg == "--ws":
-            ws = True
-        elif arg == "--zeroconf":
-            adv_zeroconf = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "debug",
+                                                  "help",
+                                                  "port=",
+                                                  "ws",
+                                                  "zeroconf",
+                                              ])
+        except getopt.error as err:
+            print(str(err))
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--debug":
+                debug = True
+            elif arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--port":
+                tdm_port = int(val)
+            elif arg == "--ws":
+                ws = True
+            elif arg == "--zeroconf":
+                adv_zeroconf = True
 
     if adv_zeroconf:
         from zeroconf import Zeroconf, ServiceInfo
@@ -100,3 +100,7 @@ if __name__ == "__main__":
     else:
         # only TCP server: don't need a separate thread
         server.loop_forever()
+
+
+if __name__ == "__main__":
+    main(sys.argv)

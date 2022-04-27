@@ -26,42 +26,42 @@ Options:
 """)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     show_print = False
     show_exit = False
     show_events = False
     import_thymio = True
     warning_missing_global = False
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "events",
-                                              "exit",
-                                              "help",
-                                              "nothymio",
-                                              "print",
-                                              "warning-missing-global",
-                                          ])
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--events":
-            show_events = True
-        elif arg == "--exit":
-            show_exit = True
-        elif arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--nothymio":
-            import_thymio = False
-        elif arg == "--print":
-            show_print = True
-        elif arg == "--warning-missing-global":
-            warning_missing_global = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "events",
+                                                  "exit",
+                                                  "help",
+                                                  "nothymio",
+                                                  "print",
+                                                  "warning-missing-global",
+                                              ])
+        except getopt.error as err:
+            print(str(err))
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--events":
+                show_events = True
+            elif arg == "--exit":
+                show_exit = True
+            elif arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--nothymio":
+                import_thymio = False
+            elif arg == "--print":
+                show_print = True
+            elif arg == "--warning-missing-global":
+                warning_missing_global = True
 
     src = None
     if len(values) > 0:
@@ -99,3 +99,7 @@ if __name__ == "__main__":
             print(transpiler.print_format_strings)
     if not show_events and not show_exit and not show_print:
         print(transpiler.get_output())
+
+
+if __name__ == "__main__":
+    main(sys.argv)

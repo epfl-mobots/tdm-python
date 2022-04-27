@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -41,8 +41,7 @@ Options:
 """, **kwargs)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     debug = 0
     language = None  # auto
     stop = False
@@ -81,71 +80,72 @@ if __name__ == "__main__":
         if error_msg:
             print(f"{error_msg} (line {line}{' in Aseba' if language != 'aseba' else ''})")
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "debug=",
-                                              "event=",
-                                              "help",
-                                              "language=",
-                                              "nosleep",
-                                              "nothymio",
-                                              "password=",
-                                              "robotid=",
-                                              "robotname=",
-                                              "scratchpad",
-                                              "sleep",
-                                              "sponly",
-                                              "stop",
-                                              "tdmaddr=",
-                                              "tdmport=",
-                                              "tdmws",
-                                          ])
-    except getopt.error as err:
-        print(str(err), file=sys.stderr)
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--debug":
-            debug = int(val)
-        elif arg == "--event":
-            r = event_re.match(val)
-            if r is None:
-                help(file=sys.stderr)
-                sys.exit(1)
-            events.append((
-                r.group(1),
-                0 if r.group(3) is None else int(r.group(3)),
-            ))
-        elif arg == "--language":
-            language = val
-        elif arg == "--nosleep":
-            sleep = False
-        elif arg == "--nothymio":
-            import_thymio = False
-        elif arg == "--password":
-            password = val
-        elif arg == "--robotid":
-            robot_id = val
-        elif arg == "--robotname":
-            robot_name = val
-        elif arg == "--scratchpad":
-            scratchpad = 1
-        elif arg == "--sleep":
-            sleep = True
-        elif arg == "--sponly":
-            scratchpad = 2
-        elif arg == "--stop":
-            stop = True
-        elif arg == "--tdmaddr":
-            tdm_addr = val
-        elif arg == "--tdmport":
-            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
-        elif arg == "--tdmws":
-            tdm_ws = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "debug=",
+                                                  "event=",
+                                                  "help",
+                                                  "language=",
+                                                  "nosleep",
+                                                  "nothymio",
+                                                  "password=",
+                                                  "robotid=",
+                                                  "robotname=",
+                                                  "scratchpad",
+                                                  "sleep",
+                                                  "sponly",
+                                                  "stop",
+                                                  "tdmaddr=",
+                                                  "tdmport=",
+                                                  "tdmws",
+                                              ])
+        except getopt.error as err:
+            print(str(err), file=sys.stderr)
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--debug":
+                debug = int(val)
+            elif arg == "--event":
+                r = event_re.match(val)
+                if r is None:
+                    help(file=sys.stderr)
+                    sys.exit(1)
+                events.append((
+                    r.group(1),
+                    0 if r.group(3) is None else int(r.group(3)),
+                ))
+            elif arg == "--language":
+                language = val
+            elif arg == "--nosleep":
+                sleep = False
+            elif arg == "--nothymio":
+                import_thymio = False
+            elif arg == "--password":
+                password = val
+            elif arg == "--robotid":
+                robot_id = val
+            elif arg == "--robotname":
+                robot_name = val
+            elif arg == "--scratchpad":
+                scratchpad = 1
+            elif arg == "--sleep":
+                sleep = True
+            elif arg == "--sponly":
+                scratchpad = 2
+            elif arg == "--stop":
+                stop = True
+            elif arg == "--tdmaddr":
+                tdm_addr = val
+            elif arg == "--tdmport":
+                tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
+            elif arg == "--tdmws":
+                tdm_ws = True
 
     if stop:
         if len(values) > 0:
@@ -209,7 +209,7 @@ if __name__ == "__main__":
                      debug=debug) as client:
 
         async def prog():
-            global status, events, sleep
+            nonlocal status, events, sleep
             with await client.lock(node_id=robot_id, node_name=robot_name) as node:
                 if stop:
                     error = await node.stop()
@@ -253,3 +253,7 @@ if __name__ == "__main__":
         client.run_async_program(prog)
 
     sys.exit(status)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

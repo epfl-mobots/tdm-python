@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -28,8 +28,7 @@ Options:
 """)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     debug = 0
     tdm_addr = None
     tdm_port = None
@@ -38,40 +37,41 @@ if __name__ == "__main__":
     robot_id = None
     robot_name = None
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "debug=",
-                                              "help",
-                                              "password=",
-                                              "robotid=",
-                                              "robotname=",
-                                              "tdmaddr=",
-                                              "tdmport=",
-                                              "tdmws",
-                                          ])
-    except getopt.error as err:
-        print(str(err))
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--debug":
-            debug = int(val)
-        elif arg == "--password":
-            password = val
-        elif arg == "--robotid":
-            robot_id = val
-        elif arg == "--robotname":
-            robot_name = val
-        elif arg == "--tdmaddr":
-            tdm_addr = val
-        elif arg == "--tdmport":
-            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
-        elif arg == "--tdmws":
-            tdm_ws = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "debug=",
+                                                  "help",
+                                                  "password=",
+                                                  "robotid=",
+                                                  "robotname=",
+                                                  "tdmaddr=",
+                                                  "tdmport=",
+                                                  "tdmws",
+                                              ])
+        except getopt.error as err:
+            print(str(err))
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--debug":
+                debug = int(val)
+            elif arg == "--password":
+                password = val
+            elif arg == "--robotid":
+                robot_id = val
+            elif arg == "--robotname":
+                robot_name = val
+            elif arg == "--tdmaddr":
+                tdm_addr = val
+            elif arg == "--tdmport":
+                tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
+            elif arg == "--tdmws":
+                tdm_ws = True
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                      password=password,
@@ -105,3 +105,7 @@ if __name__ == "__main__":
             if "fw_version" in node.props:
                 print(f"firmware: {node.props['fw_version']}")
             print()
+
+
+if __name__ == "__main__":
+    main(sys.argv)

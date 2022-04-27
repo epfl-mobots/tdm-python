@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -26,8 +26,7 @@ Options:
 """, **kwargs)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     debug = 2  # display all messages received from the tdm by default
     tdm_addr = None
     tdm_port = None
@@ -36,40 +35,41 @@ if __name__ == "__main__":
     robot_id = None
     robot_name = None
 
-    try:
-        arguments, values = getopt.getopt(sys.argv[1:],
-                                          "",
-                                          [
-                                              "debug=",
-                                              "help",
-                                              "password=",
-                                              "robotid=",
-                                              "robotname=",
-                                              "tdmaddr=",
-                                              "tdmport=",
-                                              "tdmws",
-                                          ])
-    except getopt.error as err:
-        print(str(err), file=sys.stderr)
-        sys.exit(1)
-    for arg, val in arguments:
-        if arg == "--help":
-            help()
-            sys.exit(0)
-        elif arg == "--debug":
-            debug = int(val)
-        elif arg == "--password":
-            password = val
-        elif arg == "--robotid":
-            robot_id = val
-        elif arg == "--robotname":
-            robot_name = val
-        elif arg == "--tdmaddr":
-            tdm_addr = val
-        elif arg == "--tdmport":
-            tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
-        elif arg == "--tdmws":
-            tdm_ws = True
+    if argv is not None:
+        try:
+            arguments, values = getopt.getopt(sys.argv[1:],
+                                              "",
+                                              [
+                                                  "debug=",
+                                                  "help",
+                                                  "password=",
+                                                  "robotid=",
+                                                  "robotname=",
+                                                  "tdmaddr=",
+                                                  "tdmport=",
+                                                  "tdmws",
+                                              ])
+        except getopt.error as err:
+            print(str(err), file=sys.stderr)
+            sys.exit(1)
+        for arg, val in arguments:
+            if arg == "--help":
+                help()
+                sys.exit(0)
+            elif arg == "--debug":
+                debug = int(val)
+            elif arg == "--password":
+                password = val
+            elif arg == "--robotid":
+                robot_id = val
+            elif arg == "--robotname":
+                robot_name = val
+            elif arg == "--tdmaddr":
+                tdm_addr = val
+            elif arg == "--tdmport":
+                tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
+            elif arg == "--tdmws":
+                tdm_ws = True
 
     if len(values) > 0:
         help(file=sys.stderr)
@@ -85,3 +85,7 @@ if __name__ == "__main__":
             await client.sleep()
 
         client.run_async_program(prog)
+
+
+if __name__ == "__main__":
+    main(sys.argv)
