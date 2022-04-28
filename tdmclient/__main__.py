@@ -13,12 +13,23 @@ import tdmclient.tools
 import sys
 import getopt
 
+tool_set = {
+    "gui",
+    "list",
+    "repl",
+    "run",
+    "server",
+    "tdmdiscovery",
+    "transpile",
+    "watch",
+}
+
 def help(**kwargs):
     print(f"""Usage: python3 -m tdmclient tool [tooloptions]
 Run a tdmclient tool.
 
 Tool:
-  ...
+  {", ".join(sorted(tool_set))}
 
 For help about tool-specific options, type
 
@@ -45,4 +56,10 @@ if len(values) == 0:
     help(file=sys.stderr)
     sys.exit(1)
 
-getattr(tdmclient.tools, values[0]).main(values)
+tool_name = values[0]
+if tool_name not in tool_set:
+    print(f"Unknown tool {tool_name}.\n", file=sys.stderr)
+    help(file=sys.stderr)
+    sys.exit(1)
+
+sys.exit(getattr(tdmclient.tools, tool_name).main(values))

@@ -9,8 +9,8 @@ If you just want to run Python programs on the robot, the _tdmclient-ty_ plug-in
 
 For complete access to _tdmclient_, here are two tricks you might find useful.
 - To make sure you install tdmclient for the Python environment used by Thonny, select the menu Tools>Manage packages, type _tdmclient_ in the search box, and click button _Search on PyPI_. Click the link _tdmclient_ in the result list (normally the only result), then the Install button below.
-- To run the repl in Thonny's shell, you can launch it with the code of `tdmclient.tools.repl`:
+- To run the repl in Thonny's shell, you can launch it with the code of the `repl` tdmclient tool:
     ```
-    import tdmclient.tools.repl
+    import tdmclient.tools
     tdmclient.tools.repl.main()
     ```

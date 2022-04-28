@@ -43,13 +43,13 @@ def main(argv=None):
                                               ])
         except getopt.error as err:
             print(str(err))
-            sys.exit(1)
+            return 1
         for arg, val in arguments:
             if arg == "--debug":
                 debug = True
             elif arg == "--help":
                 help()
-                sys.exit(0)
+                return 0
             elif arg == "--port":
                 tdm_port = int(val)
             elif arg == "--ws":

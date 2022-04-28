@@ -58,11 +58,11 @@ def main(argv=None, tdm_transport=None):
                                               ])
         except getopt.error as err:
             print(str(err))
-            sys.exit(1)
+            return 1
         for arg, val in arguments:
             if arg == "--help":
                 help()
-                sys.exit(0)
+                return 0
             elif arg == "--password":
                 password = val
             elif arg == "--robotid":

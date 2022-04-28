@@ -104,18 +104,18 @@ def main(argv=None, tdm_transport=None):
                                               ])
         except getopt.error as err:
             print(str(err), file=sys.stderr)
-            sys.exit(1)
+            return 1
         for arg, val in arguments:
             if arg == "--help":
                 help()
-                sys.exit(0)
+                return 0
             elif arg == "--debug":
                 debug = int(val)
             elif arg == "--event":
                 r = event_re.match(val)
                 if r is None:
                     help(file=sys.stderr)
-                    sys.exit(1)
+                    return 1
                 events.append((
                     r.group(1),
                     0 if r.group(3) is None else int(r.group(3)),
@@ -150,7 +150,7 @@ def main(argv=None, tdm_transport=None):
     if stop:
         if len(values) > 0:
             help(file=sys.stderr)
-            sys.exit(1)
+            return 1
     else:
         if len(values) == 0:
             program = sys.stdin.read()
@@ -176,7 +176,7 @@ def main(argv=None, tdm_transport=None):
                 language = "python" if os.path.splitext(values[0])[1] == ".py" else "aseba"
         else:
             help(file=sys.stderr)
-            sys.exit(1)
+            return 1
 
     status = 0
 
@@ -253,4 +253,4 @@ def main(argv=None, tdm_transport=None):
 
         client.run_async_program(prog)
 
-    sys.exit(status)
+    return status

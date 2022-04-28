@@ -51,11 +51,11 @@ def main(argv=None, tdm_transport=None):
                                               ])
         except getopt.error as err:
             print(str(err), file=sys.stderr)
-            sys.exit(1)
+            return 1
         for arg, val in arguments:
             if arg == "--help":
                 help()
-                sys.exit(0)
+                return 0
             elif arg == "--debug":
                 debug = int(val)
             elif arg == "--password":
@@ -73,7 +73,7 @@ def main(argv=None, tdm_transport=None):
 
     if len(values) > 0:
         help(file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                      tdm_transport=tdm_transport,
