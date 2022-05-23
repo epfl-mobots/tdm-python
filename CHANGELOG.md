@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.16] - 2022-05-16
+
 ### Added
 
 - Optional connection to the TDM using a WebSocket instead of plain TCP
