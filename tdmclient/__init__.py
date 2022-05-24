@@ -12,7 +12,10 @@ Communication with TDM.
 from tdmclient.fb import FlatBuffer, Table, Union
 from tdmclient.zeroconf import TDMZeroconfBrowser
 from tdmclient.tcp import TDMConnection
-from tdmclient.ws import TDMConnectionWS
+try:
+    from tdmclient.ws import TDMConnectionWS
+except ModuleNotFoundError:
+    pass
 from tdmclient.thymio import ThymioFB, Node
 from tdmclient.client import Client
 from tdmclient.clientasync import ClientAsync

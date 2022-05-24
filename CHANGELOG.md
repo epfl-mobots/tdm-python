@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Dependency on package `websocket-client` removed (`websocket-client` should be installed separately if `Client` or `ClientAsync` are instantiated with `tdm_ws=True`)
+
 ## [0.1.16] - 2022-05-16
 
 ### Added

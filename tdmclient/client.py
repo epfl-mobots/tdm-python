@@ -5,7 +5,11 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from tdmclient import TDMZeroconfBrowser, TDMConnection, TDMConnectionWS
+from tdmclient import TDMZeroconfBrowser, TDMConnection
+try:
+    from tdmclient import TDMConnectionWS
+except ImportError:
+    pass
 from tdmclient import FlatBuffer, ThymioFB
 from tdmclient.clientnode import ClientNode
 
