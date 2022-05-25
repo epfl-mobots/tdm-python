@@ -18,7 +18,7 @@ except ModuleNotFoundError:
     pass
 from tdmclient.thymio import ThymioFB, Node
 from tdmclient.client import Client
-from tdmclient.clientasync import ClientAsync
+from tdmclient.clientasync import ClientAsync, NodeLockError
 from tdmclient.clientnode import ClientNode
 from tdmclient.clientasyncnode import ClientAsyncNode
 from tdmclient.clientasynccachenode import ClientAsyncCacheNode, ArrayCache
