@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.17] - 2022-06-13
+
 ### Added
 
 - Exported `NodeLockError`
