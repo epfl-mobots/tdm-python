@@ -30,6 +30,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/epfl-mobots/tdm-python",
     install_requires=[
+        "websockets",
         "zeroconf",
     ],
     classifiers=[
