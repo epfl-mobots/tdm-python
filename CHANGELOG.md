@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Module `tkinter` not needed anymore except for tool `gui`
+
 ## [0.1.17] - 2022-06-13
 
 ### Added
