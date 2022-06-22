@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- In transpiler, syntax errors are displayed with context
+
 ### Fixed
 
 - Module `tkinter` not needed anymore except for tool `gui`

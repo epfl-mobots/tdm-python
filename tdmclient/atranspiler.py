@@ -26,7 +26,12 @@ class TranspilerError(Exception):
                        else None)
 
     def __str__(self):
-        output = self.message
+        output = ""
+        if self.syntax_error is not None:
+            # show context like in Python repl
+            output += 2 * " " + self.syntax_error.text
+            output += (1 + self.syntax_error.offset) * " " + "^\n"
+        output += self.message
         if self.lineno is not None:
             output += f" (line {self.lineno})"
         return output
