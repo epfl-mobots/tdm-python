@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - Module `tkinter` not needed anymore except for tool `gui`
+- In transpiler, attribute syntax for Thymio variables, such as `import thymio; x = thymio.button_center`
 
 ## [0.1.17] - 2022-06-13
 

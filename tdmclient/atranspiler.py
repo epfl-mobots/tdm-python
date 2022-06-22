@@ -792,13 +792,14 @@ end
             code, aux_st, is_boolean = self.compile_expr(node.value, context, self.PRI_NUMERIC)
             aux_statements += aux_st
             return code, aux_statements, False
-        elif isinstance(node, ast.Name):
-            var_array_size = context.var_array_size(node.id, ast_node=node)
+        elif isinstance(node, (ast.Name, ast.Attribute)):
+            name = self.decode_attr(node)
+            var_array_size = context.var_array_size(name, ast_node=node)
             if var_array_size is False:
-                raise TranspilerError(f"unknown variable '{node.id}'", node)
+                raise TranspilerError(f"unknown variable '{name}'", node)
             if isinstance(var_array_size, int):
-                raise TranspilerError(f"list variable '{node.id}' used in expression", node)
-            code = context.var_str(node.id, ast_node=node)
+                raise TranspilerError(f"list variable '{name}' used in expression", node)
+            code = context.var_str(name, ast_node=node)
         elif isinstance(node, ast.Subscript):
             name = self.decode_attr(node.value)
             var_array_size = context.var_array_size(name, ast_node=node)
