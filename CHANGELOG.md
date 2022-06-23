@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+## [0.1.18] - 2022-06-22
+
 ### Added
 
 - In transpiler, syntax errors are displayed with context
@@ -11,7 +13,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - Module `tkinter` not needed anymore except for tool `gui`
-- In transpiler, attribute syntax for Thymio variables, such as `import thymio; x = thymio.button_center`
+- In transpiler, attribute syntax for scalar Thymio variables, such as `import thymio; x = thymio.button_center`
 
 ## [0.1.17] - 2022-06-13
 

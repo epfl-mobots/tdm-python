@@ -29,7 +29,7 @@ class TranspilerError(Exception):
         output = ""
         if self.syntax_error is not None:
             # show context like in Python repl
-            output += 2 * " " + self.syntax_error.text
+            output += "\n  " + self.syntax_error.text
             output += (1 + self.syntax_error.offset) * " " + "^\n"
         output += self.message
         if self.lineno is not None:
