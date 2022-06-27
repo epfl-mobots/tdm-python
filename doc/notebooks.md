@@ -120,6 +120,38 @@ Variables accessed or changed in the notebook are synchronized with the robot on
             leds_top = [0, 10, 32]
     ```
 
+### Passing results to the robot
+
+To define a variable in a program for the robot with a value calculated in the notebook, the simplest way is to add an option to `%%run_python` or `%%run_aseba`. In the first example, we pass the variable `speed`:
+```
+speed = 20
+```
+
+```
+%%run_python --var speed=speed
+motor_left_target = speed
+motor_right_target = speed
+```
+
+In the assignment which follows `--var`, what's on the left side of `=` is the name of the variable to define in the robot program; what's on the right side is any expression (a constant, a variable, or something more complicated) evaluated in the context of the notebook. If the assignment contains spaces, you must quote it:
+```
+%%run_python --var "speed = 2 * speed"
+motor_left_target = speed
+motor_right_target = speed
+```
+
+The expression can also evaluate to a list:
+```
+color = [0, 32, 0]  # green
+```
+
+```
+%%run_python --var "c = [32-component for component in color]"
+leds_top = c  # [32,0,32] = magenta
+```
+
+To pass values during the execution once or multiple times, use custom events or change variables after the program has started, as explained below.
+
 ### Custom events
 
 To retrieve data from the robot and process them further in your notebook, you can send events with `emit`. In the program below, we collects 20 samples of the front proximity sensor, one every 200ms (5 per second), i.e. during 4 seconds.

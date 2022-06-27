@@ -271,6 +271,20 @@ import getopt
 import sys
 import shlex
 
+def var_option_to_var_statement(arg, is_aseba=False):
+    name, expr = arg.split("=", 1)
+    globals_dict = get_ipython().user_ns
+    value = eval(expr, globals_dict)
+    statement = "var " + name if is_aseba else name
+    if isinstance(value, builtins.list):
+        statement += "[] = " if is_aseba else " = "
+        statement += "[" + ", ".join([str(int(el)) for el in value]) + "]"
+    else:
+        statement += " = "
+        statement += str(int(value))
+    statement += "\n"
+    return statement
+
 @register_cell_magic
 def run_python(line, cell):
     """Transpile the whole cell from Python to Aseba, send it to the robot and
@@ -279,10 +293,10 @@ def run_python(line, cell):
     Options:
 
         --clear-event-data: clear event data so that function get_event_data()
-        doesn't include events from a previous run.
+                            doesn't include events from a previous run.
 
         --nothymio: don't import Thymio symbols (module "thymio" should be
-        imported explicitly if needed).
+                    imported explicitly if needed).
 
         --robotid ID: run on robot specified by id.
 
@@ -291,12 +305,16 @@ def run_python(line, cell):
         --robotindex I: run on robot specified by index
                         (0=first=default, 1=second etc.)
 
+        --var NAME=VALUE: define a variable where the initial value is
+                          evaluated in the context of the notebook.
+
         --wait: continue running to receive events from the robot and display
+                print output until exit() is called in the program or the
+                execution is interrupted. Other events are stored and can be
+                obtained with function get_event_data().
+
         --warning-missing-global: display warnings for local variables which
                                   hide global variables with the same name
-        print output until exit() is called in the program or the execution
-        is interrupted. Other events are stored and can be obtained with
-        function get_event_data().
     """
 
     args = shlex.split(line)
@@ -315,12 +333,14 @@ def run_python(line, cell):
                                               "robotid=",
                                               "robotindex=",
                                               "robotname=",
+                                              "var=",
                                               "wait",
                                               "warning-missing-global",
                                           ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
         return
+    python_preamble = ""
     for arg, val in arguments:
         if arg == "--clear-event-data":
             clear_event_data = True
@@ -341,6 +361,8 @@ def run_python(line, cell):
                 node = _interactive_console.find_robot(robot_name=name)
                 if node not in nodes:
                     nodes.append(node)
+        elif arg == "--var":
+            python_preamble += var_option_to_var_statement(val)
         elif arg == "--wait":
             wait = True
         elif arg == "--warning-missing-global":
@@ -353,7 +375,7 @@ def run_python(line, cell):
         _interactive_console.clear_event_data()
 
     try:
-        _interactive_console.run_program(cell,
+        _interactive_console.run_program(python_preamble + cell,
                                          nodes=nodes if len(nodes) > 0 else None,
                                          language="python",
                                          warning_missing_global=warning_missing_global,
@@ -374,6 +396,10 @@ def run_aseba(line, cell):
 
         --robotindex I: run on robot specified by index
                         (0=first=default, 1=second etc.)
+
+        --var NAME=VALUE: define a variable where the initial value is
+                          evaluated in the context of the notebook.
+
     """
 
     args = shlex.split(line)
@@ -385,10 +411,12 @@ def run_aseba(line, cell):
                                               "robotid=",
                                               "robotindex=",
                                               "robotname=",
+                                              "var=",
                                           ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
         return
+    aseba_preamble = ""
     for arg, val in arguments:
         if arg == "--robotid":
             for id in val.split(","):
@@ -405,11 +433,13 @@ def run_aseba(line, cell):
                 node = _interactive_console.find_robot(robot_name=name)
                 if node not in nodes:
                     nodes.append(node)
+        elif arg == "--var":
+            aseba_preamble += var_option_to_var_statement(val, True)
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    _interactive_console.run_program(cell,
+    _interactive_console.run_program(aseba_preamble + cell,
                                      nodes = nodes if len(nodes) > 0 else None,
                                      language="aseba")
 
@@ -420,7 +450,11 @@ def transpile_to_aseba(line, cell):
     Option:
 
         --nothymio: don't import Thymio symbols (module "thymio" should be
-        imported explicitly if needed).
+                    imported explicitly if needed).
+
+        --var NAME=VALUE: define a variable where the initial value is
+                          evaluated in the context of the notebook.
+
         --warning-missing-global: display warnings for local variables which
                                   hide global variables with the same name
     """
@@ -434,21 +468,25 @@ def transpile_to_aseba(line, cell):
                                           "",
                                           [
                                               "nothymio",
+                                              "var=",
                                               "warning-missing-global",
                                           ])
     except getopt.error as err:
         print(str(err), file=sys.stderr)
         return
+    python_preamble = ""
     for arg, val in arguments:
         if arg == "--nothymio":
             import_thymio = False
+        elif arg == "--var":
+            python_preamble += var_option_to_var_statement(val)
         elif arg == "--warning-missing-global":
             warning_missing_global = True
     if len(values) > 0:
         print(f"Unexpected argument {values[0]}", file=sys.stderr)
         return
 
-    transpiler = _interactive_console.transpile(cell,
+    transpiler = _interactive_console.transpile(python_preamble + cell,
                                                 import_thymio=import_thymio,
                                                 warning_missing_global=warning_missing_global)
 
