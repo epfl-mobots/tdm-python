@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Module `websockets` not needed anymore except to enable option `--ws` in tool `server` 
+
 ## [0.1.18] - 2022-06-22
 
 ### Added

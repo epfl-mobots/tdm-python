@@ -6,10 +6,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from tdmclient import Server, ServerNode, ThymioFB
-from tdmclient.serverws import ServerWS
 import sys
 import getopt
 
+has_ws = False
+try:
+    from tdmclient.serverws import ServerWS
+    has_ws = True
+except ModuleNotFoundError:
+    pass
 
 def help():
     print(f"""Usage: python3 -m tdmclient server [options]
@@ -18,9 +23,12 @@ Run a dummy tdm server
 Options:
   --debug        display debugging information
   --help         display this help message and exit
-  --port=P       port (default: {Server.PORT} for TCP, {ServerWS.PORT} for WebSocket)
+  --port=P       port (default: {Server.PORT} for TCP{", " + str(ServerWS.PORT) + " for WebSocket" if has_ws else ""})
   --ws           WebSocket in addition to plain TCP
   --zeroconf     advertise TCP TDM port via zeroconf
+""")
+    if not has_ws:
+        print("""--ws is not available, because the module "websockets" is not installed.
 """)
 
 
@@ -53,7 +61,11 @@ def main(argv=None):
             elif arg == "--port":
                 tdm_port = int(val)
             elif arg == "--ws":
-                ws = True
+                if has_ws:
+                    ws = True
+                else:
+                    print('--ws not available because module "websockets" is not installed.')
+                    return 1
             elif arg == "--zeroconf":
                 adv_zeroconf = True
 
