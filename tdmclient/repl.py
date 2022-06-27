@@ -480,7 +480,8 @@ class TDMConsole(code.InteractiveConsole):
                             exit_str = f"[R{nodes.index(node)}] " + exit_str
                         print(exit_str)
                     self.stop_program(node, discard_output=True)
-                    running_nodes.remove(node)
+                    if node in running_nodes:
+                        running_nodes.remove(node)
                 elif event_name == "_print":
                     print_id = event_data[0]
                     print_format, print_num_args = print_statements[node][print_id]
