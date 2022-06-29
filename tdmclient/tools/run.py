@@ -36,8 +36,9 @@ Options:
   --sponly       store program into the TDM without running it
   --stop         stop program (no filename or stdin expected)
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
+  --tdmport=P    tdm port (default: 8596 (tcp) or 8597 (ws), or from zeroconf)
   --tdmws        connect to tdm with WebSocket (default: plain TCP)
+  --zeroconf     use zeroconf (default: no zeroconf)
 """, **kwargs)
 
 
@@ -46,6 +47,7 @@ def main(argv=None, tdm_transport=None):
     language = None  # auto
     stop = False
     scratchpad = 0  # 1=--scratchpad, 2=--sponly
+    zeroconf = False
     tdm_addr = None
     tdm_port = None
     tdm_ws = False
@@ -101,6 +103,7 @@ def main(argv=None, tdm_transport=None):
                                                   "tdmaddr=",
                                                   "tdmport=",
                                                   "tdmws",
+                                                  "zeroconf",
                                               ])
         except getopt.error as err:
             print(str(err), file=sys.stderr)
@@ -146,6 +149,8 @@ def main(argv=None, tdm_transport=None):
                 tdm_port = ClientAsync.DEFAULT_TDM_PORT if val == "default" else int(val)
             elif arg == "--tdmws":
                 tdm_ws = True
+            elif arg == "--zeroconf":
+                zeroconf = True
 
     if stop:
         if len(values) > 0:
@@ -204,7 +209,8 @@ def main(argv=None, tdm_transport=None):
         for event_name in transpiler.events_out:
             events.append((event_name, transpiler.events_out[event_name]))
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+    with ClientAsync(zeroconf=zeroconf,
+                     tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                      tdm_transport=tdm_transport,
                      password=password,
                      debug=debug) as client:

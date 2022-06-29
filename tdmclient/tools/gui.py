@@ -516,21 +516,20 @@ Options:
   --debug n      display diagnostic information (0=none, 1=basic, 2=more, 3=verbose)
   --help         display this help message and exit
   --language=L   programming language (aseba or python); default=automatic
-  --nozeroconf   don't use zeroconf (default: automatic)
   --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
-  --tdmport=P    tdm port or "default" for {ClientAsync.DEFAULT_TDM_PORT} (default: from zeroconf)
+  --tdmport=P    tdm port (default: 8596 (tcp) or 8597 (ws), or from zeroconf)
   --tdmws        connect to tdm with WebSocket (default: plain TCP)
-  --zeroconf     use zeroconf (default: automatic)
+  --zeroconf     use zeroconf (default: no zeroconf)
 """)
 
 
 def main(argv=None, tdm_transport=None):
     debug = 0
     language = None  # auto
-    zeroconf = None  # auto
+    zeroconf = False
     tdm_addr = None
     tdm_port = None
     tdm_ws = False
@@ -546,7 +545,6 @@ def main(argv=None, tdm_transport=None):
                                                   "debug=",
                                                   "help",
                                                   "language=",
-                                                  "nozeroconf",
                                                   "password=",
                                                   "robotid=",
                                                   "robotname=",
@@ -566,8 +564,6 @@ def main(argv=None, tdm_transport=None):
                 debug = int(val)
             elif arg == "--language":
                 language = val
-            elif arg == "--nozeroconf":
-                zeroconf = False
             elif arg == "--password":
                 password = val
             elif arg == "--robotid":

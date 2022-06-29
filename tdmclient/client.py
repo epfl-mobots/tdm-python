@@ -26,7 +26,7 @@ class Client(ThymioFB):
     DEFAULT_TDM_WS_PORT = 8597
 
     def __init__(self,
-                 zeroconf=None,
+                 zeroconf=False,
                  tdm_ws=False, tdm_addr=None, tdm_port=None,
                  tdm_transport=None,
                  password=None,
@@ -35,18 +35,17 @@ class Client(ThymioFB):
 
         Arguments (all are optional):
             tdm_addr - TDM address (default: provided by zeroconf or local)
-            tdm_port - TDM port (default: provided by zeroconf)
+            tdm_port - TDM port (default: provided by zeroconf, or 8596 (tcp) or 8597 (ws))
             tdm_ws - True for WebSocket, else TCP (default: False)
             tdm_transport - TDMConnection object (default: create)
             password - TDM password for nonlocal connections (default: none)
-            zeroconf - True to use zeroconf (default: if tdm_port is unspec'ed)
+            zeroconf - True to use zeroconf (default: false)
+
+        tdm_addr, tdm_port and tdm_ws are ignored if tdm_transport is provided.
         """
 
         super(Client, self).__init__(**kwargs)
 
-        if zeroconf is None:
-            # use zeroconf if tdm_port isn't specified
-            zeroconf = tdm_port is None
         if tdm_transport is not None:
             # addr and port are ignored anyway
             zeroconf = False
