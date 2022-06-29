@@ -15,7 +15,7 @@ from tdmclient import ClientAsync
 from tdmclient.atranspiler import ATranspiler
 
 
-class VariableTableWindow(tk.Tk):
+class GUIWindow(tk.Tk):
 
     def __init__(self,
                  zeroconf=None,
@@ -24,7 +24,7 @@ class VariableTableWindow(tk.Tk):
                  password=None,
                  node_id=None, node_name=None,
                  language=None, debug=0):
-        super(VariableTableWindow, self).__init__()
+        super(GUIWindow, self).__init__()
         self.geometry("800x600")
 
         self.program_path = None
@@ -195,6 +195,13 @@ class VariableTableWindow(tk.Tk):
         self.start_co = None
 
         self.set_title()
+
+        # disconnect on exit
+        def on_exit():
+            self.disconnect()
+            self.destroy()
+
+        self.protocol("WM_DELETE_WINDOW", on_exit)
 
     def set_title(self):
         name = self.node.props["name"] if self.node is not None else "No robot"
@@ -498,12 +505,17 @@ class VariableTableWindow(tk.Tk):
         # schedule communication
         self.after(100, self.run)
 
+    def disconnect(self):
+        if self.client is not None:
+            self.client.disconnect()
+            self.client = None
+
     def run(self):
         if self.start_co is not None:
             if not self.client.step_coroutine(self.start_co):
                 # start_co is finished
                 self.start_co = None
-        else:
+        elif self.client is not None:
             self.client.process_waiting_messages()
         self.after(100, self.run)
 
@@ -579,11 +591,11 @@ def main(argv=None, tdm_transport=None):
             elif arg == "--zeroconf":
                 zeroconf = True
 
-    win = VariableTableWindow(zeroconf=zeroconf,
-                              tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
-                              tdm_transport=tdm_transport,
-                              password=password,
-                              node_id=robot_id, node_name=robot_name,
-                              language=language, debug=debug)
+    win = GUIWindow(zeroconf=zeroconf,
+                    tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+                    tdm_transport=tdm_transport,
+                    password=password,
+                    node_id=robot_id, node_name=robot_name,
+                    language=language, debug=debug)
     win.connect()
     win.mainloop()
