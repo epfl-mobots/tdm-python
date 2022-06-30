@@ -37,9 +37,16 @@ var asebaNode = new A3a.A3aNode(A3a.thymioDescr);
 var c = new A3a.Compiler(asebaNode, asebaSourceCode);
 c.functionLib = A3a.A3aNode.stdMacros;
 var bytecode = c.compile();
-bytecode
+print("all var", JSON.stringify(c.asebaNode.variables.concat(c.declaredVariables)))
+JSON.stringify([
+    bytecode,
+    c.asebaNode.variables.concat(c.declaredVariables)
+])
 """
 
-    def compile_to_bytecode(self, aseba_src_code):
+    def compile(self, aseba_src_code):
+        """Compile Aseba source code and return a dict with bytecode in "bc"
+        and array of variables ({name:string,size:int,offset:int}) in "variables"
+        """
         src = self.src_preamble + json.dumps(aseba_src_code) + self.src_postamble
-        return dukpy.evaljs(src)
+        return json.loads(dukpy.evaljs(src))
