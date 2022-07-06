@@ -50,7 +50,7 @@ class TestTranspiler(unittest.TestCase):
 
         b = assertTrueFun(getter)
         if not b:
-            print("""
+            print(f"""
 src_py:
 {src_py}
 src_aseba:
@@ -433,6 +433,194 @@ src_aseba:
             "a = 12345; a >>= 3",
             lambda getter: getter("a") == [12345 >> 3]
         )
+
+    # multiply operator with lists
+
+    def test_augmented_op_list_times_l(self):
+        self.assert_transpiled_code_result(
+            "a = 3 * [1, 2, 3, 4]",
+            lambda getter: getter("a") == 3 * [1, 2, 3, 4]
+        )
+
+    def test_augmented_op_list_times_r(self):
+        self.assert_transpiled_code_result(
+            "a = [1, 2, 3] * 5",
+            lambda getter: getter("a") == [1, 2, 3] * 5
+        )
+
+    # programming constructs
+
+    def test_if(self):
+        self.assert_transpiled_code_result(
+            """
+t = True
+f = False
+a = 2 * [999]
+if t:
+    a[0] = 1
+if f:
+    a[1] = 2
+""",
+            lambda getter: getter("a") == [1, 999]
+        )
+
+    def test_ifelse(self):
+        self.assert_transpiled_code_result(
+            """
+t = True
+f = False
+a = 4 * [999]
+if t:
+    a[0] = 1
+else:
+    a[1] = 2
+
+if f:
+    a[2] = 3
+else:
+    a[3] = 4
+""",
+            lambda getter: getter("a") == [1, 999, 999, 4]
+        )
+
+    def test_ifelifelse(self):
+        self.assert_transpiled_code_result(
+            """
+t = True
+f = False
+a = 11 * [99]
+if t:
+    a[0] = 1
+elif t:
+    a[1] = 2
+else:
+    a[2] = 3
+
+if f:
+    a[3] = 4
+elif t:
+    a[4] = 5
+else:
+    a[5] = 6
+
+if f:
+    a[6] = 7
+elif f:
+    a[7] = 8
+else:
+    a[8] = 9
+
+if t:
+    a[9] = 10
+elif t:
+    a[10] = 11
+""",
+            lambda getter: getter("a") == [1,99,99, 99,5,99, 99,99,9, 10,99]
+        )
+
+    def test_while(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+i = 0
+while i < len(a):
+    a[i] = i + 10
+    i += 1
+""",
+            lambda getter: getter("a") == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        )
+
+    def test_whileelse(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+i = 0
+while i < len(a):
+    a[i] = i + 10
+    i += 1
+else:
+    a[0] = 88
+a[1] = 99
+""",
+            lambda getter: getter("a") == [88, 99, 12, 13, 14, 15, 16, 17, 18, 19]
+        )
+
+    def test_for(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(8):
+    a[i] = i + 10
+""",
+            lambda getter: getter("a") == [10, 11, 12, 13, 14, 15, 16, 17, 0, 0]
+        )
+
+    def test_for2(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(3, 8):
+    a[i] = i + 10
+""",
+            lambda getter: getter("a") == [0, 0, 0, 13, 14, 15, 16, 17, 0, 0]
+        )
+
+    def test_for3(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(3, 8, 2):
+    a[i] = i + 10
+""",
+            lambda getter: getter("a") == [0, 0, 0, 13, 0, 15, 0, 17, 0, 0]
+        )
+
+    def test_for3down(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(8, 2, -3):
+    a[i] = i + 10
+""",
+            lambda getter: getter("a") == [0, 0, 0, 0, 0, 15, 0, 0, 18, 0]
+        )
+
+    def test_for2noiter(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(5, 3):
+    a[i] = i + 10
+""",
+            lambda getter: getter("a") == 10 * [0]
+        )
+
+    def test_forelse(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10 * [0]
+for i in range(8):
+    a[i] = i + 10
+else:
+    a[0] = 88
+a[1] = 99
+""",
+            lambda getter: getter("a") == [88, 99, 12, 13, 14, 15, 16, 17, 0, 0]
+        )
+
+    def test_pass(self):
+        self.assert_transpiled_code_result(
+            """
+pass
+if True:
+    pass
+else:
+    pass
+a = 123
+""",
+            lambda getter: getter("a") == [123]
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
