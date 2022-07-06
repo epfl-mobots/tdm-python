@@ -364,5 +364,75 @@ src_aseba:
             lambda getter: getter("a") == [6]
         )
 
+    # constants
+
+    def test_var_cst(self):
+        self.assert_transpiled_code_result(
+            "a = [False, True]",
+            lambda getter: getter("a") == [0, 1]
+        )
+
+    # augmented assignments
+
+    def test_augmented_asgn_plus(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a += 3",
+            lambda getter: getter("a") == [8]
+        )
+
+    def test_augmented_asgn_minus(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a -= 3",
+            lambda getter: getter("a") == [2]
+        )
+
+    def test_augmented_asgn_times(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a *= 3",
+            lambda getter: getter("a") == [15]
+        )
+
+    def test_augmented_asgn_div(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a //= 3",
+            lambda getter: getter("a") == [1]
+        )
+
+    def test_augmented_asgn_mod(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a %= 3",
+            lambda getter: getter("a") == [2]
+        )
+
+    def test_augmented_asgn_and(self):
+        self.assert_transpiled_code_result(
+            "a = 0b1100; a &= 0b1010",
+            lambda getter: getter("a") == [0b1100 & 0b1010]
+        )
+
+    def test_augmented_asgn_or(self):
+        self.assert_transpiled_code_result(
+            "a = 0b1100; a |= 0b1010",
+            lambda getter: getter("a") == [0b1100 | 0b1010]
+        )
+
+    def test_augmented_asgn_xor(self):
+        self.assert_transpiled_code_result(
+            "a = 0b1100; a ^= 0b1010",
+            lambda getter: getter("a") == [0b1100 ^ 0b1010]
+        )
+
+    def test_augmented_asgn_sl(self):
+        self.assert_transpiled_code_result(
+            "a = 5; a <<= 3",
+            lambda getter: getter("a") == [5 << 3]
+        )
+
+    def test_augmented_asgn_plus(self):
+        self.assert_transpiled_code_result(
+            "a = 12345; a >>= 3",
+            lambda getter: getter("a") == [12345 >> 3]
+        )
+
 if __name__ == '__main__':
     unittest.main()
