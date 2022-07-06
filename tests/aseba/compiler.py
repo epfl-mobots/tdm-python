@@ -11,11 +11,14 @@ vpl-web's compiler in JavaScript.
 
 import dukpy
 import json
+import os
 
 class AsebaCompiler:
 
-    def __init__(self, path_vpl="../../vpl-web/src/"):
+    def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
 
+        path_vpl = os.path.dirname(os.path.realpath(__file__)) + "/" + rel_path_vpl
+        print(path_vpl)
         self.src_preamble = ""
         for filename in (
             "a3a-ns.js",
@@ -31,13 +34,16 @@ class AsebaCompiler:
         self.src_preamble += """
 var asebaSourceCode =
 """
+
+        # patch for dukpy
+        self.src_preamble = self.src_preamble.replace("Math.trunc", "Math.floor")
+
         self.src_postamble = """
 ;
 var asebaNode = new A3a.A3aNode(A3a.thymioDescr);
 var c = new A3a.Compiler(asebaNode, asebaSourceCode);
 c.functionLib = A3a.A3aNode.stdMacros;
 var bytecode = c.compile();
-print("all var", JSON.stringify(c.asebaNode.variables.concat(c.declaredVariables)))
 JSON.stringify([
     bytecode,
     c.asebaNode.variables.concat(c.declaredVariables)

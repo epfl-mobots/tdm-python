@@ -10,6 +10,7 @@
 
 import dukpy
 import json
+import os
 
 class AsebaVM:
 
@@ -44,8 +45,10 @@ JSON.stringify({
 });
 """  # expect bc (array of int) and eventName (string or null)
 
-    def __init__(self, path_vpl="../../vpl-web/src/"):
+    def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
 
+        path_vpl = os.path.dirname(os.path.realpath(__file__)) + "/" + rel_path_vpl
+        print(path_vpl)
         self.src_preamble = ""
         for filename in (
             "a3a-ns.js",
@@ -55,6 +58,9 @@ JSON.stringify({
         ):
             with open(path_vpl + filename) as f:
                 self.src_preamble += f.read()
+
+        # patch for dukpy
+        self.src_preamble = self.src_preamble.replace("Math.trunc", "Math.floor")
 
         self.aseba_bc = [0]
 
