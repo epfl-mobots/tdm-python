@@ -18,7 +18,6 @@ class AsebaCompiler:
     def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
 
         path_vpl = os.path.dirname(os.path.realpath(__file__)) + "/" + rel_path_vpl
-        print(path_vpl)
         self.src_preamble = ""
         for filename in (
             "a3a-ns.js",

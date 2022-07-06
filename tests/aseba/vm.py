@@ -17,12 +17,6 @@ class AsebaVM:
     SRC_RUN = """
 var asebaNode = new A3a.Node(A3a.thymioDescr);
 var vthymio = new A3a.Device.VirtualThymio();
-/*
-vthymio.onVarChanged = function (name, index, newValue, oldValue, oldArrayValue) {
-    print(name, index, newValue, oldValue, oldArrayValue);
-    print("vthymio.varData", vthymio.varData);
-};
-*/
 
 function sendEvent(name) {
     var eventId = asebaNode.eventNameToId(name);
@@ -48,7 +42,6 @@ JSON.stringify({
     def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
 
         path_vpl = os.path.dirname(os.path.realpath(__file__)) + "/" + rel_path_vpl
-        print(path_vpl)
         self.src_preamble = ""
         for filename in (
             "a3a-ns.js",
