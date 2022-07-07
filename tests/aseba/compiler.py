@@ -45,7 +45,8 @@ c.functionLib = A3a.A3aNode.stdMacros;
 var bytecode = c.compile();
 JSON.stringify([
     bytecode,
-    c.asebaNode.variables.concat(c.declaredVariables)
+    c.asebaNode.variables.concat(c.declaredVariables),
+    asebaNode.localEvents
 ])
 """
 
@@ -54,4 +55,15 @@ JSON.stringify([
         and array of variables ({name:string,size:int,offset:int}) in "variables"
         """
         src = self.src_preamble + json.dumps(aseba_src_code) + self.src_postamble
-        return json.loads(dukpy.evaljs(src))
+        (
+            self.bc,
+            self.variable_descriptions,
+            self.event_descriptions,
+        ) = json.loads(dukpy.evaljs(src))
+
+    def event_name_to_event_id(self, event_name):
+        if event_name == "init":
+            return 0xffff
+        for i in range(len(self.event_descriptions)):
+            if self.event_descriptions[i]["name"] == event_name:
+                return 0xfffe - i

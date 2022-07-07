@@ -18,8 +18,7 @@ class AsebaVM:
 var asebaNode = new A3a.Node(A3a.thymioDescr);
 var vthymio = new A3a.Device.VirtualThymio();
 
-function sendEvent(name) {
-    var eventId = asebaNode.eventNameToId(name);
+function sendEvent(eventId) {
     vthymio.setupEvent(eventId);
     vthymio.run();
 }
@@ -29,15 +28,15 @@ vthymio.reset();
 vthymio.flagStepByStep = false;
 vthymio.run();
 
-if (eventName) {
-    sendEvent(eventName);
+if (eventId != null) {
+    sendEvent(eventId);
 }
 
 JSON.stringify({
     "data": vthymio.varData,
     "variables": vthymio.variables
 });
-"""  # expect bc (array of int) and eventName (string or null)
+"""  # expect bc (array of int) and eventId (integer or null)
 
     def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
 
@@ -60,15 +59,15 @@ JSON.stringify({
     def set_bytecode(self, aseba_bytecode):
         self.aseba_bc = aseba_bytecode
 
-    def build_js_src(self, event_name=None):
+    def build_js_src(self, event_id=None):
         src = ""
         src += f"bc = {json.dumps(self.aseba_bc)};\n"
-        src += f"eventName = {json.dumps(event_name) if event_name is not None else 'null'};\n"
+        src += f"eventId = {json.dumps(event_id) if event_id is not None else 'null'};\n"
         src += self.src_preamble + self.SRC_RUN
         return src
 
-    def run(self, event_name=None):
-        src = self.build_js_src(event_name)
+    def run(self, event_id=None):
+        src = self.build_js_src(event_id)
         r = json.loads(dukpy.evaljs(src))
         self.data = r["data"]
         self.variables = r["variables"]
