@@ -50,11 +50,15 @@ JSON.stringify([
 ])
 """
 
+    def js_code(self, aseba_src_code):
+        src = self.src_preamble + json.dumps(aseba_src_code) + self.src_postamble
+        return src
+
     def compile(self, aseba_src_code):
         """Compile Aseba source code and return a dict with bytecode in "bc"
         and array of variables ({name:string,size:int,offset:int}) in "variables"
         """
-        src = self.src_preamble + json.dumps(aseba_src_code) + self.src_postamble
+        src = self.js_code(aseba_src_code)
         (
             self.bc,
             self.variable_descriptions,
