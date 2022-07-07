@@ -621,6 +621,85 @@ a = 123
             lambda getter: getter("a") == [123]
         )
 
+    def test_fn_ret(self):
+        self.assert_transpiled_code_result(
+            """
+a = f()
+def f():
+    return 123
+""",
+            lambda getter: getter("a") == [123]
+        )
+
+    def test_fn_local_var(self):
+        self.assert_transpiled_code_result(
+            """
+a = f()
+x = 45
+def f():
+    x = 123
+    return x
+""",
+            lambda getter: getter("a") == [123] and getter("x") == [45]
+        )
+
+    def test_fn_local_listvar(self):
+        self.assert_transpiled_code_result(
+            """
+a = f()
+x = [1,2,3]
+def f():
+    x = [4,5]
+    return x[0] + x[1]
+""",
+            lambda getter: getter("a") == [9] and getter("x") == [1,2,3]
+        )
+
+    def test_fn_arg(self):
+        self.assert_transpiled_code_result(
+            """
+a = f(123, 45)
+def f(x, y):
+    return 10 * x + y
+""",
+            lambda getter: getter("a") == [1275]
+        )
+
+    def test_fn_global_var(self):
+        self.assert_transpiled_code_result(
+            """
+x = 45
+a = f()
+def f():
+    global x
+    y = [1,2,3]
+    x = y[0] + y[1] + y[2]
+    return y[2] + 10
+""",
+            lambda getter: getter("a") == [13] and getter("x") == [6]
+        )
+
+    def test_fn_implicit_global_var(self):
+        self.assert_transpiled_code_result(
+            """
+x = 123
+a = f()
+def f():
+    return 10 * x
+""",
+            lambda getter: getter("a") == [1230]
+        )
+
+    def test_fn_thymio_global_var(self):
+        self.assert_transpiled_code_result(
+            """
+a = f()
+def f():
+    return 10 + temperature + motor_left_speed
+""",
+            lambda getter: getter("a") == [10]
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
