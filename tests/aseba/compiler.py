@@ -47,6 +47,7 @@ try {
     var asebaNode = new A3a.A3aNode(A3a.thymioDescr);
     var c = new A3a.Compiler(asebaNode, asebaSourceCode);
     c.functionLib = A3a.A3aNode.stdMacros;
+    c.addUserEvent("_exit", 1);
     var bytecode = c.compile();
     r = JSON.stringify([
         bytecode,
@@ -68,18 +69,16 @@ r
         and array of variables ({name:string,size:int,offset:int}) in "variables"
         """
         src = self.js_code(aseba_src_code)
-        print(dukpy.evaljs(src))
         r = json.loads(dukpy.evaljs(src))
-        try:
-            # assume success
+        if isinstance(r, str):
+            # error message
+            raise Exception(r)
+        else:
             (
                 self.bc,
                 self.variable_descriptions,
                 self.event_descriptions,
             ) = r
-        except Exception:
-            # error message
-            raise Exception(r)
 
     def event_name_to_event_id(self, event_name):
         if event_name == "init":

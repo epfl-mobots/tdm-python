@@ -65,7 +65,7 @@ elif action == "dumpjs":
         if verbose:
             print("Transpiled source code:")
             print(src)
-    c.compile(src)
-    ...
+    js_src = c.js_code(src)
+    print(js_src)
 else:
     help()

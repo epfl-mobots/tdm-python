@@ -33,20 +33,27 @@ class TestTranspiler(unittest.TestCase):
     # tests below: based on aseba_compiler.py and aseba_vm.py,
     # which require dukpy and a clone of vpl-web in a sibbling directory
 
-    def assert_transpiled_code_result(self, src_py, assertTrueFun):
-        """Transpile Python code, compile it, execute it on a vm and
+    def assert_transpiled_code_result(self, src_py, assertTrueFun, emit=None):
+        """Transpile Python code, compile it, execute it on a vm, send the
+        event whose name is specified by argument emit (unless None) and
         execute assertTrueFun(var_getter)
         """
         src_a = ATranspiler.simple_transpile(src_py)
         c = AsebaCompiler()
-        bc, variable_descriptions = c.compile(src_a)
+        c.compile(src_a)
         v = AsebaVM()
-        v.set_bytecode(bc)
-        v.run()
+        v.set_bytecode(c.bc)
+        event_id = c.event_name_to_event_id(emit) if emit is not None else None
+        v.run(event_id=event_id)
 
         def getter(name):
-            val = v.get_variable(name, variable_descriptions)
-            return val
+            """Get the array value of a variable specified by its name, or (if
+            name is None) an array of events, each event as [id, data]
+            """
+            if name is not None:
+                return v.get_variable(name, c.variable_descriptions)
+            else:
+                return v.get_events()
 
         b = assertTrueFun(getter)
         if not b:
@@ -698,6 +705,28 @@ def f():
     return 10 + temperature + motor_left_speed
 """,
             lambda getter: getter("a") == [10]
+        )
+
+    def test_onevent(self):
+        self.assert_transpiled_code_result(
+            """
+a = 123
+@onevent
+def buttons():
+    global a
+    a = 45
+""",
+            lambda getter: getter("a") == [45],
+            emit="buttons"
+        )
+
+    def test_exit(self):
+        self.assert_transpiled_code_result(
+            """
+a = 123
+exit(45)
+""",
+            lambda getter: getter("a") == [123] and getter(None)[0] == [0, [45]]
         )
 
 
