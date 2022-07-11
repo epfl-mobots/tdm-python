@@ -30,8 +30,13 @@ class AsebaCompiler:
             with open(path_vpl + filename) as f:
                 self.src_preamble += f.read()
 
+        # preamble + js + postamble -> either [bc, variables, local_events]
+        # or error message as json
+
         self.src_preamble += """
-var asebaSourceCode =
+var r = null;
+try {
+    var asebaSourceCode =
 """
 
         # patch for dukpy
@@ -39,15 +44,19 @@ var asebaSourceCode =
 
         self.src_postamble = """
 ;
-var asebaNode = new A3a.A3aNode(A3a.thymioDescr);
-var c = new A3a.Compiler(asebaNode, asebaSourceCode);
-c.functionLib = A3a.A3aNode.stdMacros;
-var bytecode = c.compile();
-JSON.stringify([
-    bytecode,
-    c.asebaNode.variables.concat(c.declaredVariables),
-    asebaNode.localEvents
-])
+    var asebaNode = new A3a.A3aNode(A3a.thymioDescr);
+    var c = new A3a.Compiler(asebaNode, asebaSourceCode);
+    c.functionLib = A3a.A3aNode.stdMacros;
+    var bytecode = c.compile();
+    r = JSON.stringify([
+        bytecode,
+        c.asebaNode.variables.concat(c.declaredVariables),
+        asebaNode.localEvents
+    ])
+} catch (e) {
+    r = JSON.stringify(e.toString());
+}
+r
 """
 
     def js_code(self, aseba_src_code):
@@ -59,11 +68,18 @@ JSON.stringify([
         and array of variables ({name:string,size:int,offset:int}) in "variables"
         """
         src = self.js_code(aseba_src_code)
-        (
-            self.bc,
-            self.variable_descriptions,
-            self.event_descriptions,
-        ) = json.loads(dukpy.evaljs(src))
+        print(dukpy.evaljs(src))
+        r = json.loads(dukpy.evaljs(src))
+        try:
+            # assume success
+            (
+                self.bc,
+                self.variable_descriptions,
+                self.event_descriptions,
+            ) = r
+        except Exception:
+            # error message
+            raise Exception(r)
 
     def event_name_to_event_id(self, event_name):
         if event_name == "init":
