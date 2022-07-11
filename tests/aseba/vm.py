@@ -17,6 +17,10 @@ class AsebaVM:
     SRC_RUN = """
 var asebaNode = new A3a.Node(A3a.thymioDescr);
 var vthymio = new A3a.Device.VirtualThymio();
+var events = [];
+vthymio.onEmit = function (eventId, eventData) {
+    events.push([eventId, eventData]);
+};
 
 function sendEvent(eventId) {
     vthymio.setupEvent(eventId);
@@ -36,7 +40,8 @@ try {
 
     r = JSON.stringify({
         "data": vthymio.varData,
-        "variables": vthymio.variables
+        "variables": vthymio.variables,
+        "events": events
     });
 } catch (e) {
     r = JSON.stringify({
@@ -63,6 +68,9 @@ r
         self.src_preamble = self.src_preamble.replace("Math.trunc", "Math.floor")
 
         self.aseba_bc = [0]
+        self.data = []
+        self.variables = {}
+        self.events = []
 
     def set_bytecode(self, aseba_bytecode):
         self.aseba_bc = aseba_bytecode
@@ -81,6 +89,7 @@ r
             raise Exception(r["error"])
         self.data = r["data"]
         self.variables = r["variables"]
+        self.events = r["events"]
 
     def get_variables(self):
         return self.variables
@@ -92,3 +101,6 @@ r
         for variable_descr in variables:
             if variable_descr["name"] == name:
                 return self.data[variable_descr["offset"] : variable_descr["offset"] + variable_descr["size"]]
+
+    def get_events(self):
+        return self.events
