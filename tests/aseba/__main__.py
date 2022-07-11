@@ -1,5 +1,5 @@
 from tdmclient.atranspiler import ATranspiler
-from .compiler import AsebaCompiler
+from . import AsebaCompiler, AsebaVM
 import sys
 import getopt
 
@@ -11,6 +11,7 @@ Options:
 
   --aseba      Aseba source code input (default: Python)
   --bc         compile stdin and display bytecode
+  --dumpjs     dump the JavaScript code and exit
   --help       display this help message and exit
   --verbose    display more informations
 """, **kwargs)
@@ -25,6 +26,7 @@ try:
                                       [
                                           "aseba",
                                           "bc",
+                                          "dumpjs",
                                           "help",
                                           "verbose",
                                       ])
@@ -37,6 +39,8 @@ for arg, val in arguments:
         is_aseba = True
     elif arg == "--bc":
         action = "bc"
+    elif arg == "--dumpjs":
+        action = "dumpjs"
     elif arg == "--help":
         help()
         sys.exit(0)
@@ -53,5 +57,15 @@ if action == "bc":
             print(src)
     c.compile(src)
     print(c.bc)
+elif action == "dumpjs":
+    c = AsebaCompiler()
+    src = sys.stdin.read()
+    if not is_aseba:
+        src = ATranspiler.simple_transpile(src)
+        if verbose:
+            print("Transpiled source code:")
+            print(src)
+    c.compile(src)
+    ...
 else:
     help()
