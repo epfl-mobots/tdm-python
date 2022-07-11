@@ -23,19 +23,27 @@ function sendEvent(eventId) {
     vthymio.run();
 }
 
-vthymio.setBytecode(bc);
-vthymio.reset();
-vthymio.flagStepByStep = false;
-vthymio.run();
+var r = null;
+try {
+    vthymio.setBytecode(bc);
+    vthymio.reset();
+    vthymio.flagStepByStep = false;
+    vthymio.run();
 
-if (eventId != null) {
-    sendEvent(eventId);
+    if (eventId != null) {
+        sendEvent(eventId);
+    }
+
+    r = JSON.stringify({
+        "data": vthymio.varData,
+        "variables": vthymio.variables
+    });
+} catch (e) {
+    r = JSON.stringify({
+        "error": e.toString()
+    });
 }
-
-JSON.stringify({
-    "data": vthymio.varData,
-    "variables": vthymio.variables
-});
+r
 """  # expect bc (array of int) and eventId (integer or null)
 
     def __init__(self, rel_path_vpl="../../../vpl-web/src/"):
@@ -69,6 +77,8 @@ JSON.stringify({
     def run(self, event_id=None):
         src = self.build_js_src(event_id)
         r = json.loads(dukpy.evaljs(src))
+        if "error" in r:
+            raise Exception(r["error"])
         self.data = r["data"]
         self.variables = r["variables"]
 
