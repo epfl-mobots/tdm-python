@@ -1,0 +1,38 @@
+---
+name: Run tests
+
+"on": [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10"]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          path: main
+      - name: Checkout vpl-web
+        uses: actions/checkout@v3
+        with:
+          repository: epfl-mobots/vpl-web
+          path: vpl-web
+      - name: Set Up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Install package
+        working-directory: ./main
+        run: python setup.py install
+      - name: Install other required packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dukpy
+          python -m pip install pytest
+      - name: Run tests
+        working-directory: ./main
+        run: python -m pytest tests/test*
