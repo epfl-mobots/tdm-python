@@ -18,7 +18,7 @@ from tdmclient.atranspiler import ATranspiler
 class GUIWindow(tk.Tk):
 
     def __init__(self,
-                 zeroconf=None,
+                 zeroconf=False, zeroconf_all=False,
                  tdm_addr=None, tdm_port=None, tdm_ws=False,
                  tdm_transport=None,
                  password=None,
@@ -31,6 +31,7 @@ class GUIWindow(tk.Tk):
         self.program_src = ""
         self.language = language or "aseba"
         self.zeroconf = zeroconf
+        self.zeroconf_all = zeroconf_all
         self.tdm_addr = tdm_addr
         self.tdm_port = tdm_port
         self.tdm_ws = tdm_ws
@@ -494,6 +495,7 @@ class GUIWindow(tk.Tk):
                         self.add_variable(name, variables[name])
 
         self.client = ClientAsync(zeroconf=self.zeroconf,
+                                  zeroconf_all=self.zeroconf_all,
                                   tdm_addr=self.tdm_addr,
                                   tdm_port=self.tdm_port,
                                   tdm_ws=self.tdm_ws,
@@ -535,6 +537,8 @@ Options:
   --tdmport=P    tdm port (default: 8596 (tcp) or 8597 (ws), or from zeroconf)
   --tdmws        connect to tdm with WebSocket (default: plain TCP)
   --zeroconf     use zeroconf (default: no zeroconf)
+  --zcall        discover TDM information published on all interfaces instead
+                 of only default one
 """)
 
 
@@ -542,6 +546,7 @@ def main(argv=None, tdm_transport=None):
     debug = 0
     language = None  # auto
     zeroconf = False
+    zeroconf_all = False
     tdm_addr = None
     tdm_port = None
     tdm_ws = False
@@ -563,6 +568,7 @@ def main(argv=None, tdm_transport=None):
                                                   "tdmaddr=",
                                                   "tdmport=",
                                                   "tdmws",
+                                                  "zcall",
                                                   "zeroconf",
                                               ])
         except getopt.error as err:
@@ -590,8 +596,11 @@ def main(argv=None, tdm_transport=None):
                 tdm_ws = True
             elif arg == "--zeroconf":
                 zeroconf = True
+            elif arg == "--zcall":
+                zeroconf = True
+                zeroconf_all = True
 
-    win = GUIWindow(zeroconf=zeroconf,
+    win = GUIWindow(zeroconf=zeroconf, zeroconf_all=zeroconf_all,
                     tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                     tdm_transport=tdm_transport,
                     password=password,

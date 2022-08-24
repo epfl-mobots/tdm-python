@@ -24,12 +24,15 @@ Options:
   --tdmport=P    tdm port (default: 8596 (tcp) or 8597 (ws), or from zeroconf)
   --tdmws        connect to tdm with WebSocket (default: plain TCP)
   --zeroconf     use zeroconf (default: no zeroconf)
+  --zcall        discover TDM information published on all interfaces instead
+                 of only default one
 """, **kwargs)
 
 
 def main(argv=None, tdm_transport=None):
     debug = 2  # display all messages received from the tdm by default
     zeroconf = False
+    zeroconf_all = False
     tdm_addr = None
     tdm_port = None
     tdm_ws = False
@@ -50,6 +53,7 @@ def main(argv=None, tdm_transport=None):
                                                   "tdmaddr=",
                                                   "tdmport=",
                                                   "tdmws",
+                                                  "zcall",
                                                   "zeroconf",
                                               ])
         except getopt.error as err:
@@ -75,12 +79,16 @@ def main(argv=None, tdm_transport=None):
                 tdm_ws = True
             elif arg == "--zeroconf":
                 zeroconf = True
+            elif arg == "--zcall":
+                zeroconf = True
+                zeroconf_all = True
 
     if len(values) > 0:
         help(file=sys.stderr)
         return 1
 
-    with ClientAsync(tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
+    with ClientAsync(zeroconf=zeroconf, zeroconf_all=zeroconf_all,
+                     tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                      tdm_transport=tdm_transport,
                      password=password,
                      debug=debug) as client:

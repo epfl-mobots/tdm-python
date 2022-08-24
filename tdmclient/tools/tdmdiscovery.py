@@ -17,18 +17,22 @@ Discover TDM information provided by zeroconf.
 
 Options:
   --help         display this help message and exit
+  --zcall        discover TDM information published on all interfaces instead
+                 of only default one
 """, **kwargs)
 
 def on_change(is_added, addr, port, ws_port):
     print(f"{'Add' if is_added else 'Remove'} {addr}:{port}{f', ws port: {ws_port}' if ws_port else ''}")
 
 def main(argv=None):
+    zeroconf_all = False
     if argv is not None:
         try:
             arguments, values = getopt.getopt(argv[1:],
                                               "",
                                               [
                                                   "help",
+                                                  "zcall",
                                               ])
         except getopt.error as err:
             print(str(err))
@@ -37,9 +41,11 @@ def main(argv=None):
             if arg == "--help":
                 help()
                 return 0
+            elif arg == "--zcall":
+                zeroconf_all = True
 
     try:
-        with TDMZeroconfBrowser(on_change):
+        with TDMZeroconfBrowser(on_change=on_change, all_interfaces=zeroconf_all):
             while True:
                 sleep(0.1)
     except KeyboardInterrupt:

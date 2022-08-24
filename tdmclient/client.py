@@ -26,7 +26,7 @@ class Client(ThymioFB):
     DEFAULT_TDM_WS_PORT = 8597
 
     def __init__(self,
-                 zeroconf=False,
+                 zeroconf=False, zeroconf_all=False,
                  tdm_ws=False, tdm_addr=None, tdm_port=None,
                  tdm_transport=None,
                  password=None,
@@ -40,6 +40,7 @@ class Client(ThymioFB):
             tdm_transport - TDMConnection object (default: create)
             password - TDM password for nonlocal connections (default: none)
             zeroconf - True to use zeroconf (default: false)
+            zeroconf_all - True to use zeroconf with all interfaces instead of default (default: false)
 
         tdm_addr, tdm_port and tdm_ws are ignored if tdm_transport is provided.
         """
@@ -81,7 +82,8 @@ class Client(ThymioFB):
                 self.tdm_ws_port = None
 
         if zeroconf:
-            self.zc = TDMZeroconfBrowser(on_zc_change)
+            self.zc = TDMZeroconfBrowser(on_change=on_zc_change,
+                                         all_interfaces=zeroconf_all)
         else:
             self.zc = None
             if self.tdm_port is None:

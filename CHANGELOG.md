@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Option to browse zeroconf information on all interfaces instead of default one. Optional argument `all_interfaces` in constructors of `TDMZeroconfBrowser`, `Client` and `ClientAsync`; and option `--zcall` in tools `gui`, `list`, `repl`, `run`, `tdmdiscovery` and `watch`.
+
 ### Changed
 
 - Default TDM is local on port 8596 (fixed port of TDM as launched by Thymio Suite). Zeroconf is used only if requested with `zeroconf=True` in the constructors of `Client` and `ClientAsync`, or `--zeroconf` in the tools
