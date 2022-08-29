@@ -5,7 +5,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from tdmclient import ClientAsync
+from tdmclient import ClientAsync, ThymioFB
 import sys
 import getopt
 
@@ -26,6 +26,12 @@ Options:
   --zeroconf     use zeroconf (default: no zeroconf)
   --zcall        discover TDM information published on all interfaces instead
                  of only default one
+  --events       watch events (default: watch everything)
+  --scratchpads  watch source code scratchpads (default: watch everything)
+  --shared-event-descr  watch shared event descriptions (default: watch everything)
+  --shared-variables    watch shared variables (default: watch everything)
+  --variables    watch variables (default: watch everything)
+  --vm-state     watch vm state (default: watch everything)
 """, **kwargs)
 
 
@@ -39,6 +45,7 @@ def main(argv=None, tdm_transport=None):
     password = None
     robot_id = None
     robot_name = None
+    flags = None
 
     if argv is not None:
         try:
@@ -55,6 +62,12 @@ def main(argv=None, tdm_transport=None):
                                                   "tdmws",
                                                   "zcall",
                                                   "zeroconf",
+                                                  "events",
+                                                  "scratchpads",
+                                                  "shared-event-descr",
+                                                  "shared-variables",
+                                                  "variables",
+                                                  "vm-state",
                                               ])
         except getopt.error as err:
             print(str(err), file=sys.stderr)
@@ -82,10 +95,25 @@ def main(argv=None, tdm_transport=None):
             elif arg == "--zcall":
                 zeroconf = True
                 zeroconf_all = True
+            elif arg == "--events":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_EVENTS
+            elif arg == "--scratchpads":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_SCRATCHPADS
+            elif arg == "--shared-event-descr":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_SHARED_EVENTS_DESCRIPTION
+            elif arg == "--shared-variables":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_SHARED_VARIABLES
+            elif arg == "--variables":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_VARIABLES
+            elif arg == "--vm-state":
+                flags = (flags or 0) | ThymioFB.WATCHABLE_INFO_VM_EXECUTION_STATE
 
     if len(values) > 0:
         help(file=sys.stderr)
         return 1
+
+    if flags is None:
+        flags = ThymioFB.WATCHABLE_INFO_ALL
 
     with ClientAsync(zeroconf=zeroconf, zeroconf_all=zeroconf_all,
                      tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
@@ -95,7 +123,7 @@ def main(argv=None, tdm_transport=None):
 
         async def prog():
             node = await client.wait_for_node(node_id=robot_id, node_name=robot_name)
-            await node.watch(flags=0x3f)  # all
+            await node.watch(flags=flags)
             await client.sleep()
 
         client.run_async_program(prog)

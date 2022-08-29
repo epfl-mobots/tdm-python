@@ -7,6 +7,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - Option to browse zeroconf information on all interfaces instead of default one. Optional argument `all_interfaces` in constructors of `TDMZeroconfBrowser`, `Client` and `ClientAsync`; and option `--zcall` in tools `gui`, `list`, `repl`, `run`, `tdmdiscovery` and `watch`.
+- In tool `watch`, new options to filter the information to observe: `--events`, `--scratchpads`, `--shared-event-descr`, `--shared-variables`, `--variables`, `--vm-state`.
+
 
 ### Changed
 
