@@ -35,8 +35,8 @@ Here are the implemented features:
 - Function definitions for event handlers with the `@onevent` decorator. The function name must match the event name (such as `def timer0():` for the first timer event); except that dots are replaced by underscores in Python (e.g. `def button_left():`). Arguments are supported for custom events; they're initialized to `event.args[0]`, `event.args[1]`, etc. (the values passed to `emit`). Variables in event handlers behave like in plain function definitions.
 - Option to check that local variables in plain functions or `@onevent` don't hide variables defined in the outer scope, which could result from forgetting to declare them global. This is implemented in `missing_global_decl` in `tdmclient.atranspiler_warnings` and enabled in command-line tools and Jupyter support with option `--warning-missing-global`.
 - Function call `emit("name")` or `emit("name", param1, param2, ...)` to emit an event without or with parameters. The first argument must be a literal string, delimited with single or double quotes. Raw strings (prefixed with `r`) are allowed, f-strings or byte strings are not. Remaining arguments, if any, must be scalar expressions and are passed as event data.
-- Function call `exit()` or `exit(code)`. An event `_exit` is emitted with the code value (0 by default). It's up to the program on the PC side to accept events, recognize those named `_exit`, stop the Thymio, and handle the code in a suitable way. The tool `tdmclient.tools.run` exits with the code value as its status.
-- Function call `print` with arguments which can be any number of constant strings and scalar values. An event `_print` is emitted where the first value is the print statement index, following values are scalar values (int or boolean sent as signed 16-bit integer), with possibly additional 0 to have the same number of values for all the print statements. Format strings, built by concatenating the string arguments of `print` and `'%d'` to stand for numbers, can be retrieved separately. E.g. `print("left",motor_left_target)` could be transpiled to `emit _print [0, motor.left.target]` and the corresponding format string is `'left %d'`. It's up to the program on the PC side to accept events, recognize those named `_print`, extract the format string index and the arguments, and produce an output string with the `%` operator. The tool `tdmclient.tools.run` and the Jupyter notebook handle that.
+- Function call `exit()` or `exit(code)`. An event `_exit` is emitted with the code value (0 by default). It's up to the program on the PC side to accept events, recognize those named `_exit`, stop the Thymio, and handle the code in a suitable way. The tool `run` exits with the code value as its status.
+- Function call `print` with arguments which can be any number of constant strings and scalar values. An event `_print` is emitted where the first value is the print statement index, following values are scalar values (int or boolean sent as signed 16-bit integer), with possibly additional 0 to have the same number of values for all the print statements. Format strings, built by concatenating the string arguments of `print` and `'%d'` to stand for numbers, can be retrieved separately. E.g. `print("left",motor_left_target)` could be transpiled to `emit _print [0, motor.left.target]` and the corresponding format string is `'left %d'`. It's up to the program on the PC side to accept events, recognize those named `_print`, extract the format string index and the arguments, and produce an output string with the `%` operator. The tool `run` and the Jupyter notebook handle that.
 - In expression statements, in addition to function calls, the ellipsis `...` can be used as a synonym of `pass`.
 
 Perhaps the most noticeable yet basic missing features are the non-integer division operator `/` (Python has operator `//` for the integer division), and the `break` and `continue` statements, also missing in Aseba and difficult to transpile to sane code without `goto`. More generally, everything related to object-oriented programming, dynamic types, strings, and nested functions is not supported.
@@ -64,7 +64,7 @@ def timer0():
 
 To transpile this program, assuming it's stored in `examples/blink.py`:
 ```
-python3 -m tdmclient.tools.transpile examples/blink.py
+python3 -m tdmclient transpile examples/blink.py
 ```
 
 The result is
@@ -91,7 +91,7 @@ onevent timer0
 
 To run this program:
 ```
-python3 -m tdmclient.tools.run examples/blink.py
+python3 -m tdmclient run examples/blink.py
 ```
 
 #### Print
@@ -115,15 +115,15 @@ def timer0():
         leds_top = [0, 0, 0]
 ```
 
-Running this program can also be done with `tdmclient.tools.run`. Assuming it's stored in `examples/print.py`:
+Running this program can also be done with `run`. Assuming it's stored in `examples/print.py`:
 ```
-python3 -m tdmclient.tools.run examples/print.py
+python3 -m tdmclient run examples/print.py
 ```
-`tdmclient.tools.run` continues running forever to receive and display the outcome of `print`. To interrupt it, type control-C.
+`run` continues running forever to receive and display the outcome of `print`. To interrupt it, type control-C.
 
 To understand what happens behind the scenes, display the transpiled program:
 ```
-python3 -m tdmclient.tools.transpile examples/print.py
+python3 -m tdmclient transpile examples/print.py
 ```
 
 The result is
@@ -152,11 +152,11 @@ onevent timer0
     end
 ```
 
-Each `print` statement in Python is converted to `emit _print`. The event data contains the `print` statement index (numbers 0, 1, 2, ...) and the numeric values. The string values aren't sent, because the Aseba programming language doesn't support strings. It's the responsibility of the receiver of the event, i.e. `tdmclient.tools.run` on the computer, to use the `print` statement index and assemble the text to be displayed from the constant strings and the numeric values received from the robot.
+Each `print` statement in Python is converted to `emit _print`. The event data contains the `print` statement index (numbers 0, 1, 2, ...) and the numeric values. The string values aren't sent, because the Aseba programming language doesn't support strings. It's the responsibility of the receiver of the event, i.e. tool `run` on the computer, to use the `print` statement index and assemble the text to be displayed from the constant strings and the numeric values received from the robot.
 
-With the option `--print`, `tdmclient.tools.transpile` shows the Python dictionary which contains the format string for each `print` statement and the number of numeric arguments:
+With the option `--print`, `transpile` shows the Python dictionary which contains the format string for each `print` statement and the number of numeric arguments:
 ```
-python3 -m tdmclient.tools.transpile --print examples/print.py
+python3 -m tdmclient transpile --print examples/print.py
 ```
 
 The result is
@@ -299,7 +299,7 @@ Some math functions have an alternative name without the `nf_` prefix, scalar ar
 
 ## Thymio variables and native functions
 
-Thymio variables and native functions are mapped to Thymio's. Their names contain underscores `_` instead of dots '.'; e.g. `leds_top` in Python instead of `leds.top` in Aseba. By default, they're predefined in the global scope. Alternatively, with option `--nothymio` in  `tdmclient.tools.transpile` or `tdmclient.tools.run`, they aren't, but can be imported from module `thymio` as follows:
+Thymio variables and native functions are mapped to Thymio's. Their names contain underscores `_` instead of dots '.'; e.g. `leds_top` in Python instead of `leds.top` in Aseba. By default, they're predefined in the global scope. Alternatively, with option `--nothymio` in  tools `transpile` or `run`, they aren't, but can be imported from module `thymio` as follows:
 - `import thymio` in the global scope: variables can be accessed everywhere in expressions or assignments as e.g. `thymio.leds_top`.
 - `import thymio as A` in global scope: variables can be accessed everywhere in expressions or assignments as e.g. `A.leds_top` (`A` can be any valid symbol).
 - `import thymio` or `import thymio as A` in function definition scope: variables can be accessed in expressions or assignments in the function.
