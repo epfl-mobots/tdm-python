@@ -251,6 +251,10 @@ src_aseba:
             lambda getter: getter("a") == [3]
         )
 
+    def test_var_floatdivide(self):
+        self.assertRaises(Exception,
+                          ATranspiler.simple_transpile, "a = 2; b = 1 / a")
+
     def test_var_modulo(self):
         self.assert_transpiled_code_result(
             "x = 7; y = 5; a = x % y",
@@ -628,6 +632,16 @@ a = 123
             lambda getter: getter("a") == [123]
         )
 
+    def test_pass_empty(self):
+        src_py = "pass"
+        src_a = ATranspiler.simple_transpile(src_py).strip()
+        self.assertEqual(src_a, "")
+
+    def test_ellipsis_empty(self):
+        src_py = "..."
+        src_a = ATranspiler.simple_transpile(src_py).strip()
+        self.assertEqual(src_a, "")
+
     def test_fn_ret(self):
         self.assert_transpiled_code_result(
             """
@@ -728,6 +742,47 @@ exit(45)
 """,
             lambda getter: getter("a") == [123] and getter(None)[0] == [0, [45]]
         )
+
+    def test_bool_in_num(self):
+        self.assert_transpiled_code_result(
+            """
+a = 1
+b = a < 5
+c = b * 10
+""",
+            lambda getter: getter("c") == [10]
+        )
+
+    def test_num_in_bool(self):
+        self.assert_transpiled_code_result(
+            """
+a = 123
+b = a and a > 5
+""",
+            lambda getter: getter("b") == [1]
+        )
+
+    def test_bool_in_list(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10
+b = [a < 5, a == 5, a > 5]
+""",
+            lambda getter: getter("b") == [0, 0, 1]
+        )
+
+    def test_boolvar_in_if(self):
+        self.assert_transpiled_code_result(
+            """
+a = 10
+b = a < 20
+c = 123
+if b:
+    c = 45
+""",
+            lambda getter: getter("c") == [45]
+        )
+
 
 
 if __name__ == '__main__':
