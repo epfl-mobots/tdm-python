@@ -227,7 +227,7 @@ class Node(Listener):
             (
                 self.thymio.next_request_id(**kwargs),
                 (
-                    self.id,
+                    self.props["group_id"],
                 ),
                 [
                     (

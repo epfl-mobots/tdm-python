@@ -9,7 +9,6 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - Option to browse zeroconf information on all interfaces instead of default one. Optional argument `all_interfaces` in constructors of `TDMZeroconfBrowser`, `Client` and `ClientAsync`; and option `--zcall` in tools `gui`, `list`, `repl`, `run`, `tdmdiscovery` and `watch`.
 - In tool `watch`, new options to filter the information to observe: `--events`, `--scratchpads`, `--shared-event-descr`, `--shared-variables`, `--variables`, `--vm-state`.
 
-
 ### Changed
 
 - Default TDM is local on port 8596 (fixed port of TDM as launched by Thymio Suite). Zeroconf is used only if requested with `zeroconf=True` in the constructors of `Client` and `ClientAsync`, or `--zeroconf` in the tools
@@ -18,6 +17,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - Module `websockets` not needed anymore except to enable option `--ws` in tool `server`
 - In tool `gui`, connection closed on exit
+- Group id instead of node id in TDM message `SendEvents`
 
 ## [0.1.18] - 2022-06-22
 
