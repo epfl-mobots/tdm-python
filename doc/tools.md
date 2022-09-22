@@ -54,6 +54,21 @@ Display other options:
 python3 -m tdmclient run --help
 ```
 
+### sendevent
+
+Send an event to a robot:
+```
+python3 -m tdmclient sendevent --event foo --data 123
+```
+
+This assumes that the program running on the robot accepts events with name `foo` and a payload of length 1. The robot must be in the available state (not locked). You can run the progam below in Aseba Studio. In the Events list on the right, click the `+` button and set the name to `foo` and the number of arguments to 1. Once the program is running, unlock the robot (clock the little lock icon in the panel tab) and observe the content of variable `x` when you execute `tdmclient sendevent`.
+```
+var x
+
+onevent foo
+    x = event.args[0]
+```
+
 ### watch
 
 Display all node changes (variables, events and program in the scratchpad) until control-C is typed:

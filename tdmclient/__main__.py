@@ -18,6 +18,7 @@ tool_set = {
     "list",
     "repl",
     "run",
+    "sendevent",
     "server",
     "tdmdiscovery",
     "transpile",
