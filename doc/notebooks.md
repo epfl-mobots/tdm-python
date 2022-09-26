@@ -103,9 +103,9 @@ Variables accessed or changed in the notebook are synchronized with the robot on
     def f(temp_limit=30):
         temperature, = get_var("temperature")
         if temperature > temp_limit * 10:
-            set_variables({"leds_top": [32, 0, 0]})
+            set_var(leds_top=[32, 0, 0])
         else:
-            set_variables({"leds_top": [0, 10, 32]})
+            set_var(leds_top=[0, 10, 32])
     ```
 - To synchronized global variables whose names match the robot's, the function can be decorated with `@tdmclient.notebook.sync_var`. The effect of the decorator is to extend the function so that these variables are fetched at the beginning and sent back to the robot before the function returns.
 
