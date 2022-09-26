@@ -22,7 +22,7 @@ for filename in [
 
 setup(
     name="tdmclient",
-    version="0.1.18",
+    version="0.1.19",
     author="Yves Piguet",
     packages=["tdmclient", "tdmclient.tools", "tdmclient.notebook", ],
     description="Communication with Thymio II robot via the Thymio Device Manager",
