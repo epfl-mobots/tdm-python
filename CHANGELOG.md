@@ -12,7 +12,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Changed
 
-- Default TDM is local on port 8596 (fixed port of TDM as launched by Thymio Suite). Zeroconf is used only if requested with `zeroconf=True` in the constructors of `Client` and `ClientAsync`, or `--zeroconf` in the tools.
+- Default TDM is local on port 8596 (fixed port of TDM as launched by Thymio Suite). Zeroconf is used only if requested with `zeroconf=True` in the constructors of `Client` and `ClientAsync` and in method `tdmclient.notebook.start`, or `--zeroconf` in the tools.
 
 ### Fixed
 

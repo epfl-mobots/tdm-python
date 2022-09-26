@@ -87,22 +87,25 @@ async def list(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
                 print(f"firmware: {node.props['fw_version']}")
             print()
 
-async def start(zeroconf=None, tdm_addr=None, tdm_port=None, password=None,
+async def start(zeroconf=False, zeroconf_all=False,
+                tdm_ws=False, tdm_addr=None, tdm_port=None,
+                password=None,
                 debug=0, **kwargs):
     """Start the connection with the Thymio and variable synchronization.
 
     Arguments:
-        tdm_addr - TDM address as a string (default: localhost)
-        tdm_port - TDM TCP port number
-                   (default: standard or provided by zeroconf)
-        password - TDM password (default: None, not necessary for local TDM)
+        tdm_addr - TDM address (default: provided by zeroconf or local)
+        tdm_port - TDM port (default: provided by zeroconf, or 8596 (tcp) or 8597 (ws))
+        tdm_ws - True for WebSocket, else TCP (default: False)
+        password - TDM password for nonlocal connections (default: none)
         robot_id - robot node id (default: any)
         robot_name - robot name (default: any)
-        zeroconf - True to find TDM with zeroconf (default: automatic)
+        zeroconf - True to use zeroconf (default: false)
+        zeroconf_all - True to use zeroconf with all interfaces instead of default (default: false)
     """
 
-    client = ClientAsync(zeroconf=zeroconf,
-                         tdm_addr=tdm_addr, tdm_port=tdm_port,
+    client = ClientAsync(zeroconf=zeroconf, zeroconf_all=zeroconf_all,
+                         tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
                          password=password,
                          debug=debug)
     node = await client.wait_for_node(**kwargs)
