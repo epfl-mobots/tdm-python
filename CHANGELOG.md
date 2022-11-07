@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- Variable size returned in node description
+
 ## [0.1.19] - 2022-09-26
 
 ### Added

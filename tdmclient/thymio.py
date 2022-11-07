@@ -698,7 +698,7 @@ class ThymioFB(Listener):
                     "stack_size": FlatBuffer.field_val(vm_descr.fields[4], None),
                     "variables": {
                         FlatBuffer.field_val(var_descr.fields[1], ""):
-                            (lambda s: None if s == 1 else s)(FlatBuffer.field_val(var_descr.fields[0], None))
+                            (lambda s: None if s == 1 else s)(FlatBuffer.field_val(var_descr.fields[2], None))
                         for var_descr in vm_descr.fields[5][0]
                     },
                     "events": [
