@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Added
+
+- Tool `info` to display the variables, events and native functions of a robot.
+
 ### Fixed
 
 - Variable size returned in node description

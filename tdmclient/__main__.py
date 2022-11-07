@@ -14,6 +14,7 @@ import sys
 import getopt
 
 tool_set = {
+    "info",
     "gui",
     "list",
     "repl",
