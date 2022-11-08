@@ -15,17 +15,23 @@ def help(**kwargs):
 Display robot description sent by tdm
 
 Options:
-  --debug=n      display diagnostic info (0=none (default), 1=basic, 2=more, 3=verbose)
+  --debug=n      display diagnostic info (0=none (default), 1=basic, 2=more,
+                 3=verbose)
+  --events       display list of events
   --help         display this help message and exit
+  --native-functions  display list of native functions
   --password=PWD specify password for remote tdm
   --robotid=I    robot id; default=any
   --robotname=N  robot name; default=any
   --tdmaddr=H    tdm address (default: localhost or from zeroconf)
   --tdmport=P    tdm port (default: 8596 (tcp) or 8597 (ws), or from zeroconf)
   --tdmws        connect to tdm with WebSocket (default: plain TCP)
+  --variables    display list of variables
   --zeroconf     use zeroconf (default: no zeroconf)
   --zcall        discover TDM information published on all interfaces instead
                  of only default one
+  Default without --events, --native-functions and --variables is to display
+  everything.
 """, **kwargs)
 
 
@@ -40,9 +46,9 @@ def main(argv=None, tdm_transport=None):
     robot_id = None
     robot_name = None
 
-    display_variables = True
-    display_events = True
-    display_native_functions = True
+    display_variables = False
+    display_events = False
+    display_native_functions = False
 
     if argv is not None:
         try:
@@ -60,11 +66,8 @@ def main(argv=None, tdm_transport=None):
                                                   "zcall",
                                                   "zeroconf",
                                                   "events",
-                                                  "scratchpads",
-                                                  "shared-event-descr",
-                                                  "shared-variables",
+                                                  "native-functions",
                                                   "variables",
-                                                  "vm-state",
                                               ])
         except getopt.error as err:
             print(str(err), file=sys.stderr)
@@ -92,10 +95,23 @@ def main(argv=None, tdm_transport=None):
             elif arg == "--zcall":
                 zeroconf = True
                 zeroconf_all = True
+            elif arg == "--variables":
+                display_variables = True
+            elif arg == "--variables":
+                display_variables = True
+            elif arg == "--events":
+                display_events = True
+            elif arg == "--native-functions":
+                display_native_functions = True
 
     if len(values) > 0:
         help(file=sys.stderr)
         return 1
+
+    if not display_variables and not display_events and not display_native_functions:
+        display_variables = True
+        display_events = True
+        display_native_functions = True
 
     with ClientAsync(zeroconf=zeroconf, zeroconf_all=zeroconf_all,
                      tdm_addr=tdm_addr, tdm_port=tdm_port, tdm_ws=tdm_ws,
