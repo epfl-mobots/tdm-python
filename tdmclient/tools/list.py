@@ -102,6 +102,18 @@ def main(argv=None, tdm_transport=None):
             print(f"id:       {node.id_str}")
             if "group_id_str" in node.props and node.props["group_id_str"] is not None:
                 print(f"group id: {node.props['group_id_str']}")
+            if "type" in node.props:
+                try:
+                    type_str = {
+                        ClientAsync.NODE_TYPE_THYMIO2: "Thymio II",
+                        ClientAsync.NODE_TYPE_THYMIO2WIRELESS: "Thymio II wireless",
+                        ClientAsync.NODE_TYPE_SIMULATED_THYMIO2: "Simulated Thymio II",
+                        ClientAsync.NODE_TYPE_DUMMY_NODE: "Dummy node",
+                        ClientAsync.NODE_TYPE_UNKNOWN_TYPE: "Unknown type",
+                    }[node.props["type"]]
+                    print(f"type:     {node.props['type']} ({type_str})")
+                except KeyError:
+                    pass
             if "name" in node.props:
                 print(f"name:     {node.props['name']}")
             if "status" in node.props:
