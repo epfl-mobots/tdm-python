@@ -7,6 +7,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Added
 
 - Tool `info` to display the variables, events and native functions of a robot.
+- Existence of a variable in a node can be tested with `in` or `not in`.
 
 ### Fixed
 

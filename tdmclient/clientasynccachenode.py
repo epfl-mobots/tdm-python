@@ -71,6 +71,9 @@ class ClientAsyncCacheNode(ClientAsyncNode):
 
         self.add_variables_changed_listener(on_variables_changed)
 
+    def __contains__(self, key):
+        return key in self.var
+
     def __getitem__(self, key):
         v = self.var[key]
         if len(v) == 1:

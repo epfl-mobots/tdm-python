@@ -295,3 +295,12 @@ Node array variable leds.top[3]
 {'leds.top': [32, 0, 0]}
 >>> node.flush()  # robot turns red
 ```
+
+You can also wait until all the variables have been received by calling `wait_for_variables()` without argument. The `in` and `not in` operators test the existence of a variable.
+```
+>>> client.aw(node.wait_for_variables())
+>>> "temperature" in node
+True
+>>> "light" not in node
+True
+```
