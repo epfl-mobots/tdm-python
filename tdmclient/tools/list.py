@@ -31,6 +31,30 @@ Options:
 """)
 
 
+def get_product_id(node):
+    """Get as a 2-element tuple the product id (value of variable "_productId")
+    as a number and its meaning as a string, or None if not available or unknown
+    """
+    product_id = None
+    ClientAsync.aw(node.wait_for_variables())
+    if "_productId" in node:
+        product_id = node["_productId"]
+        d = {
+            0: "undefined",
+            1: "aseba challenge",
+            2: "playground e-puck",
+            3: "marxbot",
+            4: "handbot",
+            5: "e-puck",
+            6: "Smartrob",
+            7: "Smartrob ASL",
+            8: "Thymio II",
+        }
+        return product_id, d[product_id] if product_id in d else None
+    else:
+        return None, None
+
+
 def main(argv=None, tdm_transport=None):
     debug = 0
     zeroconf = False
@@ -99,9 +123,9 @@ def main(argv=None, tdm_transport=None):
 
         for node in client.filter_nodes(client.nodes,
                                         node_id=robot_id, node_name=robot_name):
-            print(f"id:       {node.id_str}")
+            print(f"id:         {node.id_str}")
             if "group_id_str" in node.props and node.props["group_id_str"] is not None:
-                print(f"group id: {node.props['group_id_str']}")
+                print(f"group id:   {node.props['group_id_str']}")
             if "type" in node.props:
                 try:
                     type_str = {
@@ -111,11 +135,16 @@ def main(argv=None, tdm_transport=None):
                         ClientAsync.NODE_TYPE_DUMMY_NODE: "Dummy node",
                         ClientAsync.NODE_TYPE_UNKNOWN_TYPE: "Unknown type",
                     }[node.props["type"]]
-                    print(f"type:     {node.props['type']} ({type_str})")
+                    print(f"type:       {node.props['type']} ({type_str})")
                 except KeyError:
                     pass
+            product_id, product_name = get_product_id(node)
+            if product_name is not None:
+                print(f"product id: {product_id} ({product_name})")
+            else:
+                print(f"product id: {product_id}")
             if "name" in node.props:
-                print(f"name:     {node.props['name']}")
+                print(f"name:       {node.props['name']}")
             if "status" in node.props:
                 status_str = {
                     ClientAsync.NODE_STATUS_UNKNOWN: "unknown",
@@ -125,9 +154,9 @@ def main(argv=None, tdm_transport=None):
                     ClientAsync.NODE_STATUS_READY: "ready",
                     ClientAsync.NODE_STATUS_DISCONNECTED: "disconnected",
                 }[node.status]
-                print(f"status:   {node.status} ({status_str})")
+                print(f"status:     {node.status} ({status_str})")
             if "capabilities" in node.props:
-                print(f"cap:      {node.props['capabilities']}")
+                print(f"cap:        {node.props['capabilities']}")
             if "fw_version" in node.props:
-                print(f"firmware: {node.props['fw_version']}")
+                print(f"firmware:   {node.props['fw_version']}")
             print()
