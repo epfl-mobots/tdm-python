@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- In transpiler, empty lists are now reported as unsupported instead of an obscure exception.
+
 ### Added
 
 - Tool `info` to display the variables, events and native functions of a robot.
@@ -12,7 +16,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ### Fixed
 
-- Variable size returned in node description
+- Variable size returned in node description.
 
 ## [0.1.19] - 2022-09-26
 

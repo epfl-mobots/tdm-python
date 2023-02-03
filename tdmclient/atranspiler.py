@@ -575,7 +575,9 @@ class ATranspiler:
         priority = self.PRI_HIGH
         is_boolean = False
 
-        if context.list_length(node) is not None:
+        if context.list_length(node) == 0:
+            raise TranspilerError("empty list not supported", node)
+        elif context.list_length(node) is not None:
             if priority_container > self.PRI_ASSIGN:
                 raise TranspilerError("list not supported in expression", node)
             for el in context.list_elements(node):
