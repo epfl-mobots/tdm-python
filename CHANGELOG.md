@@ -9,6 +9,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 - In transpiler:
     - Empty lists are now reported as unsupported instead of an obscure exception.
     - Variable `prox_ground_ambient` was mapped to Thymio variable `prox.ground.ambient` which is misspelled in the robot firmware as `prox.ground.ambiant`; transpiled code was rejected by the Aseba compiler. Now both `prox_ground_ambient` and `prox_ground_ambiant` are mapped to `prox.ground.ambiant` to suit both new Python documentation with a correct spelling and programmers using Aseba documentation.
+    - Deque functions are prefixed with `nf_` to be consistent with other native functions and with the documentation.
 
 ### Added
 

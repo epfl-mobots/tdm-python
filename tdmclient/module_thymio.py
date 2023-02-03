@@ -376,49 +376,49 @@ class ModuleThymio(Module):
         # def _rf_setup(context, args):
         #     return None, f"call _rf.setup({args[0]}, {args[1]})\n"
 
-        @AFunction.define(self.functions, "deque_size", [True], 1)
+        @AFunction.define(self.functions, "nf_deque_size", [True], 1)
         def _deque_size(context, args):
             tmp_offset = context.request_tmp_expr()
             var_str = context.tmp_var_str(tmp_offset)
             return [var_str], f"""call deque.size({args[0]}, {var_str})
 """
 
-        @AFunction.define(self.functions, "deque_push_front", [True, True])
+        @AFunction.define(self.functions, "nf_deque_push_front", [True, True])
         def _deque_push_front(context, args):
             return None, f"""call deque.push_front({args[0]}, {args[1]})
 """
 
-        @AFunction.define(self.functions, "deque_push_back", [True, True])
+        @AFunction.define(self.functions, "nf_deque_push_back", [True, True])
         def _deque_push_back(context, args):
             return None, f"""call deque.push_back({args[0]}, {args[1]})
 """
 
-        @AFunction.define(self.functions, "deque_pop_front", [True, True])
+        @AFunction.define(self.functions, "nf_deque_pop_front", [True, True])
         def _deque_pop_front(context, args):
             return None, f"""call deque.pop_front({args[0]}, {args[1]})
 """
 
-        @AFunction.define(self.functions, "deque_pop_back", [True, True])
+        @AFunction.define(self.functions, "nf_deque_pop_back", [True, True])
         def _deque_pop_back(context, args):
             return None, f"""call deque.pop_back({args[0]}, {args[1]})
 """
 
-        @AFunction.define(self.functions, "deque_get", [True, True, False])
+        @AFunction.define(self.functions, "nf_deque_get", [True, True, False])
         def _deque_get(context, args):
             return None, f"""call deque.get({args[0]}, {args[1]}, {args[2]})
 """
 
-        @AFunction.define(self.functions, "deque_set", [True, True, False])
+        @AFunction.define(self.functions, "nf_deque_set", [True, True, False])
         def _deque_set(context, args):
             return None, f"""call deque.set({args[0]}, {args[1]}, {args[2]})
 """
 
-        @AFunction.define(self.functions, "deque_insert", [True, True, False])
+        @AFunction.define(self.functions, "nf_deque_insert", [True, True, False])
         def _deque_insert(context, args):
             return None, f"""call deque.insert({args[0]}, {args[1]}, {args[2]})
 """
 
-        @AFunction.define(self.functions, "deque_erase", [True, False, False])
+        @AFunction.define(self.functions, "nf_deque_erase", [True, False, False])
         def _deque_erase(context, args):
             return None, f"""call deque.erase({args[0]}, {args[1]}, {args[2]})
 """
