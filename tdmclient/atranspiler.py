@@ -1038,12 +1038,13 @@ end
                     if event_name is None:
                         raise TranspilerError("bad event name in emit", node)
                     event_size = len(expr.args) - 1
-                    if event_name in self.events_out:
-                        if event_size != self.events_out[event_name]:
+                    event_name_dotted = fun_name.replace("_", ".")
+                    if event_name_dotted in self.events_out:
+                        if event_size != self.events_out[event_name_dotted]:
                             raise TranspilerError(f"inconsistent size for event '{event_name}'", node)
                     else:
-                        self.events_out[event_name] = event_size
-                    code = f"emit {event_name}"
+                        self.events_out[event_name_dotted] = event_size
+                    code = f"emit {event_name_dotted}"
                     aux_statements = ""
                     if len(expr.args) > 1:
                         for i in range(event_size):
@@ -1319,7 +1320,7 @@ return
             function = self.context_top.functions[fun_name]
             fun_output_src = self.compile_node_array(function.function_def.body, function)
             if function.is_onevent:
-                self.events_in[fun_name] = len(function.function_def.args.args)
+                self.events_in[fun_name.replace("_", ".")] = len(function.function_def.args.args)
                 function_src += f"""
 onevent {fun_name.replace("_", ".")}
 """
