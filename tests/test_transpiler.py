@@ -734,6 +734,32 @@ def buttons():
             emit="buttons"
         )
 
+    def test_onevent_fun1(self):
+        self.assert_transpiled_code_result(
+            """
+a = 123
+def buttons():
+    global a
+    a = 45
+onevent(buttons)
+""",
+            lambda getter: getter("a") == [45],
+            emit="buttons"
+        )
+
+    def test_onevent_fun2(self):
+        self.assert_transpiled_code_result(
+            """
+a = 123
+def fun():
+    global a
+    a = 45
+onevent(fun, "buttons")
+""",
+            lambda getter: getter("a") == [45],
+            emit="buttons"
+        )
+
     def test_exit(self):
         self.assert_transpiled_code_result(
             """
