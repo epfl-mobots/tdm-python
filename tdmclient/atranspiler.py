@@ -41,7 +41,7 @@ class Context:
     """Global or function context.
     """
 
-    def __init__(self, parent_context=None, function_name=None, function_def=None, is_onevent=False):
+    def __init__(self, parent_context=None, function_name=None, function_def=None, onevent=None):
         # reference to base context for functions or None for base context itself
         self.parent_context = parent_context
 
@@ -51,8 +51,8 @@ class Context:
         # ast.FunctionDef node for function
         self.function_def = function_def
 
-        # whether it's an event handler (decorator @onevent)
-        self.is_onevent = is_onevent
+        # if it's an event handler, handler name (decorator @onevent)
+        self.onevent = onevent
 
         # size of local variables
         self.var = {}
@@ -439,6 +439,7 @@ class ATranspiler:
     PREDEFINED_FUNCTIONS = {
         "emit",
         "exit",
+        "onevent",
         "print",
     }
 
@@ -533,7 +534,8 @@ class ATranspiler:
                     raise TranspilerError(f"unsupported varargs in arguments of '{node.name}'", ast_node=node)
                 if node.args.kwarg is not None:
                     raise TranspilerError(f"unsupported kwargs in arguments of '{node.name}'", ast_node=node)
-                parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node, is_onevent=is_onevent)
+                parent_context.functions[node.name] = Context(parent_context=parent_context, function_name=node.name, function_def=node,
+                                                              onevent=node.name if is_onevent else None)
             else:
                 top_code.append(node)
 
@@ -1066,6 +1068,29 @@ end
                         code = "emit _exit 0\n"
                     self.has_exit_event = True
                     return code
+                elif fun_name == "onevent":
+                    # onevent(fun) as function call instead of decorator
+                    if len(expr.args) == 0:
+                        raise TranspilerError("too few arguments in onevent", node)
+                    elif len(expr.args) > 2:
+                        raise TranspilerError("too many arguments in onevent", node)
+                    elif not isinstance(expr.args[0], ast.Name):
+                        raise TranspilerError("bad type for first argument of onevent", node)
+                    # get function name
+                    fun_name = expr.args[0].id
+                    if fun_name not in context.functions:
+                        raise TranspilerError(f"unknown function '{fun_name}' in onevent", node)
+                    event_name = fun_name
+                    # get event_name as 2nd arg string if provided
+                    if len(expr.args) == 2:
+                        if isinstance(expr.args[1], ast.Constant) and isinstance(expr.args[1].value, str):
+                            event_name = expr.args[1].value
+                        elif isinstance(expr.args[1], ast.Str):
+                            event_name = expr.args[1].s
+                        else:
+                            raise TranspilerError("bad type for second argument of onevent", node)
+                    context.functions[fun_name].onevent = event_name
+                    return ""
                 elif fun_name == "print":
                     # hard-coded print(args...) -> "emit _print [print_id, non_string_args...]"
                     print_format_string = ""
@@ -1237,7 +1262,7 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
         if isinstance(node, ast.Return):
             if context.parent_context is None:
                 raise TranspilerError("return outside function", node)
-            if context.is_onevent and node.value is not None:
+            if context.onevent is not None and node.value is not None:
                 raise TranspilerError(f"returned value in @onevent function '{context.function_name}'", node)
             if context.has_return_val is None:
                 context.has_return_val = node.value is not None
@@ -1319,10 +1344,10 @@ return
         for fun_name in self.context_top.functions:
             function = self.context_top.functions[fun_name]
             fun_output_src = self.compile_node_array(function.function_def.body, function)
-            if function.is_onevent:
+            if function.onevent is not None:
                 self.events_in[fun_name.replace("_", ".")] = len(function.function_def.args.args)
                 function_src += f"""
-onevent {fun_name.replace("_", ".")}
+onevent {function.onevent.replace("_", ".")}
 """
                 if fun_name in self.onevent_preamble:
                     function_src += "".join(self.onevent_preamble[fun_name])

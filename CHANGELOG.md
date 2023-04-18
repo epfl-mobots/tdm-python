@@ -17,7 +17,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 - Tool `info` to display the variables, events and native functions of a robot.
 - Existence of a variable in a node can be tested with `in` or `not in`.
-- In tool `list`, the product id (content of the node variable `_productId`) is displayed if it's available, with its meaning if it's known. 
+- In tool `list`, the product id (content of the node variable `_productId`) is displayed if it's available, with its meaning if it's known.
+- In transpiler, as an alternative to the `onevent` decorator, functions can be declared as event handlers by calling `onevent` as a function. For example instead of `@onevent` `def timer0(): ...`; `def timer0(): ...` `onevent(timer0)` or `def task(): ...` `onevent(task, "timer0")`.
 
 ### Fixed
 
