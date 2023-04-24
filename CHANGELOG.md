@@ -4,14 +4,7 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
-### Fixed
-
-- In transpiler:
-    - Empty lists are now reported as unsupported instead of an obscure exception.
-    - Variable `prox_ground_ambient` was mapped to Thymio variable `prox.ground.ambient` which is misspelled in the robot firmware as `prox.ground.ambiant`; transpiled code was rejected by the Aseba compiler. Now both `prox_ground_ambient` and `prox_ground_ambiant` are mapped to `prox.ground.ambiant` to suit both new Python documentation with a correct spelling and programmers using Aseba documentation.
-    - Deque functions are prefixed with `nf_` to be consistent with other native functions and with the documentation.
-    - Typo in the name of variables `event.*`.
-    - In user-defined event names in `@onevent def` and `emit`, underscore characters are replaced with dots. These events are now consistant with the automatic definitions of `run`.
+## [0.1.20] - 2023-04-24
 
 ### Added
 
@@ -38,6 +31,12 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 ### Fixed
 
 - Variable size returned in node description.
+- In transpiler:
+    - Empty lists are now reported as unsupported instead of an obscure exception.
+    - Variable `prox_ground_ambient` was mapped to Thymio variable `prox.ground.ambient` which is misspelled in the robot firmware as `prox.ground.ambiant`; transpiled code was rejected by the Aseba compiler. Now both `prox_ground_ambient` and `prox_ground_ambiant` are mapped to `prox.ground.ambiant` to suit both new Python documentation with a correct spelling and programmers using Aseba documentation.
+    - Deque functions are prefixed with `nf_` to be consistent with other native functions and with the documentation.
+    - Typo in the name of variables `event.*`.
+    - In user-defined event names in `@onevent def` and `emit`, underscore characters are replaced with dots. These events are now consistant with the automatic definitions of `run`.
 
 ## [0.1.19] - 2022-09-26
 

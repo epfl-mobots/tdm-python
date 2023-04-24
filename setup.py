@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2023 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -22,7 +22,7 @@ for filename in [
 
 setup(
     name="tdmclient",
-    version="0.1.19",
+    version="0.1.20",
     author="Yves Piguet",
     packages=["tdmclient", "tdmclient.tools", "tdmclient.notebook", ],
     description="Communication with Thymio II robot via the Thymio Device Manager",
