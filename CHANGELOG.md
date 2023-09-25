@@ -4,6 +4,10 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+### Fixed
+
+- In transpiler, event name fixed in code generated for `emit`
+
 ## [0.1.20] - 2023-04-24
 
 ### Added

@@ -1040,7 +1040,7 @@ end
                     if event_name is None:
                         raise TranspilerError("bad event name in emit", node)
                     event_size = len(expr.args) - 1
-                    event_name_dotted = fun_name.replace("_", ".")
+                    event_name_dotted = event_name.replace("_", ".")
                     if event_name_dotted in self.events_out:
                         if event_size != self.events_out[event_name_dotted]:
                             raise TranspilerError(f"inconsistent size for event '{event_name}'", node)
