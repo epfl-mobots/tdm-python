@@ -4,6 +4,8 @@ Notable changes of tdmclient. Release versions refer to [https://pypi.org/projec
 
 ## [Unreleased]
 
+- In transpiler, value from `return` statement nested in `for` loop fixed
+
 ## [0.1.21] - 2023-09-25
 
 ### Fixed

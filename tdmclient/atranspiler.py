@@ -1,5 +1,5 @@
 # This file is part of tdmclient.
-# Copyright 2021-2022 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
+# Copyright 2021-2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE,
 # Miniature Mobile Robots group, Switzerland
 # Author: Yves Piguet
 #
@@ -131,6 +131,12 @@ class Context:
         # _tmp is always local to avoid interference with caller's
         name = "_tmp" if self.function_name is None else f"_{self.function_name}__tmp"
         return f"{name}[{index}]"
+
+    def ret_var_str(self):
+        """Return the name of the variable used to hold the return value.
+        """
+        # _ret is always local to avoid interference in nested calls
+        return f"_{self.function_name}__ret"
 
     def add_module(self, module_name, module, symbols=None):
         if symbols is None:
@@ -270,6 +276,11 @@ class Context:
         expression.
         """
         self.tmp_req_current_expr = self.tmp_req_stmt
+
+    def request_ret_expr(self):
+        """Declare a variable for the return value.
+        """
+        self.var["_ret"] = None
 
     def freeze_return_type(self):
         """Freeze the return type (void if no return statement).
@@ -674,7 +685,7 @@ end
 """
                 if function_def.has_return_val:
                     tmp_offset = context.request_tmp_expr()
-                    aux_statements += f"""{context.tmp_var_str(tmp_offset)} = {function_def.tmp_var_str(0)}
+                    aux_statements += f"""{context.tmp_var_str(tmp_offset)} = {function_def.ret_var_str()}
 """
                     code = context.tmp_var_str(tmp_offset)
                 elif function_def.has_return_val == False:
@@ -1269,10 +1280,10 @@ while {target_str} * {context.tmp_var_str(tmp_offset + 1)} < {context.tmp_var_st
             elif context.has_return_val != (node.value is not None):
                 raise TranspilerError(f"inconsistent return values in function '{context.function_name}'", node)
             if node.value is not None:
-                tmp_offset = context.request_tmp_expr()
+                context.request_ret_expr()
                 ret_value, aux_statements, _ = self.compile_expr(node.value, context, self.PRI_NUMERIC)
                 code += aux_statements
-                code += f"""{context.tmp_var_str(tmp_offset)} = {ret_value}
+                code += f"""{context.ret_var_str()} = {ret_value}
 return
 """
             else:
