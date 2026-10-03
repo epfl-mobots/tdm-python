@@ -326,7 +326,7 @@ class Context:
         """
         if isinstance(node, ast.Constant) and isinstance(node.value, int):
             return node.value
-        elif isinstance(node, ast.Num):  # 3.6
+        elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # 3.6
             return node.n
         elif isinstance(node, ast.Call) and ATranspiler.decode_attr(node.func) == "len":
             if len(node.args) != 1:
@@ -602,7 +602,11 @@ class ATranspiler:
                     code += ", " + el_code
             code += "]"
             return code, aux_statements, False
-        elif isinstance(node, ast.Num):
+        elif (hasattr(ast, "Constant")
+              and isinstance(node, ast.Constant)
+              and isinstance(node.value, (bool, int))):
+            code = f"{int(node.value):d}"
+        elif hasattr(ast, "Num") and isinstance(node, ast.Num):
             code = f"{node.n:d}"
         elif isinstance(node, ast.BinOp):
             try:
@@ -783,7 +787,8 @@ if {context.tmp_var_str(tmp_offset + 1)} {op_str[type(node.ops[i])]} {context.tm
                     aux_statements += """end
 """
                 code = context.tmp_var_str(tmp_offset)
-        elif isinstance(node, (ast.Constant, ast.NameConstant)):
+        elif (isinstance(node, ast.Constant)
+              or (hasattr(ast, "NameConstant") and isinstance(node, ast.NameConstant))):
             if node.value is False:
                 code = "0"
             elif node.value is True:
@@ -1024,11 +1029,14 @@ end
         if isinstance(node, ast.Expr):
             # plain expression without assignment
             expr = node.value
-            # hard-coded ... (ellipsis, alias of None, synonym of pass)
-            if isinstance(expr, ast.Ellipsis):
+            # hard-coded constants, such as ellipsis or strings used for documentation
+            if isinstance(expr, ast.Constant):
                 return ""
-            # hard-coded constants, such as strings used for documentation
-            if isinstance(expr, (ast.Constant, ast.Str)):
+            # pre-3.8 hard-coded ... (ellipsis, alias of None, synonym of pass)
+            if hasattr(ast, "Ellipsis") and isinstance(expr, ast.Ellipsis):
+                return ""
+            # pre-3.8 strings used for documentation
+            if hasattr(ast, "Str") and isinstance(expr, ast.Str):
                 return ""
             # special functions
             if isinstance(expr, ast.Call):
@@ -1111,7 +1119,7 @@ end
                     for i, arg in enumerate(expr.args):
                         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                             print_format_string += (" " if i > 0 else "") + arg.value.replace("%", "%%")
-                        elif isinstance(arg, ast.Str):
+                        elif hasattr(ast, "Str") and isinstance(arg, ast.Str):
                             print_format_string += (" " if i > 0 else "") + arg.s.replace("%", "%%")
                         else:
                             value, aux_st, _ = self.compile_expr(arg, context, self.PRI_NUMERIC)
