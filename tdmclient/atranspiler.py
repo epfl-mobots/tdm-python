@@ -1054,7 +1054,7 @@ end
                     if len(expr.args) >= 1:
                         if isinstance(expr.args[0], ast.Constant) and isinstance(expr.args[0].value, str):
                             event_name = expr.args[0].value
-                        elif isinstance(expr.args[0], ast.Str):
+                        elif hasattr(ast, "Str") and isinstance(expr.args[0], ast.Str):
                             event_name = expr.args[0].s
                     if event_name is None:
                         raise TranspilerError("bad event name in emit", node)
@@ -1104,7 +1104,7 @@ end
                     if len(expr.args) == 2:
                         if isinstance(expr.args[1], ast.Constant) and isinstance(expr.args[1].value, str):
                             event_name = expr.args[1].value
-                        elif isinstance(expr.args[1], ast.Str):
+                        elif hasattr(ast, "Str") and isinstance(expr.args[1], ast.Str):
                             event_name = expr.args[1].s
                         else:
                             raise TranspilerError("bad type for second argument of onevent", node)
